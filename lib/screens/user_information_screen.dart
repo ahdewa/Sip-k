@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:simodis_jatim/models/user_model.dart';
 import 'package:simodis_jatim/screens/edit_profile_screen.dart';
+import 'package:simodis_jatim/services/api_service.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
 import 'package:simodis_jatim/widgets/app_image.dart';
 
@@ -64,6 +65,7 @@ class _UserInformationScreenState extends State<UserInformationScreen> {
     if (updated != null && mounted) {
       setState(() => _currentProfile = updated);
       widget.onProfileUpdated?.call(updated);
+      await ApiService.updateProfile(updated);
     }
   }
 

@@ -11,7 +11,7 @@ class Vehicle {
   final VehicleType type;
   final int capacity;
   final String transmission;
-  final int currentOdometer;
+  int currentOdometer;
   final int fuelPercent; // 0 - 100
   final String fuelType; // Pertalite, Pertamax, Dexlite, Solar
   final String conditionNote;

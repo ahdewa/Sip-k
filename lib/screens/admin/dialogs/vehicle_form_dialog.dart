@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:simodis_jatim/models/vehicle_model.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
+import 'package:simodis_jatim/widgets/app_image.dart';
 
 class VehicleFormDialog {
   static InputDecoration _inputDecoration([bool isDark = false]) {
@@ -328,13 +330,140 @@ class VehicleFormDialog {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-
-                    _buildFormInput(
-                      imgUrlCtrl,
-                      'URL Gambar Armada',
-                      'https://...',
-                      isDark: isDark,
+                    // UPLOAD / GANTI FOTO ARMADA
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Foto Armada Kendaraan',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  width: 80,
+                                  height: 64,
+                                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                                  child: AppImage(
+                                    source: imgUrlCtrl.text.trim().isNotEmpty
+                                        ? imgUrlCtrl.text.trim()
+                                        : 'assets/images/logo_sipk.png',
+                                    fit: BoxFit.cover,
+                                    placeholder: Center(
+                                      child: Icon(
+                                        selectedType == VehicleType.mobil
+                                            ? Icons.directions_car
+                                            : Icons.two_wheeler,
+                                        color: const Color(0xFF94A3B8),
+                                        size: 32,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: () async {
+                                        try {
+                                          final picker = ImagePicker();
+                                          final picked = await picker.pickImage(
+                                            source: ImageSource.gallery,
+                                            maxWidth: 800,
+                                            maxHeight: 800,
+                                            imageQuality: 80,
+                                          );
+                                          if (picked == null) return;
+                                          final bytes = await picked.readAsBytes();
+                                          final uri = imageDataUri(picked.name, bytes);
+                                          setModalState(() {
+                                            imgUrlCtrl.text = uri;
+                                          });
+                                        } catch (e) {
+                                          debugPrint('Gagal memilih foto: $e');
+                                        }
+                                      },
+                                      icon: const Icon(Icons.photo_library_outlined, size: 16),
+                                      label: const Text(
+                                        'Pilih / Ganti Foto',
+                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF2563EB),
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Klik untuk memilih gambar dari galeri / file komputer Anda.',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: imgUrlCtrl,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? Colors.white : Colors.black,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Atau Masukkan URL / Path Gambar Langsung',
+                            labelStyle: TextStyle(
+                              fontSize: 11,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                            ),
+                            hintText: 'https://... atau assets/...',
+                            filled: true,
+                            fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                          ),
+                          onChanged: (_) => setModalState(() {}),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 10),
                     _buildFormInput(

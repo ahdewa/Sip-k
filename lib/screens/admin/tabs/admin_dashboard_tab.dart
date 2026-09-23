@@ -34,6 +34,7 @@ class AdminDashboardTab extends StatelessWidget {
     final dividerColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
 
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -9,12 +9,14 @@ class CatalogScreen extends StatefulWidget {
   final List<Vehicle> vehicles;
   final Function(Vehicle) onSelectVehicle;
   final Function(int)? onNavigateTab;
+  final Future<void> Function()? onRefresh;
 
   const CatalogScreen({
     super.key,
     required this.vehicles,
     required this.onSelectVehicle,
     this.onNavigateTab,
+    this.onRefresh,
   });
 
   @override
@@ -362,7 +364,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
               color: const Color(0xFF24487A),
               backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
               onRefresh: () async {
-                await Future.delayed(const Duration(milliseconds: 750));
+                if (widget.onRefresh != null) {
+                  await widget.onRefresh!();
+                } else {
+                  await Future.delayed(const Duration(milliseconds: 750));
+                }
                 if (mounted) setState(() {});
               },
               child: filteredList.isEmpty

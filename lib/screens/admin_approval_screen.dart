@@ -15,12 +15,14 @@ import 'package:simodis_jatim/screens/admin/widgets/admin_sidebar.dart';
 import 'package:simodis_jatim/screens/login_screen.dart';
 import 'package:simodis_jatim/screens/notification_screen.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
+import 'package:simodis_jatim/services/api_service.dart';
 
 class AdminApprovalScreen extends StatefulWidget {
   final List<LoanRequest> requests;
   final Function(LoanRequest, bool) onVerify;
   final Function(LoanRequest, int, String, String) onReturn;
   final AppUser? currentUser;
+  final bool? isSuperAdmin;
   final List<AppUser>? users;
   final Function(AppUser)? onAddUser;
   final Function(AppUser)? onUpdateUser;
@@ -33,6 +35,7 @@ class AdminApprovalScreen extends StatefulWidget {
 
   final List<AppNotification>? notifications;
   final VoidCallback? onLogout;
+  final Future<void> Function()? onRefresh;
 
   const AdminApprovalScreen({
     super.key,
@@ -40,6 +43,7 @@ class AdminApprovalScreen extends StatefulWidget {
     required this.onVerify,
     required this.onReturn,
     this.currentUser,
+    this.isSuperAdmin,
     this.users,
     this.onAddUser,
     this.onUpdateUser,
@@ -50,6 +54,7 @@ class AdminApprovalScreen extends StatefulWidget {
     this.onDeleteVehicle,
     this.notifications,
     this.onLogout,
+    this.onRefresh,
   });
 
   @override
@@ -59,23 +64,49 @@ class AdminApprovalScreen extends StatefulWidget {
 class _AdminApprovalScreenState extends State<AdminApprovalScreen>
     with SingleTickerProviderStateMixin {
   late TabController _mainTabController;
+  int _selectedTabIndex = 0;
   bool _isSidebarExpanded = true;
   late List<AppNotification> _notifications;
   final LayerLink _notifLayerLink = LayerLink();
   OverlayEntry? _notifOverlayEntry;
 
-  bool get _isSuperAdmin => widget.currentUser?.isSuperAdmin ?? false;
+  bool get _isSuperAdmin =>
+      widget.isSuperAdmin ??
+      (widget.currentUser?.isSuperAdmin ??
+          (widget.currentUser?.role == UserRole.superadmin));
   int get _unreadCount => _notifications.where((n) => !n.isRead).length;
+
+  Widget _wrapWithRefresh(Widget child) {
+    return RefreshIndicator(
+      color: const Color(0xFF24487A),
+      backgroundColor:
+          ThemeService.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+      onRefresh: () async {
+        if (widget.onRefresh != null) {
+          await widget.onRefresh!();
+        } else {
+          await Future.delayed(const Duration(milliseconds: 750));
+        }
+        if (mounted) setState(() {});
+      },
+      child: child,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     _mainTabController = TabController(
-      length: _isSuperAdmin ? 8 : 5,
+      length: 8,
       vsync: this,
     );
     _mainTabController.addListener(() {
-      if (mounted) setState(() {});
+      if (_mainTabController.indexIsChanging) return;
+      if (_selectedTabIndex != _mainTabController.index && mounted) {
+        setState(() {
+          _selectedTabIndex = _mainTabController.index;
+        });
+      }
     });
 
     _notifications = widget.notifications != null
@@ -168,6 +199,72 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
               isRead: true,
             ),
           ];
+
+    _syncPendingLoanNotifications();
+    _fetchNotificationsFromApi();
+  }
+
+  @override
+  void didUpdateWidget(covariant AdminApprovalScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.notifications != null && widget.notifications != oldWidget.notifications) {
+      setState(() {
+        _notifications = List.from(widget.notifications!);
+      });
+    }
+    _syncPendingLoanNotifications();
+  }
+
+  void _syncPendingLoanNotifications() {
+    // Pastikan setiap permohonan yang berstatus menunggu verifikasi memiliki notifikasi di antrean
+    final waitingRequests = widget.requests.where((r) =>
+        r.status == LoanStatus.menunggu || r.status == LoanStatus.pending);
+
+    for (final req in waitingRequests) {
+      final exists = _notifications.any((n) =>
+          n.referenceNumber == req.id ||
+          (n.title.contains('Permohonan Masuk') && n.message.contains(req.borrowerName)));
+
+      if (!exists) {
+        _notifications.insert(
+          0,
+          AppNotification(
+            id: 'REQ-NOTIF-${req.id}',
+            title: 'Permohonan Masuk: Perlu Verifikasi',
+            message:
+                '${req.borrowerName} (${req.department}) mengajukan permohonan ${req.vehicleName} tujuan ${req.destination}.',
+            time: 'Baru saja',
+            fullDate:
+                '${req.submittedAt.day.toString().padLeft(2, '0')}/${req.submittedAt.month.toString().padLeft(2, '0')}/${req.submittedAt.year}',
+            createdAt: req.submittedAt,
+            detailContent:
+                'Permohonan dinas unit ${req.vehicleName} masuk ke antrean verifikasi Kasubag. Dokumen Nota Dinas: ${req.officialNoteNumber.isNotEmpty ? req.officialNoteNumber : "Diproses saat SPK"}.',
+            referenceNumber: req.id,
+            type: NotificationType.submitted,
+            isRead: false,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _fetchNotificationsFromApi() async {
+    try {
+      final fresh = await ApiService.fetchNotifications(
+        role: _isSuperAdmin ? 'superadmin' : 'admin',
+      );
+      if (fresh != null && fresh.isNotEmpty && mounted) {
+        setState(() {
+          _notifications = fresh;
+        });
+      }
+    } catch (_) {}
+    if (mounted) {
+      setState(() {
+        _syncPendingLoanNotifications();
+      });
+    }
   }
 
   @override
@@ -252,7 +349,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
         final isDark = mode == ThemeMode.dark;
         return Material(
           elevation: 16,
-          shadowColor: Colors.black.withOpacity(0.25),
+          shadowColor: Colors.black.withValues(alpha: 0.25),
           borderRadius: BorderRadius.circular(16),
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
           child: Container(
@@ -279,10 +376,10 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                         decoration: BoxDecoration(
                           color: _isSuperAdmin
                               ? (isDark
-                                  ? const Color(0xFF78350F).withOpacity(0.5)
+                                  ? const Color(0xFF78350F).withValues(alpha: 0.5)
                                   : const Color(0xFFFEF3C7))
                               : (isDark
-                                  ? const Color(0xFF1E3A8A).withOpacity(0.5)
+                                  ? const Color(0xFF1E3A8A).withValues(alpha: 0.5)
                                   : const Color(0xFFEFF6FF)),
                           shape: BoxShape.circle,
                         ),
@@ -336,6 +433,9 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                               }
                             });
                             _notifOverlayEntry?.markNeedsBuild();
+                            ApiService.markAllNotificationsRead(
+                              role: _isSuperAdmin ? 'superadmin' : 'admin',
+                            );
                           },
                           borderRadius: BorderRadius.circular(6),
                           child: Padding(
@@ -405,7 +505,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                             height: 1,
                             thickness: 0.8,
                             color: isDark
-                                ? const Color(0xFF334155).withOpacity(0.5)
+                                ? const Color(0xFF334155).withValues(alpha: 0.5)
                                 : const Color(0xFFF1F5F9),
                           ),
                           itemBuilder: (context, index) {
@@ -476,42 +576,42 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
       case NotificationType.submitted:
         iconColor = const Color(0xFF2563EB);
         iconBg = isDark
-            ? const Color(0xFF1E3A8A).withOpacity(0.3)
+            ? const Color(0xFF1E3A8A).withValues(alpha: 0.3)
             : const Color(0xFFEFF6FF);
         iconData = Icons.assignment_outlined;
         break;
       case NotificationType.maintenance:
         iconColor = const Color(0xFFD97706);
         iconBg = isDark
-            ? const Color(0xFF78350F).withOpacity(0.3)
+            ? const Color(0xFF78350F).withValues(alpha: 0.3)
             : const Color(0xFFFEF3C7);
         iconData = Icons.build_circle_outlined;
         break;
       case NotificationType.approved:
         iconColor = const Color(0xFF16A34A);
         iconBg = isDark
-            ? const Color(0xFF14532D).withOpacity(0.3)
+            ? const Color(0xFF14532D).withValues(alpha: 0.3)
             : const Color(0xFFDCFCE7);
         iconData = Icons.assignment_turned_in_outlined;
         break;
       case NotificationType.rejected:
         iconColor = const Color(0xFFDC2626);
         iconBg = isDark
-            ? const Color(0xFF7F1D1D).withOpacity(0.3)
+            ? const Color(0xFF7F1D1D).withValues(alpha: 0.3)
             : const Color(0xFFFEE2E2);
         iconData = Icons.cancel_outlined;
         break;
       case NotificationType.reminder:
         iconColor = const Color(0xFFEA580C);
         iconBg = isDark
-            ? const Color(0xFF7C2D12).withOpacity(0.3)
+            ? const Color(0xFF7C2D12).withValues(alpha: 0.3)
             : const Color(0xFFFFEDD5);
         iconData = Icons.warning_amber_rounded;
         break;
       case NotificationType.welcome:
         iconColor = const Color(0xFF6366F1);
         iconBg = isDark
-            ? const Color(0xFF312E81).withOpacity(0.3)
+            ? const Color(0xFF312E81).withValues(alpha: 0.3)
             : const Color(0xFFEEF2FF);
         iconData = Icons.person_add_alt_1_outlined;
         break;
@@ -522,19 +622,22 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
         setState(() {
           notif.isRead = true;
         });
+        ApiService.markNotificationRead(notif.id);
         _hideNotificationPopup();
 
         // Navigasi ke tab relevan jika ada
         if (notif.type == NotificationType.submitted) {
-          _mainTabController.animateTo(1); // Berkas Loan
+          _mainTabController.index = 1; // Berkas Loan
+          setState(() => _selectedTabIndex = 1);
         } else if (notif.type == NotificationType.maintenance) {
-          if (_isSuperAdmin) _mainTabController.animateTo(3); // Katalog Armada
-        } else if (notif.type == NotificationType.welcome) {
           if (_isSuperAdmin) {
-            _mainTabController.animateTo(5); // Kelola Pegawai
-          } else {
-            _mainTabController.animateTo(3); // Kelola Pegawai
+            _mainTabController.index = 3; // Katalog Armada
+            setState(() => _selectedTabIndex = 3);
           }
+        } else if (notif.type == NotificationType.welcome) {
+          final targetIdx = _isSuperAdmin ? 5 : 3; // Kelola Pegawai
+          _mainTabController.index = targetIdx;
+          setState(() => _selectedTabIndex = targetIdx);
         }
       },
       child: Container(
@@ -542,10 +645,10 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
         color: !notif.isRead
             ? (_isSuperAdmin
                 ? (isDark
-                    ? const Color(0xFF78350F).withOpacity(0.12)
+                    ? const Color(0xFF78350F).withValues(alpha: 0.12)
                     : const Color(0xFFFFFBEB))
                 : (isDark
-                    ? const Color(0xFF1E3A8A).withOpacity(0.12)
+                    ? const Color(0xFF1E3A8A).withValues(alpha: 0.12)
                     : const Color(0xFFF0F9FF)))
             : Colors.transparent,
         child: Row(
@@ -634,15 +737,24 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
       MaterialPageRoute(
         builder: (_) => NotificationScreen(
           notifications: _notifications,
+          isAdmin: true,
+          onRefresh: _fetchNotificationsFromApi,
+          onBack: () => Navigator.pop(context),
           onClearAll: () {
             setState(() {
               _notifications.clear();
             });
+            ApiService.markAllNotificationsRead(
+              role: _isSuperAdmin ? 'superadmin' : 'admin',
+            );
           },
         ),
       ),
     ).then((_) {
-      if (mounted) setState(() {});
+      if (mounted) {
+        _syncPendingLoanNotifications();
+        setState(() {});
+      }
     });
   }
 
@@ -846,7 +958,9 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                     tabController: _mainTabController,
                     isSuperAdmin: _isSuperAdmin,
                     currentUser: widget.currentUser,
-                    onTabSelected: () => setState(() {}),
+                    onTabSelected: () => setState(() {
+                      _selectedTabIndex = _mainTabController.index;
+                    }),
                     onLogout: _showLogoutDialog,
                   ),
                 )
@@ -868,8 +982,10 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                     onLogout: _showLogoutDialog,
                     onTabSelected: (index) {
                       _hideNotificationPopup();
-                      _mainTabController.animateTo(index);
-                      setState(() {});
+                      _mainTabController.index = index;
+                      setState(() {
+                        _selectedTabIndex = index;
+                      });
                     },
                   ),
 
@@ -963,6 +1079,47 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                             ),
                             const SizedBox(width: 8),
 
+                            // Refresh Button (Segarkan Data)
+                            IconButton(
+                              tooltip: 'Segarkan Halaman (Refresh)',
+                              onPressed: () async {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    behavior: SnackBarBehavior.floating,
+                                    margin: EdgeInsets.all(16),
+                                    duration: Duration(milliseconds: 900),
+                                    content: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        ),
+                                        SizedBox(width: 12),
+                                        Text('Memperbarui data dari database...'),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                                if (widget.onRefresh != null) {
+                                  await widget.onRefresh!();
+                                }
+                                await _fetchNotificationsFromApi();
+                                if (mounted) setState(() {});
+                              },
+                              icon: Icon(
+                                Icons.refresh_rounded,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1E293B),
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+
                           // 2. Notification Icon with Badge & Pop Up Dropdown
                           CompositedTransformTarget(
                             link: _notifLayerLink,
@@ -1015,7 +1172,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                                           if (_unreadCount > 0)
                                             BoxShadow(
                                               color: const Color(0xFFDC2626)
-                                                  .withOpacity(0.4),
+                                                  .withValues(alpha: 0.4),
                                               blurRadius: 4,
                                               offset: const Offset(0, 1),
                                             ),
@@ -1054,65 +1211,83 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
 
                     // Content Switcher
                     Expanded(
-                      child: TabBarView(
-                        controller: _mainTabController,
-                        physics: const NeverScrollableScrollPhysics(),
+                      child: IndexedStack(
+                        index: _selectedTabIndex.clamp(
+                          0,
+                          _isSuperAdmin ? 7 : 4,
+                        ),
                         children: [
-                          AdminDashboardTab(
-                            pendingCount: pendingCount,
-                            activeCount: activeCount,
-                            completedCount: completedCount,
-                            totalVehicles: allVehicles.length,
-                            requests: widget.requests,
-                            vehicles: allVehicles,
-                            onVerify: widget.onVerify,
+                          _wrapWithRefresh(
+                            AdminDashboardTab(
+                              pendingCount: pendingCount,
+                              activeCount: activeCount,
+                              completedCount: completedCount,
+                              totalVehicles: allVehicles.length,
+                              requests: widget.requests,
+                              vehicles: allVehicles,
+                              onVerify: widget.onVerify,
+                            ),
                           ),
-                          AdminLoansTab(
-                            requests: widget.requests,
-                            onVerify: widget.onVerify,
-                            onReturn: widget.onReturn,
+                          _wrapWithRefresh(
+                            AdminLoansTab(
+                              requests: widget.requests,
+                              onVerify: widget.onVerify,
+                              onReturn: widget.onReturn,
+                            ),
                           ),
-                          AdminCalendarTab(
-                            requests: widget.requests,
-                            vehicles: allVehicles,
+                          _wrapWithRefresh(
+                            AdminCalendarTab(
+                              requests: widget.requests,
+                              vehicles: allVehicles,
+                            ),
                           ),
                           if (_isSuperAdmin)
-                            AdminVehiclesTab(
-                              vehicles: allVehicles,
-                              onAddVehicle: widget.onAddVehicle,
-                              onUpdateVehicle: widget.onUpdateVehicle,
-                              onDeleteVehicle: widget.onDeleteVehicle,
+                            _wrapWithRefresh(
+                              AdminVehiclesTab(
+                                vehicles: allVehicles,
+                                onAddVehicle: widget.onAddVehicle,
+                                onUpdateVehicle: widget.onUpdateVehicle,
+                                onDeleteVehicle: widget.onDeleteVehicle,
+                              ),
                             ),
                           if (_isSuperAdmin)
+                            _wrapWithRefresh(
+                              AdminUsersTab(
+                                targetRole: UserRole.admin,
+                                title: 'Daftar Admin (Kasubag & Tim Aset)',
+                                subtitle: 'Akun pengelola verifikasi armada.',
+                                userList: adminList,
+                                isSuperAdmin: _isSuperAdmin,
+                                onAddUser: widget.onAddUser,
+                                onUpdateUser: widget.onUpdateUser,
+                                onDeleteUser: widget.onDeleteUser,
+                              ),
+                            ),
+                          _wrapWithRefresh(
                             AdminUsersTab(
-                              targetRole: UserRole.admin,
-                              title: 'Daftar Admin (Kasubag & Tim Aset)',
-                              subtitle: 'Akun pengelola verifikasi armada.',
-                              userList: adminList,
+                              targetRole: UserRole.user,
+                              title: 'Daftar Pegawai (User Pemohon)',
+                              subtitle: 'Akun pegawai yang berhak mengajukan.',
+                              userList: userList,
                               isSuperAdmin: _isSuperAdmin,
                               onAddUser: widget.onAddUser,
                               onUpdateUser: widget.onUpdateUser,
                               onDeleteUser: widget.onDeleteUser,
                             ),
-                          AdminUsersTab(
-                            targetRole: UserRole.user,
-                            title: 'Daftar Pegawai (User Pemohon)',
-                            subtitle: 'Akun pegawai yang berhak mengajukan.',
-                            userList: userList,
-                            isSuperAdmin: _isSuperAdmin,
-                            onAddUser: widget.onAddUser,
-                            onUpdateUser: widget.onUpdateUser,
-                            onDeleteUser: widget.onDeleteUser,
                           ),
                           if (_isSuperAdmin)
-                            AdminReportsTab(
+                            _wrapWithRefresh(
+                              AdminReportsTab(
+                                requests: widget.requests,
+                                vehicles: allVehicles,
+                                users: allUsers,
+                              ),
+                            ),
+                          _wrapWithRefresh(
+                            AdminPerformanceTab(
                               requests: widget.requests,
                               vehicles: allVehicles,
-                              users: allUsers,
                             ),
-                          AdminPerformanceTab(
-                            requests: widget.requests,
-                            vehicles: allVehicles,
                           ),
                         ],
                       ),

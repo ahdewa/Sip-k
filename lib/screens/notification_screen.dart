@@ -8,12 +8,18 @@ class NotificationScreen extends StatefulWidget {
   final List<AppNotification> notifications;
   final VoidCallback onClearAll;
   final Function(int)? onNavigateTab;
+  final VoidCallback? onBack;
+  final bool isAdmin;
+  final Future<void> Function()? onRefresh;
 
   const NotificationScreen({
     super.key,
     required this.notifications,
     required this.onClearAll,
     this.onNavigateTab,
+    this.onBack,
+    this.isAdmin = false,
+    this.onRefresh,
   });
 
   @override
@@ -86,6 +92,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final unreadCount = widget.notifications.where((n) => !n.isRead).length;
     final filteredNotifications = _filteredNotifications();
 
+    final canGoBack = widget.isAdmin || Navigator.canPop(context) || widget.onBack != null;
+
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
       appBar: PreferredSize(
@@ -99,13 +107,63 @@ class _NotificationScreenState extends State<NotificationScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                if (canGoBack) ...[
+                  InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () {
+                      if (widget.onBack != null) {
+                        widget.onBack!();
+                      } else if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF334155) : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.arrow_back_rounded,
+                            size: 18,
+                            color: isDark ? Colors.white : const Color(0xFF1E293B),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Kembali',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : const Color(0xFF1E293B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Notifikasi',
+                        widget.isAdmin ? 'Pusat Notifikasi Admin' : 'Notifikasi',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -115,7 +173,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Informasi terbaru aktivitas akun Anda',
+                        widget.isAdmin
+                            ? 'Daftar aktivitas permohonan dinas & operasional armada'
+                            : 'Informasi terbaru aktivitas akun Anda',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -128,9 +188,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                AppHeaderProfileAvatar(
-                  onTap: () => widget.onNavigateTab?.call(4),
-                ),
+                if (!widget.isAdmin)
+                  AppHeaderProfileAvatar(
+                    onTap: () => widget.onNavigateTab?.call(4),
+                  ),
               ],
             ),
           ),
@@ -299,7 +360,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
               color: const Color(0xFF24487A),
               backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
               onRefresh: () async {
-                await Future.delayed(const Duration(milliseconds: 750));
+                if (widget.onRefresh != null) {
+                  await widget.onRefresh!();
+                } else {
+                  await Future.delayed(const Duration(milliseconds: 600));
+                }
                 if (mounted) setState(() {});
               },
               child: filteredNotifications.isEmpty

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "738017938082",
+    "project_id": "sip-k-a136d",
+    "storage_bucket": "sip-k-a136d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:738017938082:android:9559036a50eeb48bd025fb",
+        "android_client_info": {
+          "package_name": "com.example.simodis_jatim"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUuBdZHNv-gxdgu8QEKi6aaHbhmzLkdl0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

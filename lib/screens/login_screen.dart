@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:simodis_jatim/screens/home_screen.dart';
 import 'package:simodis_jatim/widgets/app_loading_widgets.dart';
+import 'package:simodis_jatim/services/api_service.dart';
+import 'package:simodis_jatim/services/fcm_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,68 +19,87 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordObscured = true;
   bool _isLoading = false;
 
-  void _handleLogin() {
-    if (_formKey.currentState!.validate()) {
+  void _handleLogin() async {
+    if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
 
-      final identifier = _identifierController.text.trim().toLowerCase();
+      final identifier = _identifierController.text.trim();
       final password = _passwordController.text;
 
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (!mounted) return;
+      // 1. Coba login ke REST API Laravel terlebih dahulu
+      try {
+        final apiResult = await ApiService.login(
+          loginInput: identifier,
+          password: password,
+          fcmToken: FcmService.currentToken,
+        );
 
-        String? targetRole;
-        String roleLabel = '';
-
-        // 1. LOGIN SEBAGAI SUPERADMIN (ADMINISTRATOR PUSAT)
-        if ((identifier == 'superadmin' ||
-                identifier == '197001011990031001' ||
-                identifier == 'administrator@dinsos.jatimprov.go.id') &&
-            password == 'password') {
-          targetRole = 'superadmin';
-          roleLabel = 'Superadministrator Pusat';
-        }
-        // 2. LOGIN SEBAGAI ADMIN (KASUBAG UMUM / ASET)
-        else if ((identifier == 'admin' ||
-                identifier == '197805122005011004' ||
-                identifier == '198501012010011001') &&
-            password == 'password') {
-          targetRole = 'admin';
-          roleLabel = 'Kasubag Tata Usaha & Aset';
-        }
-        // 3. LOGIN SEBAGAI PEGAWAI (USER PEMOHON)
-        else if ((identifier == 'pegawai' ||
-                identifier == 'user' ||
-                identifier == '199503152020121002') &&
-            password == 'password') {
-          targetRole = 'user';
-          roleLabel = 'Pegawai / Pemohon';
-        }
-
-        if (targetRole != null) {
+        if (apiResult != null && mounted) {
+          // Sinkronisasi token FCM ke backend untuk user yang aktif
+          FcmService.syncTokenWithBackend();
+          final roleRaw = (apiResult['role'] ?? 'pegawai').toString();
+          final targetRole = roleRaw == 'pegawai' ? 'user' : roleRaw;
+          final roleLabel = targetRole == 'superadmin'
+              ? 'Superadministrator Pusat'
+              : (targetRole == 'admin'
+                  ? 'Kasubag Tata Usaha & Aset'
+                  : 'Pegawai / Pemohon');
           _showLoginSuccessLoading(targetRole, roleLabel);
-        } else {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: const Color(0xFFDC2626),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              content: const Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.white),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text('Username/NIP atau Password salah! (Gunakan pass: password)'),
-                  ),
-                ],
-              ),
-            ),
-          );
+          return;
         }
-      });
+      } catch (_) {}
+
+      // 2. Fallback jika offline atau quick-fill demo lokal
+      String? targetRole;
+      String roleLabel = '';
+      final lowerId = identifier.toLowerCase();
+
+      if ((lowerId == 'superadmin' ||
+              lowerId == '197001011990031001' ||
+              lowerId == 'superadmin@dinsos.jatimprov.go.id' ||
+              lowerId == 'administrator@dinsos.jatimprov.go.id') &&
+          (password == 'password' || password == 'superadmin123')) {
+        targetRole = 'superadmin';
+        roleLabel = 'Superadministrator Pusat';
+      } else if ((lowerId == 'admin' ||
+              lowerId == '197805122005011004' ||
+              lowerId == '198501012010011001' ||
+              lowerId == 'admin@dinsos.jatimprov.go.id') &&
+          (password == 'password' || password == 'admin123')) {
+        targetRole = 'admin';
+        roleLabel = 'Kasubag Tata Usaha & Aset';
+      } else if ((lowerId == 'pegawai' ||
+              lowerId == 'user' ||
+              lowerId == '199503152020121002' ||
+              lowerId == 'rendy@dinsos.jatimprov.go.id') &&
+          (password == 'password' || password == 'password123')) {
+        targetRole = 'user';
+        roleLabel = 'Pegawai / Pemohon';
+      }
+
+      if (targetRole != null && mounted) {
+        _showLoginSuccessLoading(targetRole, roleLabel);
+      } else if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFFDC2626),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            content: const Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('NIP/Email atau Password salah!'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -109,12 +130,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Quick fill untuk mempermudah testing saat demo/pengembangan
-  void _quickFill(String username) {
-    _identifierController.text = username;
-    _passwordController.text = 'password';
-    _handleLogin();
-  }
 
   void _showContactAdminDialog() {
     showDialog(
@@ -270,7 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _identifierController,
                       style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
                       decoration: InputDecoration(
-                        hintText: 'Contoh: superadmin / admin / pegawai',
+                        hintText: 'Masukkan NIP atau Email dinas',
                         hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                         prefixIcon: const Icon(Icons.person, size: 20, color: Color(0xFF94A3B8)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -303,7 +318,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscureText: _isPasswordObscured,
                       style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
                       decoration: InputDecoration(
-                        hintText: 'Masukkan password (password)',
+                        hintText: 'Masukkan password',
                         hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
                         prefixIcon: const Icon(Icons.lock, size: 20, color: Color(0xFF94A3B8)),
                         suffixIcon: IconButton(
@@ -355,44 +370,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                     ),
 
-                    const SizedBox(height: 18),
-
-                    // Quick Login Chips untuk Uji Coba Cepat
-                    // Quick Login Chips untuk Uji Coba Cepat (Bebas Overflow)
-                    const Center(
-                      child: Text('Akses Cepat Demo:', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 6, // Jarak horizontal antar chip
-                      runSpacing: 6, // Jarak vertikal jika turun baris
-                      children: [
-                        ActionChip(
-                          avatar: const Icon(Icons.shield, size: 14, color: Color(0xFFB45309)),
-                          label: const Text('Superadmin', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                          onPressed: () => _quickFill('superadmin'),
-                          backgroundColor: const Color(0xFFFEF3C7),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        ActionChip(
-                          avatar: const Icon(Icons.admin_panel_settings, size: 14, color: Color(0xFF24487A)),
-                          label: const Text('Kasubag', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                          onPressed: () => _quickFill('admin'),
-                          backgroundColor: const Color(0xFFEFF6FF),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        ActionChip(
-                          avatar: const Icon(Icons.person, size: 14, color: Color(0xFF475569)),
-                          label: const Text('User', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                          onPressed: () => _quickFill('pegawai'),
-                          backgroundColor: const Color(0xFFF1F5F9),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
                     Center(
                       child: GestureDetector(

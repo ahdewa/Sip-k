@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:simodis_jatim/models/vehicle_model.dart';
 import 'package:simodis_jatim/screens/admin/dialogs/vehicle_form_dialog.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
+import 'package:simodis_jatim/widgets/app_image.dart';
 
 class AdminVehiclesTab extends StatefulWidget {
   final List<Vehicle> vehicles;
@@ -154,20 +155,28 @@ class _AdminVehiclesTabState extends State<AdminVehiclesTab> {
           ),
         ),
         Expanded(
-          child:
-              filtered.isEmpty
-                  ? Center(
-                    child: Text(
-                      'Tidak ada kendaraan yang cocok',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+          child: filtered.isEmpty
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    const SizedBox(height: 120),
+                    Center(
+                      child: Text(
+                        'Tidak ada kendaraan yang cocok',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
+                        ),
                       ),
                     ),
-                  )
-                  : ListView.builder(
-                    padding: const EdgeInsets.all(14),
-                    itemCount: filtered.length,
+                  ],
+                )
+              : ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(14),
+                  itemCount: filtered.length,
                     itemBuilder: (ctx, i) {
                       final item = filtered[i];
                       final isAvailable = item.status == VehicleStatus.tersedia;
@@ -191,19 +200,18 @@ class _AdminVehiclesTabState extends State<AdminVehiclesTab> {
                                 width: 95,
                                 height: 95,
                                 color: isDark ? const Color(0xFF0F172A) : const Color(0xFFEFF6FF),
-                                child: Image.network(
-                                  item.imageUrl,
+                                child: AppImage(
+                                  source: item.imageUrl,
                                   fit: BoxFit.cover,
-                                  errorBuilder:
-                                      (c, e, s) => Center(
-                                        child: Icon(
-                                          item.type == VehicleType.mobil
-                                              ? Icons.directions_car
-                                              : Icons.two_wheeler,
-                                          size: 32,
-                                          color: const Color(0xFF24487A),
-                                        ),
-                                      ),
+                                  placeholder: Center(
+                                    child: Icon(
+                                      item.type == VehicleType.mobil
+                                          ? Icons.directions_car
+                                          : Icons.two_wheeler,
+                                      size: 32,
+                                      color: const Color(0xFF24487A),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),

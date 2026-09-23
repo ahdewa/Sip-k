@@ -10,6 +10,7 @@ class UserDashboardScreen extends StatefulWidget {
   final Function(int) onNavigateTab;
   final Function(Vehicle) onSelectVehicle;
   final String userName;
+  final Future<void> Function()? onRefresh;
 
   const UserDashboardScreen({
     super.key,
@@ -17,6 +18,7 @@ class UserDashboardScreen extends StatefulWidget {
     required this.onNavigateTab,
     required this.onSelectVehicle,
     this.userName = 'Alamsyah',
+    this.onRefresh,
   });
 
   @override
@@ -218,7 +220,11 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
           color: const Color(0xFF24487A),
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           onRefresh: () async {
-            await Future.delayed(const Duration(milliseconds: 750));
+            if (widget.onRefresh != null) {
+              await widget.onRefresh!();
+            } else {
+              await Future.delayed(const Duration(milliseconds: 750));
+            }
             if (mounted) setState(() {});
           },
           child: CustomScrollView(

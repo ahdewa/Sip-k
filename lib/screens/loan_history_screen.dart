@@ -1,9 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:simodis_jatim/models/loan_model.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
+import 'package:simodis_jatim/services/api_service.dart';
+import 'package:simodis_jatim/services/fcm_service.dart';
+import 'package:simodis_jatim/widgets/app_image.dart';
 
 class LoanHistoryScreen extends StatefulWidget {
   final List<LoanRequest> loans;
+  final int initialTabIndex;
   final ValueChanged<LoanRequest>? onLoanTap;
   final ValueChanged<LoanRequest>? onLoanCancelled;
   final ValueChanged<LoanRequest>? onLoanCompleted;
@@ -12,6 +17,7 @@ class LoanHistoryScreen extends StatefulWidget {
   const LoanHistoryScreen({
     super.key,
     required this.loans,
+    this.initialTabIndex = 0,
     this.onLoanTap,
     this.onLoanCancelled,
     this.onLoanCompleted,
@@ -24,6 +30,54 @@ class LoanHistoryScreen extends StatefulWidget {
 
 class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
   DateTime? _selectedMonth;
+  late List<LoanRequest> _loans;
+  bool _isFetching = false;
+  Timer? _pollingTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _loans = List.from(widget.loans);
+    _fetchLoansFromApi();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (mounted) _fetchLoansFromApi();
+    });
+    FcmService.onMessageReceived = (message) {
+      if (mounted) _fetchLoansFromApi();
+    };
+  }
+
+  @override
+  void didUpdateWidget(covariant LoanHistoryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.loans != oldWidget.loans) {
+      setState(() {
+        _loans = List.from(widget.loans);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchLoansFromApi() async {
+    if (_isFetching) return;
+    _isFetching = true;
+    try {
+      final fresh = await ApiService.fetchLoans();
+      if (fresh != null && mounted) {
+        setState(() {
+          _loans = fresh;
+        });
+      }
+    } catch (_) {
+    } finally {
+      _isFetching = false;
+    }
+  }
 
   static const _monthNames = [
     'Januari',
@@ -54,7 +108,7 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
 
   List<DateTime> get _availableMonths {
     final months = <String, DateTime>{};
-    for (final loan in widget.loans) {
+    for (final loan in _loans) {
       final month = DateTime(loan.startDate.year, loan.startDate.month);
       months['${month.year}-${month.month}'] = month;
     }
@@ -70,7 +124,7 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
   }
 
   List<LoanRequest> _loansForTab(int tabIndex) {
-    final filteredLoans = widget.loans.where((loan) {
+    final filteredLoans = _loans.where((loan) {
       if (!_matchesSelectedMonth(loan)) return false;
       switch (tabIndex) {
         case 0:
@@ -104,6 +158,7 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
     final isDark = ThemeService.isDarkMode;
 
     return DefaultTabController(
+      initialIndex: widget.initialTabIndex.clamp(0, 5),
       length: 6,
       child: Scaffold(
         backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
@@ -115,6 +170,24 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
             'Riwayat Peminjaman',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
+          actions: [
+            IconButton(
+              tooltip: 'Perbarui Status (Refresh)',
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () async {
+                await _fetchLoansFromApi();
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    behavior: SnackBarBehavior.floating,
+                    margin: EdgeInsets.all(16),
+                    duration: Duration(milliseconds: 900),
+                    content: Text('Status peminjaman berhasil diperbarui dari server.'),
+                  ),
+                );
+              },
+            ),
+          ],
           bottom: TabBar(
             isScrollable: true,
             labelColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF24487A),
@@ -218,7 +291,7 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
       color: const Color(0xFF24487A),
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       onRefresh: () async {
-        await Future.delayed(const Duration(milliseconds: 750));
+        await _fetchLoansFromApi();
         if (mounted) setState(() {});
       },
       child: filteredLoans.isEmpty
@@ -681,6 +754,37 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
                       'Catatan Kembali',
                       loan.returnNotes!,
                     ),
+                  if (loan.simPhotoPath != null && loan.simPhotoPath!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      'Foto SIM Terlampir',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkDialog ? const Color(0xFF93C5FD) : const Color(0xFF24487A),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        width: double.infinity,
+                        height: 140,
+                        color: isDarkDialog ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                        child: AppImage(
+                          source: loan.simPhotoPath!,
+                          fit: BoxFit.cover,
+                          placeholder: Center(
+                            child: Icon(
+                              Icons.badge_outlined,
+                              size: 36,
+                              color: isDarkDialog ? Colors.white38 : const Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 14),
 
                   // Tombol selesaikan pinjaman jika sedang digunakan

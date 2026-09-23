@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:simodis_jatim/models/vehicle_model.dart';
@@ -16,6 +17,8 @@ import 'package:simodis_jatim/services/theme_service.dart';
 import 'package:simodis_jatim/widgets/notification_permission_dialog.dart';
 import 'package:simodis_jatim/services/notification_permission_service.dart';
 import 'package:simodis_jatim/widgets/app_loading_widgets.dart';
+import 'package:simodis_jatim/services/api_service.dart';
+import 'package:simodis_jatim/services/api_config.dart';
 
 class HomeScreen extends StatefulWidget {
   final String role;
@@ -47,9 +50,19 @@ class _HomeScreenState extends State<HomeScreen> {
     phone: '0812-3456-7890',
   );
 
+  Timer? _pollTimer;
+
   @override
   void initState() {
     super.initState();
+    _loadDataFromApi();
+    // Polling berkala setiap 8 detik agar status persetujuan / penolakan admin langsung muncul real-time
+    _pollTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (mounted) {
+        _loadDataFromApi();
+      }
+    });
+
     if (widget.showLoading) {
       Future.delayed(const Duration(milliseconds: 700), () {
         if (mounted) {
@@ -60,6 +73,121 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       _isLoadingDashboard = false;
       _checkAndShowNotificationPermission();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onTabChanged(int index) {
+    setState(() => _currentIndex = index);
+    if (index == 3) {
+      // Refresh data seketika saat user membuka tab Notifikasi
+      _loadDataFromApi();
+    }
+  }
+
+  Future<void> _loadDataFromApi() async {
+    try {
+      final vList = await ApiService.fetchVehicles();
+      if (vList != null && vList.isNotEmpty && mounted) {
+        setState(() => _vehicles = vList);
+      }
+      final lList = await ApiService.fetchLoans();
+      if (lList != null && lList.isNotEmpty && mounted) {
+        setState(() => _loans = lList);
+      }
+      final uid = ApiConfig.currentUserId ?? (widget.role == 'user' ? '4' : null);
+      final nList = await ApiService.fetchNotifications(userId: uid, role: widget.role);
+      if (nList != null && mounted) {
+        setState(() {
+          _notifications = nList;
+          _syncUserLoanStatusNotifications();
+          _adminNotifications = List.from(nList);
+        });
+      } else if (mounted) {
+        setState(() {
+          _syncUserLoanStatusNotifications();
+        });
+      }
+      final uList = await ApiService.fetchUsers();
+      if (uList != null && uList.isNotEmpty && mounted) {
+        setState(() => _appUsers = uList);
+      }
+      final prof = await ApiService.fetchCurrentProfile();
+      if (prof != null && mounted) {
+        setState(() => _currentUserProfile = prof);
+      }
+    } catch (_) {}
+  }
+
+  void _syncUserLoanStatusNotifications() {
+    if (widget.role != 'user') return;
+
+    for (final loan in _loans) {
+      final isApproved = loan.status == LoanStatus.disetujui ||
+          loan.status == LoanStatus.approved;
+      final isRejected = loan.status == LoanStatus.ditolak ||
+          loan.status == LoanStatus.rejected;
+
+      if (isApproved) {
+        final exists = _notifications.any((n) =>
+            n.type == NotificationType.approved &&
+            (n.referenceNumber == (loan.spkNumber ?? loan.id) ||
+                n.referenceNumber == loan.id ||
+                n.message.contains(loan.vehicleName)));
+        if (!exists) {
+          final spk = loan.spkNumber ??
+              'ND-${loan.id.length > 4 ? loan.id.substring(loan.id.length - 4) : "2026"}/DINSOS/2026';
+          _notifications.insert(
+            0,
+            AppNotification(
+              id: 'APPROVED-NOTIF-${loan.id}',
+              title: 'Pengajuan Disetujui (Nota Dinas Terbit)',
+              message:
+                  'Permohonan armada ${loan.vehicleName} telah disetujui ($spk). Silakan ambil kunci kontak dan cetak berkas.',
+              time: 'Baru saja',
+              fullDate:
+                  '${DateTime.now().day.toString().padLeft(2, '0')}/${DateTime.now().month.toString().padLeft(2, '0')}/${DateTime.now().year}',
+              createdAt: DateTime.now(),
+              detailContent:
+                  'Pengajuan peminjaman telah disahkan Kasubag Umum dengan Nomor Registrasi: $spk. Silakan cetak lembar Nota Dinas dari menu Riwayat atau Profil untuk diserahkan ke loket Kasubag TU saat pengambilan kunci kontak dan STNK unit armada.',
+              referenceNumber: spk,
+              type: NotificationType.approved,
+              isRead: false,
+            ),
+          );
+        }
+      } else if (isRejected) {
+        final exists = _notifications.any((n) =>
+            n.type == NotificationType.rejected &&
+            (n.referenceNumber == loan.id ||
+                n.message.contains(loan.id) ||
+                n.message.contains(loan.vehicleName)));
+        if (!exists) {
+          _notifications.insert(
+            0,
+            AppNotification(
+              id: 'REJECTED-NOTIF-${loan.id}',
+              title: 'Pengajuan Tidak Disetujui',
+              message:
+                  'Permohonan armada ${loan.vehicleName} (${loan.id}) ditolak oleh Kasubag Umum.',
+              time: 'Baru saja',
+              fullDate:
+                  '${DateTime.now().day.toString().padLeft(2, '0')}/${DateTime.now().month.toString().padLeft(2, '0')}/${DateTime.now().year}',
+              createdAt: DateTime.now(),
+              detailContent:
+                  'Permohonan Anda untuk unit armada ${loan.vehicleName} tidak disetujui. Silakan periksa kembali jadwal armada atau ajukan unit lain.',
+              referenceNumber: loan.id,
+              type: NotificationType.rejected,
+              isRead: false,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -118,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  final List<Vehicle> _vehicles = [
+  List<Vehicle> _vehicles = [
     Vehicle(
       id: '1',
       name: 'Toyota Innova Reborn 2.4 G',
@@ -224,7 +352,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  final List<LoanRequest> _loans = [
+  List<LoanRequest> _loans = [
     // 1. DATA MENUNGGU VERIFIKASI (Masuk Tab 1: Verifikasi Kasubag)
     LoanRequest(
       id: 'REQ-2026-0902-001',
@@ -327,7 +455,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  final List<AppUser> _appUsers = [
+  List<AppUser> _appUsers = [
     AppUser(
       id: 'ROOT-001',
       username: 'superadmin',
@@ -357,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  final List<AppNotification> _notifications = [
+  List<AppNotification> _notifications = [
     AppNotification(
       id: '1',
       title: 'Selamat Datang di SIP-K Dinsos Jatim',
@@ -500,7 +628,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  final List<AppNotification> _adminNotifications = [
+  List<AppNotification> _adminNotifications = [
     AppNotification(
       id: 'ADM-001',
       title: 'Permohonan Masuk: Perlu Verifikasi',
@@ -588,8 +716,27 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   void _handleCreateLoan(LoanRequest request) {
+    ApiService.createLoan(request);
+
     setState(() {
       _loans.add(request);
+
+      final adminNotif = AppNotification(
+        id: 'REQ-${DateTime.now().millisecondsSinceEpoch}',
+        title: 'Permohonan Masuk: Perlu Verifikasi',
+        message:
+            '${request.borrowerName} (${request.department}) mengajukan permohonan ${request.vehicleName} tujuan ${request.destination}.',
+        time: 'Baru saja',
+        fullDate:
+            '${DateTime.now().day.toString().padLeft(2, '0')}/${DateTime.now().month.toString().padLeft(2, '0')}/${DateTime.now().year}, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')} WIB',
+        createdAt: DateTime.now(),
+        detailContent:
+            'Permohonan dinas unit ${request.vehicleName} masuk ke antrean verifikasi Kasubag. Tanggal tugas: ${request.startDate.day}/${request.startDate.month}/${request.startDate.year} s/d ${request.endDate.day}/${request.endDate.month}/${request.endDate.year}.',
+        referenceNumber: request.id,
+        type: NotificationType.submitted,
+        isRead: false,
+      );
+      _adminNotifications.insert(0, adminNotif);
 
       _notifications.insert(
         0,
@@ -618,15 +765,25 @@ class _HomeScreenState extends State<HomeScreen> {
         MaterialPageRoute(
           builder: (_) => LoanHistoryScreen(
             loans: _loans,
-            onLoanCancelled: (_) => setState(() {}),
+            onLoanCancelled: (loan) {
+              ApiService.cancelLoan(loan.id);
+              setState(() {});
+            },
             onLoanCompleted: (loan) {
               final vehicle = _vehicles.firstWhere((v) => v.id == loan.vehicleId);
               vehicle.status = VehicleStatus.tersedia;
+              ApiService.completeLoan(
+                loan.id,
+                returnOdometer: loan.returnOdometer as int?,
+                returnFuel: loan.returnFuel?.toString(),
+                returnNotes: loan.returnNotes,
+              );
               setState(() {});
             },
             onLoanStarted: (loan) {
               final vehicle = _vehicles.firstWhere((v) => v.id == loan.vehicleId);
               vehicle.status = VehicleStatus.digunakan;
+              ApiService.startLoan(loan.id);
               setState(() {});
             },
           ),
@@ -635,15 +792,24 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _handleVerification(LoanRequest loan, bool approved) {
-    setState(() {
-      final vehicle = _vehicles.firstWhere((v) => v.id == loan.vehicleId);
-      if (approved) {
-        loan.status = LoanStatus.disetujui;
-        // Nomor Nota Dinas Resmi yang diterbitkan Kasubag
-        loan.spkNumber = 'ND-${Random().nextInt(9000) + 1000}/DINSOS/2026';
-        vehicle.status = VehicleStatus.digunakan;
+  void _handleVerification(LoanRequest loan, bool approved) async {
+    final vehicle = _vehicles.where((v) => v.id == loan.vehicleId).firstOrNull;
+    final spkNum = approved ? 'ND-${Random().nextInt(9000) + 1000}/DINSOS/2026' : null;
 
+    setState(() {
+      loan.status = approved ? LoanStatus.disetujui : LoanStatus.ditolak;
+      if (approved) {
+        loan.spkNumber = spkNum;
+        if (vehicle != null) vehicle.status = VehicleStatus.digunakan;
+      }
+
+      final idx = _loans.indexWhere((l) => l.id == loan.id);
+      if (idx != -1) {
+        _loans[idx].status = approved ? LoanStatus.disetujui : LoanStatus.ditolak;
+        if (approved) _loans[idx].spkNumber = spkNum;
+      }
+
+      if (approved) {
         _notifications.insert(
           0,
           AppNotification(
@@ -655,14 +821,12 @@ class _HomeScreenState extends State<HomeScreen> {
             fullDate: '02 September 2026, 14:15 WIB',
             createdAt: DateTime.now(),
             detailContent:
-                'Pengajuan peminjaman telah disahkan Kasubag Umum dengan Nomor Registrasi: ${loan.spkNumber}. Silakan cetak lembar Nota Dinas dari menu Riwayat atau Profil untuk diserahkan ke loket Kasubag TU saat pengambilan kunci kontak dan STNK unit armada.',
-            referenceNumber: loan.spkNumber ?? '-',
+                'Pengajuan peminjaman telah disahkan Kasubag Umum dengan Nomor Registrasi: $spkNum. Silakan cetak lembar Nota Dinas dari menu Riwayat atau Profil untuk diserahkan ke loket Kasubag TU saat pengambilan kunci kontak dan STNK unit armada.',
+            referenceNumber: spkNum ?? '-',
             type: NotificationType.approved,
           ),
         );
       } else {
-        loan.status = LoanStatus.ditolak;
-
         _notifications.insert(
           0,
           AppNotification(
@@ -682,18 +846,46 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     });
+
+    if (approved) {
+      await ApiService.approveLoan(loan.id, spkNumber: spkNum);
+    } else {
+      await ApiService.rejectLoan(loan.id);
+    }
+
+    final freshLoans = await ApiService.fetchLoans();
+    if (freshLoans != null && mounted) {
+      setState(() => _loans = freshLoans);
+    }
   }
 
-  void _handleReturn(LoanRequest loan, int km, String fuel, String notes) {
+  void _handleReturn(LoanRequest loan, int km, String fuel, String notes) async {
     setState(() {
       loan.status = LoanStatus.selesai;
       loan.returnOdometer = km;
       loan.returnFuel = fuel;
       loan.returnNotes = notes;
 
-      final vehicle = _vehicles.firstWhere((v) => v.id == loan.vehicleId);
-      vehicle.status = VehicleStatus.tersedia;
+      final idx = _loans.indexWhere((l) => l.id == loan.id);
+      if (idx != -1) {
+        _loans[idx].status = LoanStatus.selesai;
+        _loans[idx].returnOdometer = km;
+        _loans[idx].returnFuel = fuel;
+        _loans[idx].returnNotes = notes;
+      }
+
+      final vehicle = _vehicles.where((v) => v.id == loan.vehicleId).firstOrNull;
+      if (vehicle != null) {
+        vehicle.status = VehicleStatus.tersedia;
+        vehicle.currentOdometer = km;
+      }
     });
+
+    await ApiService.completeLoan(loan.id, returnOdometer: km, returnFuel: fuel, returnNotes: notes);
+    final freshLoans = await ApiService.fetchLoans();
+    if (freshLoans != null && mounted) {
+      setState(() => _loans = freshLoans);
+    }
   }
 
   Widget _buildLoadingDashboard() {
@@ -710,7 +902,8 @@ class _HomeScreenState extends State<HomeScreen> {
       UserDashboardScreen(
         userName: _currentUserProfile.name,
         vehicles: _vehicles,
-        onNavigateTab: (idx) => setState(() => _currentIndex = idx),
+        onRefresh: _loadDataFromApi,
+        onNavigateTab: _onTabChanged,
         onSelectVehicle: (v) {
           setState(() {
             _selectedUnitForForm = v;
@@ -720,79 +913,150 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       CatalogScreen(
         vehicles: _vehicles,
+        onRefresh: _loadDataFromApi,
         onSelectVehicle: (v) {
           setState(() {
             _selectedUnitForForm = v;
             _currentIndex = 2;
           });
         },
-        onNavigateTab: (idx) => setState(() => _currentIndex = idx),
+        onNavigateTab: _onTabChanged,
       ),
       LoanFlowScreen(
         vehicles: _vehicles,
         preselectedVehicle: _selectedUnitForForm,
         onSubmitLoan: _handleCreateLoan,
-        onNavigateTab: (idx) => setState(() => _currentIndex = idx),
+        onNavigateTab: _onTabChanged,
       ),
       NotificationScreen(
         notifications: _notifications,
-        onClearAll: () {
+        onRefresh: () => _loadDataFromApi(),
+        onClearAll: () async {
           setState(() {
             for (var n in _notifications) {
               n.isRead = true;
             }
           });
+          await ApiService.markAllNotificationsRead();
         },
-        onNavigateTab: (idx) => setState(() => _currentIndex = idx),
+        onNavigateTab: _onTabChanged,
       ),
       ProfileScreen(
         loans: _loans,
         initialProfile: _currentUserProfile,
-        onProfileUpdated: (up) => setState(() => _currentUserProfile = up),
-        onNavigateTab: (idx) => setState(() => _currentIndex = idx),
-        onLoanCompleted: (loan) {
+        onProfileUpdated: (up) async {
+          setState(() => _currentUserProfile = up);
+          await ApiService.updateProfile(up);
+          final fresh = await ApiService.fetchCurrentProfile();
+          if (fresh != null && mounted) setState(() => _currentUserProfile = fresh);
+        },
+        onNavigateTab: _onTabChanged,
+        onLoanCompleted: (loan) async {
           final vehicle = _vehicles.firstWhere((v) => v.id == loan.vehicleId);
           vehicle.status = VehicleStatus.tersedia;
           setState(() {});
+          await ApiService.completeLoan(loan.id);
         },
-        onLoanStarted: (loan) {
+        onLoanStarted: (loan) async {
           final vehicle = _vehicles.firstWhere((v) => v.id == loan.vehicleId);
           vehicle.status = VehicleStatus.digunakan;
           setState(() {});
+          await ApiService.startLoan(loan.id);
         },
       ),
     ];
 
     if (widget.role == 'admin' || widget.role == 'superadmin') {
-      // Prioritaskan akun superadmin jika role adalah superadmin
       final bool isSuper = widget.role == 'superadmin';
-      final activeUser = isSuper ? _appUsers[0] : _appUsers[1];
+      AppUser? activeUser;
+      if (isSuper) {
+        activeUser = _appUsers.firstWhere(
+          (u) => u.isSuperAdmin,
+          orElse: () => _appUsers.firstWhere(
+            (u) => u.role == UserRole.superadmin,
+            orElse: () => AppUser(
+              id: 'ROOT-001',
+              username: 'superadmin',
+              name: 'Administrator Pusat',
+              nip: '19700101 199003 1 001',
+              department: 'Dinas Sosial Provinsi Jawa Timur',
+              email: 'administrator@dinsos.jatimprov.go.id',
+              role: UserRole.superadmin,
+            ),
+          ),
+        );
+      } else {
+        activeUser = _appUsers.firstWhere(
+          (u) => u.isAdmin && !u.isSuperAdmin,
+          orElse: () => _appUsers.firstWhere(
+            (u) => u.role == UserRole.admin,
+            orElse: () => AppUser(
+              id: 'ADM-002',
+              username: 'kasubag.aset',
+              name: 'Drs. H. Kasubag Aset, M.Si',
+              nip: '19780512 200501 1 004',
+              department: 'Subbag Tata Usaha & Pengelolaan Aset',
+              email: 'kasubag.aset@dinsos.jatimprov.go.id',
+              role: UserRole.admin,
+            ),
+          ),
+        );
+      }
 
       return AdminApprovalScreen(
         requests: _loans,
         onVerify: _handleVerification,
         onReturn: _handleReturn,
         currentUser: activeUser,
+        isSuperAdmin: isSuper,
         users: _appUsers,
-        onAddUser: (newUser) => setState(() => _appUsers.add(newUser)),
-        onUpdateUser: (updatedUser) => setState(() {}),
-        onDeleteUser: (id) =>
-            setState(() => _appUsers.removeWhere((u) => u.id == id)),
+        onAddUser: (newUser) async {
+          setState(() => _appUsers.add(newUser));
+          await ApiService.createUser(newUser);
+          final fresh = await ApiService.fetchUsers();
+          if (fresh != null && mounted) setState(() => _appUsers = fresh);
+        },
+        onUpdateUser: (updatedUser) async {
+          setState(() {
+            final index = _appUsers.indexWhere((u) => u.id == updatedUser.id);
+            if (index != -1) {
+              _appUsers[index] = updatedUser;
+            }
+          });
+          await ApiService.updateUser(updatedUser);
+          final fresh = await ApiService.fetchUsers();
+          if (fresh != null && mounted) setState(() => _appUsers = fresh);
+        },
+        onDeleteUser: (id) async {
+          setState(() => _appUsers.removeWhere((u) => u.id == id));
+          await ApiService.deleteUser(id);
+          final fresh = await ApiService.fetchUsers();
+          if (fresh != null && mounted) setState(() => _appUsers = fresh);
+        },
 
         // OPERAN KATALOG KENDARAAN:
         vehicles: _vehicles,
-        onAddVehicle: (newV) => setState(() => _vehicles.add(newV)),
-        onUpdateVehicle: (updV) {
+        onAddVehicle: (newV) async {
+          setState(() => _vehicles.add(newV));
+          await ApiService.createVehicle(newV);
+          final fresh = await ApiService.fetchVehicles();
+          if (fresh != null && mounted) setState(() => _vehicles = fresh);
+        },
+        onUpdateVehicle: (updV) async {
           setState(() {
             final index = _vehicles.indexWhere((v) => v.id == updV.id);
             if (index != -1) {
               _vehicles[index] = updV;
             }
           });
+          await ApiService.updateVehicle(updV);
         },
-        onDeleteVehicle: (id) =>
-            setState(() => _vehicles.removeWhere((v) => v.id == id)),
+        onDeleteVehicle: (id) async {
+          setState(() => _vehicles.removeWhere((v) => v.id == id));
+          await ApiService.deleteVehicle(id);
+        },
         notifications: _adminNotifications,
+        onRefresh: _loadDataFromApi,
         onLogout: () {
           HomeScreen.resetPermissionSession();
           Navigator.pushReplacement(
@@ -837,7 +1101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Tombol Pinjam Tengah yang Sejajar Sempurna
                 Expanded(
                   child: InkWell(
-                    onTap: () => setState(() => _currentIndex = 2),
+                    onTap: () => _onTabChanged(2),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -905,7 +1169,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => _currentIndex = index),
+        onTap: () => _onTabChanged(index),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(

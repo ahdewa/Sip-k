@@ -166,20 +166,28 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
           ),
         ),
         Expanded(
-          child:
-              filtered.isEmpty
-                  ? Center(
-                    child: Text(
-                      'Tidak ada akun yang cocok',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+          child: filtered.isEmpty
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    const SizedBox(height: 120),
+                    Center(
+                      child: Text(
+                        'Tidak ada akun yang cocok',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? const Color(0xFF94A3B8)
+                              : const Color(0xFF64748B),
+                        ),
                       ),
                     ),
-                  )
-                  : ListView.builder(
-                    padding: const EdgeInsets.all(14),
-                    itemCount: filtered.length,
+                  ],
+                )
+              : ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(14),
+                  itemCount: filtered.length,
                     itemBuilder: (ctx, i) {
                       final user = filtered[i];
                       return Container(

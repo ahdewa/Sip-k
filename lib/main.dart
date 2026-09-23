@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:simodis_jatim/screens/login_screen.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
+import 'package:simodis_jatim/services/fcm_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FcmService.initialize();
   runApp(const SimodisJatimApp());
 }
 
@@ -22,6 +25,8 @@ class SimodisJatimApp extends StatelessWidget {
             return MaterialApp(
               title: 'SIP-K',
               debugShowCheckedModeBanner: false,
+              navigatorKey: rootNavigatorKey,
+              scaffoldMessengerKey: rootScaffoldMessengerKey,
               theme: ThemeService.lightTheme,
               darkTheme: ThemeService.darkTheme,
               themeMode: currentMode,

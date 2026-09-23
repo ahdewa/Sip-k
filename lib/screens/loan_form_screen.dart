@@ -238,7 +238,9 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       startDate: _selectedDateRange!.start,
       endDate: _selectedDateRange!.end,
       officialNoteNumber: 'Diproses saat SPK',
-      simPhotoPath: _simPhoto!.path,
+      simPhotoPath: _simPhotoBytes != null
+          ? imageDataUri(_simPhoto!.name, _simPhotoBytes!)
+          : _simPhoto!.path,
       status: LoanStatus.menunggu,
       submittedAt: DateTime.now(),
     );

@@ -125,22 +125,28 @@ class _AdminLoansTabState extends State<AdminLoansTab> {
               const SizedBox(width: 8),
               _buildFilterChip(1, 'Sedang Dinas (${active.length})', false),
               const SizedBox(width: 8),
-              _buildFilterChip(2, 'Riwayat BAST', false),
+              _buildFilterChip(2, 'Riwayat & Ditolak (${history.length})', false),
             ],
           ),
         ),
         Expanded(
-          child:
-              currentList.isEmpty
-                  ? const Center(
-                    child: Text(
-                      'Tidak ada permohonan pada status ini',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+          child: currentList.isEmpty
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: const [
+                    SizedBox(height: 120),
+                    Center(
+                      child: Text(
+                        'Tidak ada permohonan pada status ini',
+                        style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                      ),
                     ),
-                  )
-                  : ListView.builder(
-                    padding: const EdgeInsets.all(14),
-                    itemCount: currentList.length,
+                  ],
+                )
+              : ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(14),
+                  itemCount: currentList.length,
                     itemBuilder: (ctx, i) {
                       final item = currentList[i];
                       return AdminLoanCard(
@@ -149,13 +155,19 @@ class _AdminLoansTabState extends State<AdminLoansTab> {
                             () => LoanDetailDialog.show(
                               context,
                               loan: item,
-                              onVerify: widget.onVerify,
+                              onVerify: (l, ok) {
+                                widget.onVerify(l, ok);
+                                setState(() {});
+                              },
                             ),
                         onShowReturn:
                             () => VehicleReturnDialog.show(
                               context,
                               loan: item,
-                              onReturn: widget.onReturn,
+                              onReturn: (l, km, fuel, notes) {
+                                widget.onReturn(l, km, fuel, notes);
+                                setState(() {});
+                              },
                             ),
                       );
                     },
