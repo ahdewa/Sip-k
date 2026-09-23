@@ -128,7 +128,7 @@ class ApiConfig {
 
 | Role / Jabatan | Nama Pengguna | NIP / Akun Login | Password | Hak Akses |
 |---|---|---|---|---|
-| **Pegawai (Pemohon)** | Alamsyah | `199503152020121002` | `password` | Pengajuan mobil, cek status, cetak Nota Dinas |
+| **Pegawai (Pemohon)** | Alamsyah | `1122334455` | `password123` | Pengajuan mobil, cek status, cetak Nota Dinas |
 | **Kasubag Umum (Admin)** | Ahmad Dewantara, S.STP | `admin@dinsos.jatimprov.go.id` | `admin123` | Verifikasi SPK, setujui/tolak permohonan |
 | **Super Administrator** | Super Admin SIP-K | `superadmin@dinsos.jatimprov.go.id` | `superadmin123` | Akses penuh sistem, manajemen user & armada |
 
