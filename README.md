@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ahdewa/Sip-k/main/assets/icons/logo_sipk.png" alt="Logo SIP-K" width="120" onerror="this.style.display='none'"/>
+  <img src="assets/images/logo_sipk.png" alt="Logo SIP-K Jatim" width="130" />
 </p>
 
 <h1 align="center">🚗 SIP-K JATIM</h1>
