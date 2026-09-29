@@ -60,6 +60,63 @@ Sistem ini mentransformasikan alur birokrasi peminjaman konvensional menjadi dig
 
 ---
 
+## 🔄 Diagram Alur Sistem (Flowchart Operasional)
+
+Diagram alur berikut mengilustrasikan siklus lengkap pengelolaan kendaraan dinas mulai dari pengajuan permohonan oleh pegawai, verifikasi berkas oleh Kasubag Umum, hingga pengembalian unit armada dan penerbitan BAST:
+
+```mermaid
+flowchart TD
+    subgraph PEMOHON["👤 1. Sisi Pegawai (Pemohon)"]
+        A([Mulai]) --> B[Login Akun Pegawai]
+        B --> C[Pilih Armada Dinas di Katalog]
+        C --> D{Cek Status Armada}
+        D -- "Digunakan / Servis" --> C
+        D -- "Tersedia" --> E[Isi Formulir Peminjaman]
+        E --> F[Unggah Foto SIM & Surat Tugas]
+        F --> G[Kirim Permohonan Dinas]
+        G --> H[(Database: Status Menunggu)]
+    end
+
+    subgraph ADMIN["🛡️ 2. Sisi Kasubag Umum (Admin Verifikasi)"]
+        H --> I[Notifikasi Permohonan Masuk]
+        I --> J[Review Berkas, Foto SIM & Jadwal Armada]
+        J --> K{Keputusan Kasubag?}
+        K -- "Tolak" --> L[Input Catatan Alasan Penolakan]
+        L --> M[(Database: Status Ditolak)]
+        K -- "Setujui" --> N[Sistem Generate Nomor Nota Dinas / SPK]
+        N --> O[(Database: Status Disetujui)]
+        O --> P[Update Status Armada: Digunakan]
+    end
+
+    subgraph PROSES["🚗 3. Pelaksanaan Dinas & Pengembalian Armada"]
+        M --> Q[Push Notifikasi Penolakan ke HP Pemohon]
+        Q --> Z1([Selesai / Ajukan Armada Lain])
+        O --> R[Push Notifikasi Persetujuan ke HP Pemohon]
+        R --> S[Cetak Lembar Nota Dinas Resmi]
+        S --> T[Ambil Kunci Kontak & STNK di Loket Kasubag TU]
+        T --> U[Pelaksanaan Penugasan Perjalanan Dinas]
+        U --> V[Kembali ke Pool & Input Laporan Pengembalian]
+        V --> W[Catat Odometer Akhir, Sisa BBM & Kondisi Fisik]
+        W --> X[(Database: Status Selesai / Terbit BAST)]
+        X --> Y[Update Status Armada: Tersedia]
+        Y --> Z2([Selesai])
+    end
+
+    classDef startEnd fill:#24487A,stroke:#1E3A8A,stroke-width:2px,color:#fff;
+    classDef process fill:#1E293B,stroke:#3B82F6,stroke-width:1.5px,color:#fff;
+    classDef decision fill:#78350F,stroke:#F59E0B,stroke-width:1.5px,color:#fff;
+    classDef database fill:#064E3B,stroke:#10B981,stroke-width:1.5px,color:#fff;
+    classDef reject fill:#7F1D1D,stroke:#EF4444,stroke-width:1.5px,color:#fff;
+
+    class A,Z1,Z2 startEnd;
+    class B,C,E,F,G,I,J,N,P,R,S,T,U,V,W,Y process;
+    class D,K decision;
+    class H,O,X database;
+    class L,M,Q reject;
+```
+
+---
+
 ## 🗄️ Struktur Database (Entity Relationship Diagram - ERD)
 
 Berikut adalah diagram relasi antar tabel (ERD) pada basis data **`sip-k`** di MySQL:
