@@ -14,7 +14,7 @@
 
 ## 📌 Tentang Proyek
 
-**SIP-K Jatim** (*Sistem Informasi Pengelolaan Kendaraan Dinas*) adalah aplikasi terpadu berbasis **Aplikasi Mobile (Flutter)** dan **RESTful API (Laravel)** yang dirancang khusus untuk mempermudah tata kelola peminjaman serta operasional kendaraan dinas di lingkungan **Dinas Sosial Provinsi Jawa Timur**.
+**SIP-K Jatim** (*Sistem Informasi Pengelolaan Kendaraan Dinas*) adalah aplikasi terpadu berbasis **Aplikasi Mobile (Flutter)** dan **RESTful API (Laravel)** yang dirancang khusus untuk memfasilitasi tata kelola peminjaman serta operasional kendaraan dinas di lingkungan **Dinas Sosial Provinsi Jawa Timur**.
 
 Sistem ini mengubah alur birokrasi peminjaman manual menjadi serba digital, transparan, akuntabel, dan *real-time*. Dilengkapi alur verifikasi berjenjang mulai dari pengajuan tugas kedinasan, pemeriksaan kelayakan administrasi (foto SIM), penerbitan Nota Dinas / Surat Perintah Kerja (SPK) resmi oleh Kasubag Umum, hingga pelaporan Berita Acara Serah Terima (BAST) pengembalian armada.
 
@@ -210,19 +210,19 @@ flowchart TD
 
 ---
 
-## 🗄️ Struktur Database (Entity Relationship Diagram - ERD)
+## 🗄️ Struktur Basis Data (Diagram Relasi Entitas - ERD)
 
 Diagram relasi antar tabel basis data **`sip-k`** pada MySQL:
 
 ```mermaid
 erDiagram
-    USERS ||--o{ LOANS : "mengajukan"
-    VEHICLES ||--o{ LOANS : "dialokasikan_untuk"
-    USERS ||--o{ APP_NOTIFICATIONS : "menerima"
+    USERS ||--o{ LOANS : "mengajukan_permohonan"
+    VEHICLES ||--o{ LOANS : "dialokasikan_ke"
+    USERS ||--o{ APP_NOTIFICATIONS : "menerima_notifikasi"
     USERS ||--o{ PERSONAL_ACCESS_TOKENS : "memiliki_sesi"
 
     USERS {
-        bigint id PK "Kunci Utama (ID)"
+        bigint id PK "Nomor Identifikasi Pengguna (ID)"
         string name "Nama Lengkap Pegawai"
         string nip UK "Nomor Induk Pegawai (NIP)"
         string email UK "Alamat Email Kedinasan"
@@ -237,80 +237,80 @@ erDiagram
     }
 
     VEHICLES {
-        bigint id PK "Kunci Utama (ID)"
+        bigint id PK "Nomor Identifikasi Kendaraan (ID)"
         string name "Nama Unit Kendaraan"
-        string brand "Merk / Pabrikan"
-        string plate_number UK "Nomor Polisi Dinas"
+        string brand "Merk / Pabrikan Kendaraan"
+        string plate_number UK "Nomor Polisi Kendaraan Dinas"
         string type "Jenis: mobil | motor"
-        int capacity "Kapasitas Penumpang"
+        int capacity "Kapasitas Jumlah Penumpang"
         string transmission "Transmisi: Manual | Matic"
-        int odometer "Kilometer Terakhir (KM)"
-        int fuel_percent "Sisa Bahan Bakar (Persen)"
-        string fuel_type "Jenis Bahan Bakar"
+        int odometer "Catatan Kilometer Terakhir (KM)"
+        int fuel_percent "Kapasitas Sisa Bahan Bakar (%)"
+        string fuel_type "Jenis Bahan Bakar Armada"
         string status "Status: tersedia | digunakan | perbaikan"
-        text condition_notes "Catatan Kondisi Mesin & Fisik"
-        string image_url "Tautan Foto Kendaraan"
-        timestamp created_at "Waktu Ditambahkan"
-        timestamp updated_at "Waktu Diperbarui"
+        text condition_notes "Catatan Kondisi Fisik & Mesin"
+        string image_url "Tautan Berkas Foto Kendaraan"
+        timestamp created_at "Waktu Data Masuk"
+        timestamp updated_at "Waktu Data Diperbarui"
     }
 
     LOANS {
-        string id PK "Nomor Registrasi (REQ-...)"
+        string id PK "Nomor Registrasi Usulan (REQ-...)"
         bigint user_id FK "ID Pegawai Pemohon"
         string borrower_name "Nama Lengkap Peminjam"
         string department "Bidang Dinas Pemohon"
         string vehicle_id FK "ID Kendaraan yang Dipinjam"
         string vehicle_name "Nama Unit Kendaraan"
-        string destination "Kota / Wilayah Tujuan"
-        text destination_address "Alamat Lengkap Lokasi Dinas"
-        text purpose_description "Urgensi / Kepentingan Dinas"
+        string destination "Kota / Wilayah Tujuan Dinas"
+        text destination_address "Alamat Lengkap Tujuan Dinas"
+        text purpose_description "Urgensi dan Keperluan Tugas"
         date start_date "Tanggal Mulai Peminjaman"
         date end_date "Tanggal Selesai Peminjaman"
         string official_note_number "Nomor Surat Usulan / Nota Dinas"
         longtext sim_photo_path "Berkas Foto SIM Pemohon"
         string status "Status: menunggu | disetujui | digunakan | selesai | ditolak | dibatalkan"
         string spk_number "Nomor Surat Perintah Kerja (SPK)"
-        text rejection_reason "Catatan Alasan Penolakan"
-        int return_odometer "Kilometer Akhir Pengembalian"
-        string return_fuel "Sisa Bahan Bakar Akhir"
-        text return_notes "Catatan Kondisi Setelah Digunakan"
+        text rejection_reason "Catatan Alasan Penolakan dari Kasubag"
+        int return_odometer "Catatan Kilometer Akhir Pengembalian"
+        string return_fuel "Sisa Bahan Bakar Saat Kembali"
+        text return_notes "Catatan Kondisi Fisik Setelah Digunakan"
         datetime returned_at "Waktu Pengembalian Resmi (BAST)"
-        datetime submitted_at "Waktu Pengajuan Dikirim"
-        timestamp created_at "Waktu Data Masuk"
-        timestamp updated_at "Waktu Data Diperbarui"
+        datetime submitted_at "Waktu Pengajuan Usulan Dikirim"
+        timestamp created_at "Waktu Catatan Dibuat"
+        timestamp updated_at "Waktu Catatan Diperbarui"
     }
 
     APP_NOTIFICATIONS {
-        bigint id PK "Kunci Utama (ID)"
-        bigint user_id FK "ID Penerima (NULL = Notifikasi Admin)"
-        string title "Judul Pemberitahuan"
-        text message "Isi Rincian Pesan"
-        string type "Kategori: pengajuan | disetujui | ditolak | selesai | info"
-        string reference_number "Nomor Registrasi (REQ / SPK)"
-        boolean is_read "Status Keterbacaan"
+        bigint id PK "Nomor Identifikasi Notifikasi (ID)"
+        bigint user_id FK "ID Pengguna Penerima (Kosong = Kasubag)"
+        string title "Judul Pemberitahuan Notifikasi"
+        text message "Rincian Isi Pesan Notifikasi"
+        string type "Kategori: pengajuan | persetujuan | penolakan | info"
+        string reference_number "Nomor Registrasi Referensi (REQ / SPK)"
+        boolean is_read "Status Keterbacaan Pesan"
         timestamp created_at "Waktu Notifikasi Terbit"
         timestamp updated_at "Waktu Notifikasi Diperbarui"
     }
 
     PERSONAL_ACCESS_TOKENS {
-        bigint id PK "Kunci Utama (ID)"
-        string tokenable_type "Tipe Entitas Akun"
+        bigint id PK "Nomor Identifikasi Token (ID)"
+        string tokenable_type "Tipe Entitas Model Terkait"
         bigint tokenable_id FK "ID Pengguna Pemilik Token"
-        string name "Nama Sesi Perangkat"
-        string token UK "Kode Token Autentikasi"
-        text abilities "Hak Akses Token"
+        string name "Nama Perangkat / Sesi Pengguna"
+        string token UK "Kode Kunci Akses Rahasia"
+        text abilities "Hak Akses & Wewenang Token"
         timestamp last_used_at "Waktu Terakhir Digunakan"
-        timestamp expires_at "Waktu Kedaluwarsa Sesi"
+        timestamp expires_at "Batas Waktu Kedaluwarsa Sesi"
         timestamp created_at "Waktu Token Diterbitkan"
         timestamp updated_at "Waktu Token Diperbarui"
     }
 ```
 
-### Penjelasan Relasi Basis Data:
-1. **Tabel `users` ke `loans` (Satu ke Banyak / *One-to-Many*)**: Satu akun pegawai dapat memiliki banyak riwayat pengajuan peminjaman (`loans.user_id` berelasi ke `users.id`).
-2. **Tabel `vehicles` ke `loans` (Satu ke Banyak / *One-to-Many*)**: Satu unit kendaraan dinas dapat dijadwalkan dalam banyak kegiatan dinas (`loans.vehicle_id` berelasi ke `vehicles.id`).
-3. **Tabel `users` ke `app_notifications` (Satu ke Banyak / *One-to-Many*)**: Setiap notifikasi pembaruan status terikat langsung ke akun pemohon (`app_notifications.user_id`). Notifikasi dengan nilai `user_id = NULL` dialokasikan khusus sebagai notifikasi antrean verifikasi Kasubag Umum / Admin.
-4. **Tabel `users` ke `personal_access_tokens` (Satu ke Banyak / *One-to-Many*)**: Mengelola sesi masuk multi-perangkat melalui token Laravel Sanctum demi keamanan akses API.
+### Penjelasan Hubungan Relasi Antar-Tabel:
+1. **Tabel `users` ke `loans` (Satu-ke-Banyak)**: Satu akun pegawai dapat memiliki banyak riwayat pengajuan permohonan dinas (`loans.user_id` berelasi langsung ke `users.id`).
+2. **Tabel `vehicles` ke `loans` (Satu-ke-Banyak)**: Satu unit kendaraan dinas dapat dijadwalkan ke dalam banyak agenda penugasan dinas (`loans.vehicle_id` berelasi langsung ke `vehicles.id`).
+3. **Tabel `users` ke `app_notifications` (Satu-ke-Banyak)**: Setiap notifikasi pembaruan status terkirim langsung ke akun pegawai pemohon (`app_notifications.user_id`). Notifikasi dengan nilai `user_id = NULL` dialokasikan khusus sebagai notifikasi antrean verifikasi Kasubag Umum / Administrator.
+4. **Tabel `users` ke `personal_access_tokens` (Satu-ke-Banyak)**: Mengelola sesi masuk multi-perangkat (ponsel dan komputer) melalui token autentikasi Laravel Sanctum demi keamanan data.
 
 ---
 
