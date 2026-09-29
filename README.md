@@ -60,6 +60,99 @@ Sistem ini mentransformasikan alur birokrasi peminjaman konvensional menjadi dig
 
 ---
 
+## 👥 Diagram Kasus Penggunaan (Use Case Diagram)
+
+Diagram berikut memodelkan interaksi fungsional antara tiga aktor utama (**Pegawai / Pemohon**, **Kasubag Umum / Admin**, dan **Super Administrator**) dengan modul-modul sistem SIP-K:
+
+```mermaid
+flowchart LR
+    subgraph AKTOR["🎭 Aktor Sistem"]
+        Pegawai(("👤 Pegawai<br/>(Pemohon)"))
+        Kasubag(("🛡️ Kasubag Umum<br/>(Admin TU)"))
+        SuperAdmin(("👑 Super Admin<br/>(Pusat)"))
+    end
+
+    subgraph SYSTEM["💻 Sistem Informasi Pengelolaan Kendaraan (SIP-K)"]
+        UC_Auth(["🔐 Autentikasi Login (Email / NIP)"])
+        UC_Catalog(["🚗 Akses Katalog & Ketersediaan Armada"])
+        UC_Loan(["📝 Mengajukan Peminjaman Kendaraan"])
+        UC_UploadSIM(["📸 Unggah Foto SIM & Surat Usulan"])
+        UC_Notif(["🔔 Menerima Notifikasi Real-time"])
+        UC_PrintND(["🖨️ Cetak Lembar Nota Dinas / SPK"])
+        UC_Return(["📋 Pelaporan Pengembalian & BAST"])
+        UC_Profile(["👤 Kelola Profil Akun"])
+
+        UC_Verify(["📋 Verifikasi Berkas & Foto SIM"])
+        UC_Approve(["✅ Persetujuan & Terbit SPK Otomatis"])
+        UC_Reject(["❌ Penolakan Usulan dengan Alasan"])
+        UC_Calendar(["📅 Monitoring Kalender Jadwal Armada"])
+        UC_AssetStatus(["🔧 Pengaturan Status Armada Operasional"])
+
+        UC_ManageUser(["👥 Manajemen Pengguna & Hak Akses"])
+        UC_ManageVehicle(["🚘 Manajemen Master Data Armada"])
+        UC_Analytics(["📊 Dashboard Statistik & Laporan Bulanan"])
+    end
+
+    %% Hubungan Pegawai (Pemohon)
+    Pegawai --- UC_Auth
+    Pegawai --- UC_Catalog
+    Pegawai --- UC_Loan
+    Pegawai --- UC_Notif
+    Pegawai --- UC_PrintND
+    Pegawai --- UC_Return
+    Pegawai --- UC_Profile
+
+    %% Include relasi peminjaman
+    UC_Loan -.->|"<<include>>"| UC_UploadSIM
+
+    %% Hubungan Kasubag Umum (Admin)
+    Kasubag --- UC_Auth
+    Kasubag --- UC_Catalog
+    Kasubag --- UC_Verify
+    Kasubag --- UC_Calendar
+    Kasubag --- UC_AssetStatus
+    Kasubag --- UC_Notif
+
+    %% Include relasi verifikasi
+    UC_Verify -.->|"<<include>>"| UC_Approve
+    UC_Verify -.->|"<<include>>"| UC_Reject
+
+    %% Hubungan Super Administrator (Pusat)
+    SuperAdmin --- UC_Auth
+    SuperAdmin --- UC_ManageUser
+    SuperAdmin --- UC_ManageVehicle
+    SuperAdmin --- UC_Analytics
+    SuperAdmin --- UC_Verify
+    SuperAdmin --- UC_Calendar
+
+    classDef actor fill:#1E293B,stroke:#64748B,stroke-width:2px,color:#fff;
+    classDef usecase fill:#1E3A8A,stroke:#3B82F6,stroke-width:1.5px,color:#fff;
+    classDef includeUC fill:#0F766E,stroke:#14B8A6,stroke-width:1.5px,color:#fff;
+
+    class Pegawai,Kasubag,SuperAdmin actor;
+    class UC_Auth,UC_Catalog,UC_Loan,UC_Notif,UC_PrintND,UC_Return,UC_Profile,UC_Verify,UC_Calendar,UC_AssetStatus,UC_ManageUser,UC_ManageVehicle,UC_Analytics usecase;
+    class UC_UploadSIM,UC_Approve,UC_Reject includeUC;
+```
+
+### Tabel Matriks Hak Akses Aktor:
+
+| No | Modul / Kasus Penggunaan (Use Case) | Pegawai (Pemohon) | Kasubag Umum (Admin) | Super Administrator |
+|---|---|:---:|:---:|:---:|
+| 1 | **Login Sistem (Email / NIP)** | ✅ | ✅ | ✅ |
+| 2 | **Lihat Katalog & Status Ketersediaan Armada** | ✅ | ✅ | ✅ |
+| 3 | **Pengajuan Peminjaman & Upload Foto SIM** | ✅ | ❌ | ❌ |
+| 4 | **Pusat Notifikasi Status Pengajuan** | ✅ | ✅ | ✅ |
+| 5 | **Cetak Nota Dinas / SPK Resmi** | ✅ | ✅ | ✅ |
+| 6 | **Pelaporan Pengembalian Armada & BAST** | ✅ | ✅ | ✅ |
+| 7 | **Verifikasi Usulan & Persetujuan/Penolakan SPK** | ❌ | ✅ | ✅ |
+| 8 | **Monitoring Kalender Jadwal Armada** | ❌ | ✅ | ✅ |
+| 9 | **Ubah Status Armada (Tersedia/Servis/Digunakan)** | ❌ | ✅ | ✅ |
+| 10 | **Manajemen Data Akun Pengguna** | ❌ | ❌ | ✅ |
+| 11 | **Manajemen Master Data Armada (CRUD)** | ❌ | ❌ | ✅ |
+| 12 | **Dashboard Analitik & Ekspor Laporan Bulanan** | ❌ | ❌ | ✅ |
+
+---
+
 ## 🔄 Diagram Alur Sistem (Flowchart Operasional)
 
 Diagram alur berikut mengilustrasikan siklus lengkap pengelolaan kendaraan dinas mulai dari pengajuan permohonan oleh pegawai, verifikasi berkas oleh Kasubag Umum, hingga pengembalian unit armada dan penerbitan BAST:
