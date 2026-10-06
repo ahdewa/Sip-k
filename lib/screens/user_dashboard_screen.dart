@@ -219,8 +219,19 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            launchCustomUrl('https://dinsos.jatimprov.go.id/berita-publik');
+                          onPressed: () async {
+                            final targetUrl = (item['url'] != null && item['url']!.isNotEmpty)
+                                ? item['url']!
+                                : 'https://dinsos.jatimprov.go.id/berita-publik';
+                            final success = await launchCustomUrl(targetUrl);
+                            if (!success && ctx.mounted) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Tidak dapat membuka browser otomatis. Kunjungi: dinsos.jatimprov.go.id'),
+                                  backgroundColor: Color(0xFF24487A),
+                                ),
+                              );
+                            }
                           },
                           icon: const Icon(Icons.open_in_new_rounded, size: 16),
                           label: const Text('Buka Website Resmi Dinsos Jatim'),

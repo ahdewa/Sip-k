@@ -3,23 +3,36 @@ import 'package:url_launcher/url_launcher.dart';
 
 Future<bool> launchCustomUrl(String urlString) async {
   try {
-    final uri = Uri.parse(urlString);
+    final cleanUrl = urlString.trim();
+    if (cleanUrl.isEmpty) return false;
+    final uri = Uri.parse(cleanUrl);
 
-    // 1. Coba langsung buka dengan externalApplication
+    // 1. Coba buka langsung ke browser eksternal (Chrome, Browser default HP)
     try {
       if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
         return true;
       }
     } catch (_) {}
 
-    // 2. Coba canLaunchUrl + mode platformDefault
-    if (await canLaunchUrl(uri)) {
-      return await launchUrl(uri, mode: LaunchMode.platformDefault);
-    }
-
-    // 3. Fallback ke inAppBrowserView jika eksternal gagal
+    // 2. Coba mode platformDefault
     try {
-      return await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      if (await launchUrl(uri, mode: LaunchMode.platformDefault)) {
+        return true;
+      }
+    } catch (_) {}
+
+    // 3. Coba inAppBrowserView (Custom Tabs di dalam aplikasi)
+    try {
+      if (await launchUrl(uri, mode: LaunchMode.inAppBrowserView)) {
+        return true;
+      }
+    } catch (_) {}
+
+    // 4. Coba canLaunchUrl + launchUrl standar
+    try {
+      if (await canLaunchUrl(uri)) {
+        return await launchUrl(uri);
+      }
     } catch (_) {}
 
     return false;

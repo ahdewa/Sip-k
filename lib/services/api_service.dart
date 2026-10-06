@@ -795,6 +795,7 @@ class ApiService {
               'date': item['date']?.toString() ?? '',
               'image': img,
               'author': item['author']?.toString() ?? 'Admin Dinsos Jatim',
+              'url': item['url']?.toString() ?? 'https://dinsos.jatimprov.go.id/berita-publik',
             };
           }).toList();
         }
