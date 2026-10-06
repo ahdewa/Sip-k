@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:simodis_jatim/models/user_model.dart';
 
 class ApiConfig {
@@ -8,16 +6,8 @@ class ApiConfig {
   /// - Android Emulator: http://10.0.2.2/sip-k-backend/public/api
   /// - HP Fisik: Ganti dengan IP Wi-Fi Laptop (contoh: http://192.168.1.15/sip-k-backend/public/api)
   static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost/sip-k-backend/public/api';
-    }
-    try {
-      if (Platform.isAndroid) {
-        // IP Wi-Fi Laptop Anda agar HP Fisik bisa mengakses Laravel
-        return 'http://10.10.1.69/sip-k-backend/public/api';
-      }
-    } catch (_) {}
-    return 'http://localhost/sip-k-backend/public/api';
+    // Endpoint Backend Laravel di VM Azure
+    return 'http://20.244.48.18/api';
   }
 
   // Token sesi login yang sedang aktif
