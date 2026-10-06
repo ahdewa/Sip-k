@@ -906,7 +906,22 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen>
                                 ),
                                 const SizedBox(height: 10),
                                 ElevatedButton.icon(
-                                  onPressed: () => openOrDownloadDocument(docSource, filename),
+                                  onPressed: () async {
+                                    final path = await openOrDownloadDocument(docSource, filename);
+                                    if (ctx.mounted) {
+                                      ScaffoldMessenger.of(ctx).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            path != null
+                                                ? 'Dokumen tersimpan di: Download/OVBS/$filename'
+                                                : 'Dokumen berhasil diunduh.',
+                                          ),
+                                          behavior: SnackBarBehavior.floating,
+                                          backgroundColor: const Color(0xFF24487A),
+                                        ),
+                                      );
+                                    }
+                                  },
                                   icon: const Icon(Icons.open_in_new_rounded, size: 15),
                                   label: const Text('Buka Dokumen PDF'),
                                   style: ElevatedButton.styleFrom(

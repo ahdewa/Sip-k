@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:simodis_jatim/models/loan_model.dart';
+import 'package:simodis_jatim/services/file_saver_helper.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
 
 class NotaDinasDialog extends StatelessWidget {
@@ -9,6 +12,160 @@ class NotaDinasDialog extends StatelessWidget {
 
   String _formatDate(DateTime d) {
     return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+  }
+
+  Future<void> _generateAndDownloadPdf(BuildContext context) async {
+    final pdf = pw.Document();
+    final regNumber = loan.spkNumber ?? 'ND-0901/DINSOS/${DateTime.now().year}';
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(36),
+        build: (pw.Context ctx) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Center(
+                child: pw.Column(
+                  children: [
+                    pw.Text('PEMERINTAH PROVINSI JAWA TIMUR', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('DINAS SOSIAL', style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Jl. Gayung Kebonsari No.56, Surabaya, Jawa Timur 60235', style: const pw.TextStyle(fontSize: 9)),
+                    pw.SizedBox(height: 6),
+                    pw.Divider(thickness: 2),
+                    pw.SizedBox(height: 10),
+                    pw.Text('NOTA DINAS', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Nomor: $regNumber', style: const pw.TextStyle(fontSize: 10)),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 16),
+              pw.Table(
+                columnWidths: {
+                  0: const pw.FixedColumnWidth(100),
+                  1: const pw.FixedColumnWidth(15),
+                  2: const pw.FlexColumnWidth(),
+                },
+                children: [
+                  pw.TableRow(children: [
+                    pw.Text('Kepada', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text(':', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('Kepala Dinas Sosial Provinsi Jawa Timur', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                  ]),
+                  pw.TableRow(children: [
+                    pw.Text('Dari', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text(':', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('Kasubag Tata Usaha / Pengelola Aset', style: const pw.TextStyle(fontSize: 10)),
+                  ]),
+                  pw.TableRow(children: [
+                    pw.Text('Tanggal', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text(':', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text(_formatDate(DateTime.now()), style: const pw.TextStyle(fontSize: 10)),
+                  ]),
+                  pw.TableRow(children: [
+                    pw.Text('Hal', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text(':', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('Persetujuan Peminjaman Kendaraan Dinas Operasional', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                  ]),
+                ],
+              ),
+              pw.SizedBox(height: 14),
+              pw.Divider(thickness: 0.5),
+              pw.SizedBox(height: 10),
+              pw.Text('RINCIAN PEMINJAMAN:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 6),
+              pw.Table(
+                columnWidths: {
+                  0: const pw.FixedColumnWidth(120),
+                  1: const pw.FixedColumnWidth(15),
+                  2: const pw.FlexColumnWidth(),
+                },
+                children: [
+                  pw.TableRow(children: [
+                    pw.Text('Nama Peminjam', style: const pw.TextStyle(fontSize: 9.5)),
+                    pw.Text(':', style: const pw.TextStyle(fontSize: 9.5)),
+                    pw.Text(loan.borrowerName, style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                  ]),
+                  pw.TableRow(children: [
+                    pw.Text('Bidang / Seksi', style: const pw.TextStyle(fontSize: 9.5)),
+                    pw.Text(':', style: const pw.TextStyle(fontSize: 9.5)),
+                    pw.Text(loan.department, style: const pw.TextStyle(fontSize: 9.5)),
+                  ]),
+                  pw.TableRow(children: [
+                    pw.Text('Kendaraan', style: const pw.TextStyle(fontSize: 9.5)),
+                    pw.Text(':', style: const pw.TextStyle(fontSize: 9.5)),
+                    pw.Text(loan.vehicleName, style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                  ]),
+                  pw.TableRow(children: [
+                    pw.Text('Tujuan Perjalanan', style: const pw.TextStyle(fontSize: 9.5)),
+                    pw.Text(':', style: const pw.TextStyle(fontSize: 9.5)),
+                    pw.Text(loan.destination, style: const pw.TextStyle(fontSize: 9.5)),
+                  ]),
+                  pw.TableRow(children: [
+                    pw.Text('Keperluan Tugas', style: const pw.TextStyle(fontSize: 9.5)),
+                    pw.Text(':', style: const pw.TextStyle(fontSize: 9.5)),
+                    pw.Text(loan.purposeDescription.isNotEmpty ? loan.purposeDescription : '-', style: const pw.TextStyle(fontSize: 9.5)),
+                  ]),
+                  pw.TableRow(children: [
+                    pw.Text('Masa Penugasan', style: const pw.TextStyle(fontSize: 9.5)),
+                    pw.Text(':', style: const pw.TextStyle(fontSize: 9.5)),
+                    pw.Text('${_formatDate(loan.startDate)} s/d ${_formatDate(loan.endDate)}', style: const pw.TextStyle(fontSize: 9.5)),
+                  ]),
+                ],
+              ),
+              pw.Spacer(),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Mengetahui / Menyetujui:', style: const pw.TextStyle(fontSize: 9.5)),
+                      pw.Text('Kasubag Tata Usaha', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                      pw.SizedBox(height: 40),
+                      pw.Text('H. BAMBANG S., S.Sos., M.Si.', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                      pw.Text('NIP. 19740512 199803 1 004', style: const pw.TextStyle(fontSize: 8.5)),
+                    ],
+                  ),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Surabaya, ${_formatDate(DateTime.now())}', style: const pw.TextStyle(fontSize: 9.5)),
+                      pw.Text('Peminjam / Pemohon,', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                      pw.SizedBox(height: 40),
+                      pw.Text(loan.borrowerName.toUpperCase(), style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                      pw.Text('Petugas Operasional', style: const pw.TextStyle(fontSize: 8.5)),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 15),
+            ],
+          );
+        },
+      ),
+    );
+
+    final bytes = await pdf.save();
+    final safeId = loan.id.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+    final filename = 'Nota_Dinas_$safeId.pdf';
+    final savedPath = saveAndDownloadFile(bytes, filename, 'application/pdf');
+
+    if (context.mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            savedPath != null
+                ? 'Berkas tersimpan di: Download/OVBS/$filename'
+                : 'Berkas Nota Dinas berhasil diunduh ke folder Download/OVBS.',
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF24487A),
+        ),
+      );
+    }
   }
 
   @override
@@ -257,18 +414,7 @@ class NotaDinasDialog extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Berkas softfile Nota Dinas disimpan ke folder Unduhan (PDF).',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Color(0xFF24487A),
-                          ),
-                        );
-                      },
+                      onPressed: () => _generateAndDownloadPdf(context),
                       icon: const Icon(Icons.download_rounded, size: 16),
                       label: const Text(
                         'Unduh PDF',

@@ -4,18 +4,23 @@ import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:typed_data';
 
-void saveAndDownloadFile(Uint8List bytes, String filename, String mimeType) {
-  final base64Data = base64Encode(bytes);
-  final dataUri = 'data:$mimeType;base64,$base64Data';
-  final anchor = html.AnchorElement(href: dataUri)
-    ..setAttribute('download', filename)
-    ..style.display = 'none';
-  html.document.body!.append(anchor);
-  anchor.click();
-  anchor.remove();
+String? saveAndDownloadFile(Uint8List bytes, String filename, String mimeType) {
+  try {
+    final base64Data = base64Encode(bytes);
+    final dataUri = 'data:$mimeType;base64,$base64Data';
+    final anchor = html.AnchorElement(href: dataUri)
+      ..setAttribute('download', filename)
+      ..style.display = 'none';
+    html.document.body!.append(anchor);
+    anchor.click();
+    anchor.remove();
+    return filename;
+  } catch (e) {
+    return null;
+  }
 }
 
-void openOrDownloadDocument(String source, String filename) {
+Future<String?> openOrDownloadDocument(String source, String filename) async {
   try {
     if (source.startsWith('data:')) {
       final commaIdx = source.indexOf(',');
@@ -31,13 +36,13 @@ void openOrDownloadDocument(String source, String filename) {
         final blob = html.Blob([bytes], mimeType);
         final blobUrl = html.Url.createObjectUrlFromBlob(blob);
         html.window.open(blobUrl, '_blank');
-        return;
+        return filename;
       }
     } else if (source.startsWith('http://') ||
         source.startsWith('https://') ||
         source.startsWith('blob:')) {
       html.window.open(source, '_blank');
-      return;
+      return filename;
     }
 
     final anchor = html.AnchorElement(href: source)
@@ -47,9 +52,11 @@ void openOrDownloadDocument(String source, String filename) {
     html.document.body!.append(anchor);
     anchor.click();
     anchor.remove();
+    return filename;
   } catch (e) {
     // ignore: avoid_print
     print('openOrDownloadDocument error: $e');
+    return null;
   }
 }
 

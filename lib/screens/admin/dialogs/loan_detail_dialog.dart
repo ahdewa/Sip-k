@@ -971,7 +971,22 @@ class LoanDetailDialog {
                                       ),
                                       const SizedBox(height: 14),
                                       ElevatedButton.icon(
-                                        onPressed: () => openOrDownloadDocument(docSource, pdfFilename),
+                                        onPressed: () async {
+                                          final path = await openOrDownloadDocument(docSource, pdfFilename);
+                                          if (ctx.mounted) {
+                                            ScaffoldMessenger.of(ctx).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  path != null
+                                                      ? 'Dokumen tersimpan di: Download/OVBS/$pdfFilename'
+                                                      : 'Dokumen berhasil diunduh.',
+                                                ),
+                                                behavior: SnackBarBehavior.floating,
+                                                backgroundColor: const Color(0xFF24487A),
+                                              ),
+                                            );
+                                          }
+                                        },
                                         icon: const Icon(Icons.open_in_new_rounded, size: 16),
                                         label: const Text('Buka Dokumen PDF di Tab Baru'),
                                         style: ElevatedButton.styleFrom(
