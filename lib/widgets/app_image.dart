@@ -107,10 +107,19 @@ class _AppImageState extends State<AppImage> {
     if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
       try {
         final res = await http.get(Uri.parse(normalized));
-        if (res.statusCode == 200 && res.bodyBytes.isNotEmpty && mounted) {
-          setState(() {
-            _bytes = res.bodyBytes;
-          });
+        if (res.statusCode == 200 && res.bodyBytes.length > 10 && mounted) {
+          final ct = (res.headers['content-type'] ?? '').toLowerCase();
+          final b = res.bodyBytes;
+          final isImage = !ct.contains('text/html') &&
+              ((b[0] == 0xFF && b[1] == 0xD8) || // JPEG
+                  (b[0] == 0x89 && b[1] == 0x50) || // PNG
+                  (b[0] == 0x47 && b[1] == 0x49) || // GIF
+                  (b[0] == 0x52 && b[1] == 0x49)); // WEBP
+          if (isImage) {
+            setState(() {
+              _bytes = b;
+            });
+          }
         }
       } catch (_) {}
     }

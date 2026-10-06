@@ -39,7 +39,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       'desc':
           'Peringatan hari jadi Pemprov Jawa Timur dipimpin jajaran pimpinan dan keluarga besar Dinas Sosial Provinsi Jawa Timur.',
       'date': '05 Okt 2026',
-      'image': 'https://dinsos.jatimprov.go.id/uploads/berita/QqqUaJ4ZIf1mslXmPV9WWZ3H62hQQ65Gu9oAwODV.jpg',
+      'image': 'assets/images/news/news_1.jpg',
     },
     {
       'tag': 'REHABILITASI SOSIAL',
@@ -47,7 +47,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       'desc':
           'Tim Jatim Social Care (JSC) Dinas Sosial Jatim sigap memberikan pendampingan psikososial dan pemenuhan kebutuhan dasar bagi keluarga korban.',
       'date': '05 Okt 2026',
-      'image': 'https://dinsos.jatimprov.go.id/uploads/berita/crv30KIUzzNqSZMJioZX5aMMcqkJlAwt5DvNyb65.jpg',
+      'image': 'assets/images/news/news_2.jpg',
     },
     {
       'tag': 'UNIT PELAKSANA TEKNIS',
@@ -55,7 +55,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       'desc':
           'Dinas Sosial Provinsi Jawa Timur memastikan setiap lansia rentan mendapatkan hunian layak, perawatan medis, dan bimbingan sosial.',
       'date': '05 Okt 2026',
-      'image': 'https://dinsos.jatimprov.go.id/uploads/berita/M3CAlb8Co54Ege5BpmgaJMmaPXjYEUZ7gsvDrdzX.jpg',
+      'image': 'assets/images/news/news_3.jpg',
     },
     {
       'tag': 'UNIT PELAKSANA TEKNIS',
@@ -63,7 +63,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       'desc':
           'Seluruh pegawai dan penerima manfaat bersama-sama meneguhkan nilai-nilai kebangsaan dan persatuan dalam pengabdian sosial.',
       'date': '01 Okt 2026',
-      'image': 'https://dinsos.jatimprov.go.id/uploads/berita/elhaHbCAfKZlgGsnLAjGfK947X3MhBpH4sKXkCfQ.jpg',
+      'image': 'assets/images/news/news_4.jpg',
     },
     {
       'tag': 'PENGUMUMAN',
@@ -71,7 +71,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       'desc':
           'Seluruh kendaraan dinas siap untuk penugasan luar kota dengan kondisi prima demi kelancaran tugas pelayanan sosial di seluruh Jawa Timur.',
       'date': '28 Sep 2026',
-      'image': 'https://dinsos.jatimprov.go.id/uploads/berita/BUmi3ryHVz5oJ9jBLp4mAkRPyabedokubNmk0HJT.jpg',
+      'image': 'assets/images/news/news_5.jpg',
     },
     {
       'tag': 'PELAYANAN SOSIAL',
@@ -79,7 +79,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       'desc':
           'Pelayanan komprehensif hingga peristirahatan terakhir bagi penerima manfaat terlantar dilaksanakan secara khidmat.',
       'date': '25 Sep 2026',
-      'image': 'https://dinsos.jatimprov.go.id/uploads/berita/6TCHPMrBrUEdiIHgfg8jbsD9Bi7YEWe46vv67Yo5.jpg',
+      'image': 'assets/images/news/news_6.jpg',
     },
   ];
 

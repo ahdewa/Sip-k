@@ -28,9 +28,18 @@ class NewsController extends Controller
             ->orderBy('id', 'asc')
             ->get();
 
+        $baseUrl = config('app.url', 'http://20.244.48.18');
+        foreach ($news as $item) {
+            if (empty($item->image) || str_contains($item->image, 'dinsos.jatimprov.go.id')) {
+                $imgId = (($item->id - 1) % 6) + 1;
+                $item->image = $baseUrl . "/images/news/news_{$imgId}.jpg";
+                News::where('id', $item->id)->update(['image' => $item->image]);
+            }
+        }
+
         return response()->json([
             'status' => 'success',
-            'message' => 'Daftar berita terkini berhasil diambil dari Portal Dinsos Jatim.',
+            'message' => 'Daftar berita terkini berhasil diambil.',
             'source' => 'https://dinsos.jatimprov.go.id/',
             'data' => $news,
         ], 200);
@@ -200,13 +209,14 @@ class NewsController extends Controller
 
     private function getDefaultNewsItems(): array
     {
+        $baseUrl = config('app.url', 'http://20.244.48.18');
         return [
             [
                 'tag'       => 'SEKRETARIAT',
                 'title'     => 'Ziarah ke Makam Bung Karno dan Gubernur Jatim Terdahulu, Refleksi 81 Tahun Jawa Timur Unggul dan Berkelanjutan',
                 'desc'      => 'Peringatan hari jadi Pemprov Jawa Timur dipimpin jajaran pimpinan dan keluarga besar Dinas Sosial Provinsi Jawa Timur.',
                 'date'      => '05 Okt 2026',
-                'image'     => 'https://dinsos.jatimprov.go.id/uploads/berita/QqqUaJ4ZIf1mslXmPV9WWZ3H62hQQ65Gu9oAwODV.jpg',
+                'image'     => $baseUrl . '/images/news/news_1.jpg',
                 'author'    => 'Dinas Sosial Prov. Jatim',
                 'is_active' => true,
             ],
@@ -215,7 +225,7 @@ class NewsController extends Controller
                 'title'     => 'JSC Kembali Dampingi Keluarga Gondham Prakoso Korban Kecelakaan KM Virgo Transport 8',
                 'desc'      => 'Tim Jatim Social Care (JSC) Dinas Sosial Jatim sigap memberikan pendampingan psikososial dan pemenuhan kebutuhan dasar bagi keluarga korban.',
                 'date'      => '05 Okt 2026',
-                'image'     => 'https://dinsos.jatimprov.go.id/uploads/berita/crv30KIUzzNqSZMJioZX5aMMcqkJlAwt5DvNyb65.jpg',
+                'image'     => $baseUrl . '/images/news/news_2.jpg',
                 'author'    => 'Dinas Sosial Prov. Jatim',
                 'is_active' => true,
             ],
@@ -224,7 +234,7 @@ class NewsController extends Controller
                 'title'     => 'Tindak Lanjut Penjangkauan Pemprov Jatim, UPT PSTW Jombang Terima dan Asramakan Lansia Terlantar Milastri',
                 'desc'      => 'Dinas Sosial Provinsi Jawa Timur memastikan setiap lansia rentan dan terlantar mendapatkan hunian layak, perawatan medis, dan bimbingan sosial.',
                 'date'      => '05 Okt 2026',
-                'image'     => 'https://dinsos.jatimprov.go.id/uploads/berita/M3CAlb8Co54Ege5BpmgaJMmaPXjYEUZ7gsvDrdzX.jpg',
+                'image'     => $baseUrl . '/images/news/news_3.jpg',
                 'author'    => 'Dinas Sosial Prov. Jatim',
                 'is_active' => true,
             ],
@@ -233,16 +243,16 @@ class NewsController extends Controller
                 'title'     => 'Pemprov Jatim - UPT PSTW Jombang Laksanakan Pemulasaraan Jenazah Penerima Manfaat Suparmi',
                 'desc'      => 'Pelayanan komprehensif hingga peristirahatan terakhir bagi penerima manfaat terlantar dilaksanakan secara khidmat dan penuh rasa hormat.',
                 'date'      => '05 Okt 2026',
-                'image'     => 'https://dinsos.jatimprov.go.id/uploads/berita/6TCHPMrBrUEdiIHgfg8jbsD9Bi7YEWe46vv67Yo5.jpg',
+                'image'     => $baseUrl . '/images/news/news_4.jpg',
                 'author'    => 'Dinas Sosial Prov. Jatim',
                 'is_active' => true,
             ],
             [
                 'tag'       => 'UNIT PELAKSANA TEKNIS',
-                'title'     => 'Pemprov Jatim - UPT PSTW Jombang Gelar Upacara Peringatan Hari Kesaktian Pancasila',
+                'title'     => 'UPT PSTW Jombang Gelar Upacara Hari Kesaktian Pancasila',
                 'desc'      => 'Seluruh pegawai dan penerima manfaat bersama-sama meneguhkan nilai-nilai kebangsaan dan persatuan dalam pengabdian sosial.',
                 'date'      => '01 Okt 2026',
-                'image'     => 'https://dinsos.jatimprov.go.id/uploads/berita/elhaHbCAfKZlgGsnLAjGfK947X3MhBpH4sKXkCfQ.jpg',
+                'image'     => $baseUrl . '/images/news/news_5.jpg',
                 'author'    => 'Dinas Sosial Prov. Jatim',
                 'is_active' => true,
             ],
@@ -251,7 +261,7 @@ class NewsController extends Controller
                 'title'     => 'Uji Emisi & Servis Rutin Armada Tahap 1 Selesai Dilaksanakan',
                 'desc'      => 'Seluruh kendaraan dinas siap untuk penugasan luar kota dengan kondisi prima demi kelancaran tugas pelayanan sosial di seluruh Jawa Timur.',
                 'date'      => '28 Sep 2026',
-                'image'     => 'https://dinsos.jatimprov.go.id/uploads/berita/BUmi3ryHVz5oJ9jBLp4mAkRPyabedokubNmk0HJT.jpg',
+                'image'     => $baseUrl . '/images/news/news_6.jpg',
                 'author'    => 'Subbag Tata Usaha & Aset',
                 'is_active' => true,
             ],

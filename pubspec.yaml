@@ -64,7 +64,8 @@ flutter:
 
   # Perhatikan spasi di bawah ini:
   assets:
-    - assets/images/logo_sipk.png
+    - assets/images/
+    - assets/images/news/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

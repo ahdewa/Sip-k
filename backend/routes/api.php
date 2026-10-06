@@ -112,11 +112,11 @@ Route::get('/image-proxy', function (\Illuminate\Http\Request $request) {
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-        $data = curl_exec($ch);
-        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE) ?: 'image/jpeg';
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE) ?: '';
         curl_close($ch);
 
-        if ($data) {
+        if ($data && $httpCode >= 200 && $httpCode < 300 && stripos($contentType, 'image/') !== false) {
             return response($data, 200)
                 ->header('Content-Type', $contentType)
                 ->header('Access-Control-Allow-Origin', '*')

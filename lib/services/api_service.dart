@@ -778,16 +778,22 @@ class ApiService {
         final body = jsonDecode(cleanBody);
         if (body['status'] == 'success') {
           final List list = body['data'] ?? [];
+          int idx = 0;
           return list.map<Map<String, String>>((item) {
+            idx++;
+            var img = (item['image'] != null && item['image'].toString().isNotEmpty)
+                ? item['image'].toString()
+                : '';
+            if (img.isEmpty || img.contains('dinsos.jatimprov.go.id')) {
+              img = 'assets/images/news/news_${((idx - 1) % 6) + 1}.jpg';
+            }
             return {
               'id': item['id']?.toString() ?? '',
               'tag': item['tag']?.toString() ?? 'PENGUMUMAN',
               'title': item['title']?.toString() ?? '',
               'desc': item['desc']?.toString() ?? '',
               'date': item['date']?.toString() ?? '',
-              'image': (item['image'] != null && item['image'].toString().isNotEmpty)
-                  ? item['image'].toString()
-                  : 'assets/images/logo_sipk.png',
+              'image': img,
               'author': item['author']?.toString() ?? 'Admin Dinsos Jatim',
             };
           }).toList();
