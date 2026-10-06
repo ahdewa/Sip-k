@@ -91,11 +91,27 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  bool _areVehiclesEqual(List<Vehicle> a, List<Vehicle> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id ||
+          a[i].status != b[i].status ||
+          a[i].currentOdometer != b[i].currentOdometer ||
+          a[i].fuelPercent != b[i].fuelPercent ||
+          a[i].imageUrl != b[i].imageUrl) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> _loadDataFromApi() async {
     try {
       final vList = await ApiService.fetchVehicles();
       if (vList != null && vList.isNotEmpty && mounted) {
-        setState(() => _vehicles = vList);
+        if (!_areVehiclesEqual(_vehicles, vList)) {
+          setState(() => _vehicles = vList);
+        }
       }
       final lList = await ApiService.fetchLoans();
       if (lList != null && lList.isNotEmpty && mounted) {

@@ -66,6 +66,12 @@ flutter:
   assets:
     - assets/images/
     - assets/images/news/
+    - assets/images/news/news_1.jpg
+    - assets/images/news/news_2.jpg
+    - assets/images/news/news_3.jpg
+    - assets/images/news/news_4.jpg
+    - assets/images/news/news_5.jpg
+    - assets/images/news/news_6.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

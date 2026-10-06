@@ -29,8 +29,15 @@ String normalizeImageSource(String source) {
   return url;
 }
 
+// In-memory cache agar image provider (khususnya base64 MemoryImage dan remote) tidak di-decode ulang setiap frame/rebuild
+final Map<String, ImageProvider<Object>> _imageCache = {};
+final Map<String, Uint8List> _remoteBytesCache = {};
+
 ImageProvider<Object>? imageProviderFromSource(String source) {
   if (source.isEmpty) return null;
+  if (_imageCache.containsKey(source)) {
+    return _imageCache[source];
+  }
 
   final dataUriMarker = RegExp(
     r'^data:image/(png|jpeg|jpg|webp);base64,',
@@ -40,7 +47,9 @@ ImageProvider<Object>? imageProviderFromSource(String source) {
   if (match != null) {
     final encoded = source.substring(match.end);
     try {
-      return MemoryImage(base64Decode(encoded));
+      final provider = MemoryImage(base64Decode(encoded));
+      _imageCache[source] = provider;
+      return provider;
     } on FormatException {
       return null;
     }
@@ -49,18 +58,24 @@ ImageProvider<Object>? imageProviderFromSource(String source) {
   if (source.startsWith('http://') ||
       source.startsWith('https://') ||
       source.startsWith('blob:')) {
-    return NetworkImage(source);
+    final provider = NetworkImage(source);
+    _imageCache[source] = provider;
+    return provider;
   }
 
   if (source.startsWith('assets/')) {
-    return AssetImage(source);
+    final provider = AssetImage(source);
+    _imageCache[source] = provider;
+    return provider;
   }
 
   if (!kIsWeb) {
     try {
       final file = File(source);
       if (file.existsSync()) {
-        return FileImage(file);
+        final provider = FileImage(file);
+        _imageCache[source] = provider;
+        return provider;
       }
     } catch (_) {}
   }
@@ -90,21 +105,35 @@ class _AppImageState extends State<AppImage> {
   @override
   void initState() {
     super.initState();
-    _fetchIfRemote();
+    final normalized = normalizeImageSource(widget.source);
+    if (_remoteBytesCache.containsKey(normalized)) {
+      _bytes = _remoteBytesCache[normalized];
+    } else {
+      _fetchIfRemote();
+    }
   }
 
   @override
   void didUpdateWidget(covariant AppImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.source != widget.source) {
-      _bytes = null;
-      _fetchIfRemote();
+      final normalized = normalizeImageSource(widget.source);
+      if (_remoteBytesCache.containsKey(normalized)) {
+        _bytes = _remoteBytesCache[normalized];
+      } else {
+        _bytes = null;
+        _fetchIfRemote();
+      }
     }
   }
 
   Future<void> _fetchIfRemote() async {
     final normalized = normalizeImageSource(widget.source);
     if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+      if (_remoteBytesCache.containsKey(normalized)) {
+        if (mounted) setState(() => _bytes = _remoteBytesCache[normalized]);
+        return;
+      }
       try {
         final res = await http.get(Uri.parse(normalized));
         if (res.statusCode == 200 && res.bodyBytes.length > 10 && mounted) {
@@ -116,6 +145,7 @@ class _AppImageState extends State<AppImage> {
                   (b[0] == 0x47 && b[1] == 0x49) || // GIF
                   (b[0] == 0x52 && b[1] == 0x49)); // WEBP
           if (isImage) {
+            _remoteBytesCache[normalized] = b;
             setState(() {
               _bytes = b;
             });
@@ -131,6 +161,7 @@ class _AppImageState extends State<AppImage> {
       return Image.memory(
         _bytes!,
         fit: widget.fit,
+        gaplessPlayback: true,
         errorBuilder: (context, error, stackTrace) => widget.placeholder,
       );
     }
@@ -142,6 +173,7 @@ class _AppImageState extends State<AppImage> {
     return Image(
       image: provider,
       fit: widget.fit,
+      gaplessPlayback: true,
       errorBuilder: (context, error, stackTrace) => widget.placeholder,
     );
   }
