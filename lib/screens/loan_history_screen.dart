@@ -4,7 +4,9 @@ import 'package:simodis_jatim/models/loan_model.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
 import 'package:simodis_jatim/services/api_service.dart';
 import 'package:simodis_jatim/services/fcm_service.dart';
+import 'package:simodis_jatim/services/file_saver_helper.dart';
 import 'package:simodis_jatim/widgets/app_image.dart';
+import 'package:simodis_jatim/widgets/nota_dinas_dialog.dart';
 
 class LoanHistoryScreen extends StatefulWidget {
   final List<LoanRequest> loans;
@@ -28,16 +30,23 @@ class LoanHistoryScreen extends StatefulWidget {
   State<LoanHistoryScreen> createState() => _LoanHistoryScreenState();
 }
 
-class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
+class _LoanHistoryScreenState extends State<LoanHistoryScreen>
+    with SingleTickerProviderStateMixin {
   DateTime? _selectedMonth;
   late List<LoanRequest> _loans;
   bool _isFetching = false;
   Timer? _pollingTimer;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _loans = List.from(widget.loans);
+    _tabController = TabController(
+      length: 6,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 5),
+    );
     _fetchLoansFromApi();
     _pollingTimer = Timer.periodic(const Duration(seconds: 8), (_) {
       if (mounted) _fetchLoansFromApi();
@@ -59,6 +68,7 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _pollingTimer?.cancel();
     super.dispose();
   }
@@ -126,15 +136,16 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
   List<LoanRequest> _loansForTab(int tabIndex) {
     final filteredLoans = _loans.where((loan) {
       if (!_matchesSelectedMonth(loan)) return false;
+      final isExpired = loan.isPastDeadline && (_isApproved(loan.status) || _isInUse(loan.status));
       switch (tabIndex) {
         case 0:
           return _isWaiting(loan.status);
         case 1:
-          return _isApproved(loan.status);
+          return _isApproved(loan.status) && !isExpired;
         case 2:
-          return _isInUse(loan.status);
+          return _isInUse(loan.status) && !isExpired;
         case 3:
-          return loan.status == LoanStatus.selesai;
+          return loan.status == LoanStatus.selesai || isExpired;
         case 4:
           return loan.status == LoanStatus.ditolak ||
               loan.status == LoanStatus.rejected;
@@ -157,52 +168,50 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
   Widget build(BuildContext context) {
     final isDark = ThemeService.isDarkMode;
 
-    return DefaultTabController(
-      initialIndex: widget.initialTabIndex.clamp(0, 5),
-      length: 6,
-      child: Scaffold(
-        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          foregroundColor: isDark ? Colors.white : const Color(0xFF1E293B),
-          elevation: 0,
-          title: const Text(
-            'Riwayat Peminjaman',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          actions: [
-            IconButton(
-              tooltip: 'Perbarui Status (Refresh)',
-              icon: const Icon(Icons.refresh_rounded),
-              onPressed: () async {
-                await _fetchLoansFromApi();
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    behavior: SnackBarBehavior.floating,
-                    margin: EdgeInsets.all(16),
-                    duration: Duration(milliseconds: 900),
-                    content: Text('Status peminjaman berhasil diperbarui dari server.'),
-                  ),
-                );
-              },
-            ),
-          ],
-          bottom: TabBar(
-            isScrollable: true,
-            labelColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF24487A),
-            unselectedLabelColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-            indicatorColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF24487A),
-            tabs: const [
-              Tab(text: 'Menunggu'),
-              Tab(text: 'Disetujui'),
-              Tab(text: 'Digunakan'),
-              Tab(text: 'Selesai'),
-              Tab(text: 'Ditolak'),
-              Tab(text: 'Dibatalkan'),
-            ],
-          ),
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        foregroundColor: isDark ? Colors.white : const Color(0xFF1E293B),
+        elevation: 0,
+        title: const Text(
+          'Riwayat Peminjaman',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Perbarui Status (Refresh)',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () async {
+              await _fetchLoansFromApi();
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  behavior: SnackBarBehavior.floating,
+                  margin: EdgeInsets.all(16),
+                  duration: Duration(milliseconds: 900),
+                  content: Text('Status peminjaman berhasil diperbarui dari server.'),
+                ),
+              );
+            },
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          labelColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF24487A),
+          unselectedLabelColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+          indicatorColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF24487A),
+          tabs: const [
+            Tab(text: 'Menunggu'),
+            Tab(text: 'Disetujui'),
+            Tab(text: 'Digunakan'),
+            Tab(text: 'Selesai'),
+            Tab(text: 'Ditolak'),
+            Tab(text: 'Dibatalkan'),
+          ],
+        ),
+      ),
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -267,6 +276,7 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
             ),
             Expanded(
               child: TabBarView(
+                controller: _tabController,
                 children: [
                   _buildLoanList(0),
                   _buildLoanList(1),
@@ -279,8 +289,7 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildLoanList(int tabIndex) {
@@ -339,9 +348,10 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
 
   Widget _buildLoanCard(BuildContext context, LoanRequest loan) {
     final isDark = ThemeService.isDarkMode;
-    final isApproved = _isApproved(loan.status);
-    final isInUse = _isInUse(loan.status);
-    final isCompleted = loan.status == LoanStatus.selesai;
+    final isExpired = loan.isPastDeadline && (_isApproved(loan.status) || _isInUse(loan.status));
+    final isApproved = _isApproved(loan.status) && !isExpired;
+    final isInUse = _isInUse(loan.status) && !isExpired;
+    final isCompleted = loan.status == LoanStatus.selesai || isExpired;
     final isRejected =
         loan.status == LoanStatus.ditolak || loan.status == LoanStatus.rejected;
     final isCancelled = loan.status == LoanStatus.dibatalkan;
@@ -450,7 +460,7 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Jadwal: ${_formatDate(loan.startDate)} s/d ${_formatDate(loan.endDate)}',
+              'Jadwal: ${loan.scheduleDisplay}',
               style: TextStyle(
                 fontSize: 12,
                 color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0369A1),
@@ -530,9 +540,40 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
               ),
             ],
 
-            // 2. TAMPILAN JIKA DISETUJUI (OPSI MULAI GUNAKAN ARMADA)
-            if (isApproved) ...[
+            // 2. TAMPILAN NOTA DINAS RESMI (JIKA SUDAH DISETUJUI / MEMILIKI SPK)
+            if (isApproved || isInUse || isCompleted || loan.spkNumber != null) ...[
               const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => NotaDinasDialog(loan: loan),
+                    );
+                  },
+                  icon: const Icon(Icons.print_rounded, size: 16),
+                  label: const Text('Buka & Cetak Softfile Nota Dinas'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF16A34A),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ],
+
+            // 3. TAMPILAN JIKA DISETUJUI (OPSI MULAI GUNAKAN ARMADA)
+            if (isApproved) ...[
+              const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -588,9 +629,10 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
   }
 
   void _showLoanDetailDialog(LoanRequest loan) {
-    final isApproved = _isApproved(loan.status);
-    final isInUse = _isInUse(loan.status);
-    final isCompleted = loan.status == LoanStatus.selesai;
+    final isExpired = loan.isPastDeadline && (_isApproved(loan.status) || _isInUse(loan.status));
+    final isApproved = _isApproved(loan.status) && !isExpired;
+    final isInUse = _isInUse(loan.status) && !isExpired;
+    final isCompleted = loan.status == LoanStatus.selesai || isExpired;
     final isRejected =
         loan.status == LoanStatus.ditolak || loan.status == LoanStatus.rejected;
     final isCancelled = loan.status == LoanStatus.dibatalkan;
@@ -709,7 +751,7 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
                   _buildDetailRow(
                     Icons.calendar_month_rounded,
                     'Jadwal Tugas',
-                    '${_formatDate(loan.startDate)} - ${_formatDate(loan.endDate)}',
+                    loan.scheduleDisplay,
                   ),
                   _buildDetailRow(
                     Icons.near_me_rounded,
@@ -754,10 +796,80 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
                       'Catatan Kembali',
                       loan.returnNotes!,
                     ),
+                  if (loan.spkNumber != null || isApproved || isInUse || isCompleted) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF16A34A).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF16A34A).withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.verified_rounded, color: Color(0xFF16A34A), size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Nota Dinas / SPK Resmi (${loan.spkNumber ?? "Terbit"})',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12.5,
+                                    color: Color(0xFF15803D),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Permohonan telah disahkan Kasubag Umum. Anda dapat melihat, mengunduh softfile, atau mencetak lembar Nota Dinas resmi ini untuk keperluan kedinasan.',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF334155), height: 1.35),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => NotaDinasDialog(loan: loan),
+                                );
+                              },
+                              icon: const Icon(Icons.print_rounded, size: 16),
+                              label: const Text(
+                                'Buka & Cetak Softfile Nota Dinas',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF16A34A),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   if (loan.simPhotoPath != null && loan.simPhotoPath!.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Text(
-                      'Foto SIM Terlampir',
+                      'Dokumen Persyaratan (Unggahan Pemohon)',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -765,24 +877,70 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        width: double.infinity,
-                        height: 140,
-                        color: isDarkDialog ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                        child: AppImage(
-                          source: loan.simPhotoPath!,
-                          fit: BoxFit.cover,
-                          placeholder: Center(
-                            child: Icon(
-                              Icons.badge_outlined,
-                              size: 36,
-                              color: isDarkDialog ? Colors.white38 : const Color(0xFF94A3B8),
+                    Builder(
+                      builder: (ctx) {
+                        final docSource = loan.simPhotoPath!;
+                        final isPdf = docSource.startsWith('data:application/pdf') ||
+                            docSource.toLowerCase().endsWith('.pdf') ||
+                            docSource.contains('application/pdf');
+                        final filename = 'Lampiran_Pengajuan_${loan.borrowerName.replaceAll(' ', '_')}.pdf';
+
+                        if (isPdf) {
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isDarkDialog ? const Color(0xFF1E293B) : const Color(0xFFFEF2F2),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isDarkDialog ? const Color(0xFFDC2626).withValues(alpha: 0.4) : const Color(0xFFFECACA),
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                const Icon(Icons.picture_as_pdf_rounded, size: 36, color: Color(0xFFDC2626)),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Berkas Lampiran Pengajuan (Format PDF)',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 10),
+                                ElevatedButton.icon(
+                                  onPressed: () => openOrDownloadDocument(docSource, filename),
+                                  icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                                  label: const Text('Buka Dokumen PDF'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFDC2626),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            width: double.infinity,
+                            height: 140,
+                            color: isDarkDialog ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                            child: AppImage(
+                              source: docSource,
+                              fit: BoxFit.cover,
+                              placeholder: Center(
+                                child: Icon(
+                                  Icons.description_outlined,
+                                  size: 36,
+                                  color: isDarkDialog ? Colors.white38 : const Color(0xFF94A3B8),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ],
                   const SizedBox(height: 14),
@@ -846,303 +1004,222 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
     final now = DateTime.now();
     final bool isEarly = now.isBefore(loan.endDate);
 
-    final kmController = TextEditingController(
-      text: loan.returnOdometer != null
-          ? loan.returnOdometer.toString()
-          : '45350',
-    );
-    String selectedFuel = loan.returnFuel?.toString() ?? 'Penuh (100%)';
-    final notesController = TextEditingController(
-      text: loan.returnNotes ??
-          (isEarly
-              ? 'Tugas kedinasan selesai lebih cepat dari jadwal semula. Kendaraan dikembalikan dalam kondisi baik dan bersih.'
-              : 'Tugas kedinasan selesai sesuai jadwal. Kendaraan dikembalikan lengkap.'),
-    );
-
-    final fuelOptions = [
-      'Penuh (100%)',
-      '3/4 (75%)',
-      '1/2 (50%)',
-      '1/4 (25%)',
-    ];
-
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            return Theme(
-              data: isDark ? ThemeService.darkTheme : ThemeService.lightTheme,
-              child: Dialog(
-                backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        return Theme(
+          data: isDark ? ThemeService.darkTheme : ThemeService.lightTheme,
+          child: Dialog(
+            backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF059669).withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.task_alt_rounded,
-                                color: Color(0xFF059669),
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Selesaikan Pinjaman',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : const Color(0xFF1E293B),
-                                    ),
-                                  ),
-                                  Text(
-                                    loan.vehicleName,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => Navigator.pop(dialogContext),
-                              icon: const Icon(Icons.close_rounded),
-                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-
-                        // BANNER INFO PENYELESAIAN LEBIH CEPAT
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF0F172A)
-                                : const Color(0xFFF0FDF4),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isDark
-                                  ? const Color(0xFF334155)
-                                  : const Color(0xFFBBF7D0),
-                            ),
+                            color: const Color(0xFF059669).withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
                           ),
+                          child: const Icon(
+                            Icons.task_alt_rounded,
+                            color: Color(0xFF059669),
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    isEarly
-                                        ? Icons.bolt_rounded
-                                        : Icons.event_available_rounded,
-                                    size: 16,
-                                    color: isEarly
-                                        ? const Color(0xFFD97706)
-                                        : const Color(0xFF059669),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    isEarly
-                                        ? 'Pengembalian Lebih Cepat dari Jadwal'
-                                        : 'Pengembalian Sesuai Jadwal',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: isEarly
-                                          ? const Color(0xFFD97706)
-                                          : const Color(0xFF059669),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
                               Text(
-                                'Jadwal semula: ${_formatDate(loan.startDate)} s/d ${_formatDate(loan.endDate)}\n'
-                                'Diselesaikan: ${_formatDate(now)} (Hari Ini)',
+                                'Selesaikan Pinjaman',
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  height: 1.4,
-                                  color: isDark
-                                      ? const Color(0xFF94A3B8)
-                                      : const Color(0xFF475569),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : const Color(0xFF1E293B),
                                 ),
+                              ),
+                              Text(
+                                loan.vehicleName,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-
-                        Text(
-                          'Odometer Akhir (KM)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF1E293B),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: kmController,
-                          keyboardType: TextInputType.number,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isDark ? Colors.white : const Color(0xFF1E293B),
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Contoh: 45350',
-                            prefixIcon: const Icon(Icons.speed_rounded, size: 18),
-                            suffixText: 'KM',
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                            filled: true,
-                            fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-
-                        Text(
-                          'Sisa Bahan Bakar (BBM)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF1E293B),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: fuelOptions.map((f) {
-                            final isSel = selectedFuel == f;
-                            return ChoiceChip(
-                              label: Text(
-                                f,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                                  color: isSel
-                                      ? Colors.white
-                                      : (isDark ? Colors.white70 : const Color(0xFF334155)),
-                                ),
-                              ),
-                              selected: isSel,
-                              selectedColor: const Color(0xFF059669),
-                              backgroundColor: isDark
-                                  ? const Color(0xFF0F172A)
-                                  : const Color(0xFFF1F5F9),
-                              onSelected: (_) {
-                                setDialogState(() => selectedFuel = f);
-                              },
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 14),
-
-                        Text(
-                          'Catatan Pengembalian',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF1E293B),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: notesController,
-                          maxLines: 2,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? Colors.white : const Color(0xFF1E293B),
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Kondisi kendaraan saat diserahkan kembali...',
-                            contentPadding: const EdgeInsets.all(12),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                            filled: true,
-                            fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => Navigator.pop(dialogContext),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                                child: const Text('Batal'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 2,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  final parsedKm = int.tryParse(kmController.text.replaceAll('.', '').replaceAll(',', '')) ?? 45350;
-                                  Navigator.pop(dialogContext);
-
-                                  setState(() {
-                                    loan.status = LoanStatus.selesai;
-                                    loan.returnOdometer = parsedKm;
-                                    loan.returnFuel = selectedFuel;
-                                    loan.returnNotes = notesController.text.trim();
-                                  });
-
-                                  widget.onLoanCompleted?.call(loan);
-
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Peminjaman ${loan.vehicleName} berhasil diselesaikan${isEarly ? ' lebih cepat' : ''}! Status kini Selesai.',
-                                      ),
-                                      behavior: SnackBarBehavior.floating,
-                                      backgroundColor: const Color(0xFF059669),
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(Icons.check_circle_rounded, size: 16),
-                                label: const Text('Selesaikan Pinjaman'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF059669),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                          ],
+                        IconButton(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          icon: const Icon(Icons.close_rounded),
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 14),
+
+                    // BANNER INFO PENYELESAIAN LEBIH CEPAT
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF334155)
+                              : const Color(0xFFBBF7D0),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                isEarly
+                                    ? Icons.bolt_rounded
+                                    : Icons.event_available_rounded,
+                                size: 16,
+                                color: isEarly
+                                    ? const Color(0xFFD97706)
+                                    : const Color(0xFF059669),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                isEarly
+                                    ? 'Pengembalian Lebih Cepat dari Jadwal'
+                                    : 'Pengembalian Sesuai Jadwal',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isEarly
+                                      ? const Color(0xFFD97706)
+                                      : const Color(0xFF059669),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Jadwal semula: ${_formatDate(loan.startDate)} s/d ${_formatDate(loan.endDate)}\n'
+                            'Diselesaikan: ${_formatDate(now)} (Hari Ini)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              height: 1.4,
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF475569),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF059669).withValues(alpha: isDark ? 0.2 : 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: const Color(0xFF059669).withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.check_circle_outline_rounded,
+                            color: Color(0xFF059669),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Konfirmasi penyelesaian pinjaman. Setelah dikonfirmasi, status peminjaman akan otomatis Selesai dan kendaraan kembali berstatus Tersedia.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                height: 1.4,
+                                color: isDark ? const Color(0xFFA7F3D0) : const Color(0xFF065F46),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('Batal'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(dialogContext);
+
+                              setState(() {
+                                loan.status = LoanStatus.selesai;
+                                loan.returnOdometer = 0;
+                                loan.returnFuel = '-';
+                                loan.returnNotes = isEarly
+                                    ? 'Dikembalikan lebih awal oleh peminjam.'
+                                    : 'Dikembalikan sesuai jadwal oleh peminjam.';
+                              });
+
+                              widget.onLoanCompleted?.call(loan);
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Peminjaman ${loan.vehicleName} berhasil diselesaikan${isEarly ? ' lebih cepat' : ''}! Status kini Selesai.',
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                  backgroundColor: const Color(0xFF059669),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.check_circle_rounded, size: 16),
+                            label: const Text('Selesaikan Pinjaman'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF059669),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
+            ),
+          ),
         );
       },
     );
@@ -1262,13 +1339,32 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen> {
 
     if (confirmed != true || !context.mounted) return;
 
-    setState(() => loan.status = LoanStatus.dibatalkan);
+    // 1. Update status peminjaman di memori seketika
+    setState(() {
+      loan.status = LoanStatus.dibatalkan;
+      final idx = _loans.indexWhere((l) => l.id == loan.id);
+      if (idx != -1) {
+        _loans[idx].status = LoanStatus.dibatalkan;
+      }
+    });
+
+    // 2. Beritahukan callback ke layar pemanggil
     widget.onLoanCancelled?.call(loan);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Pinjaman berhasil dibatalkan.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+
+    // 3. Panggil API backend untuk simpan status pembatalan
+    await ApiService.cancelLoan(loan.id);
+
+    // 4. Otomatis alihkan tab ke Tab Dibatalkan (Index 5)
+    _tabController.animateTo(5);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Pengajuan ${loan.vehicleName} berhasil dibatalkan dan dipindahkan ke tab Dibatalkan.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF1E293B),
+        ),
+      );
+    }
   }
 }

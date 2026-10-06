@@ -458,7 +458,7 @@ class _DashboardLoadingViewState extends State<DashboardLoadingView>
                         child: Text(
                           isAdmin
                               ? (isSuper ? 'PANEL SUPERADMIN' : 'PANEL KASUBAG')
-                              : 'SIP-K DINSOS JATIM',
+                              : 'OVBS DINSOS JATIM',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
@@ -476,7 +476,7 @@ class _DashboardLoadingViewState extends State<DashboardLoadingView>
                             ? (isSuper
                                 ? 'Menyiapkan Panel Superadmin'
                                 : 'Menyiapkan Panel Kasubag')
-                            : 'Memuat Dashboard SIP-K',
+                            : 'Memuat Dashboard OVBS',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 18,

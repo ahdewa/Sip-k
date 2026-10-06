@@ -4,3 +4,8 @@ import 'dart:typed_data';
 void saveAndDownloadFile(Uint8List bytes, String filename, String mimeType) {
   throw UnsupportedError('Platform not supported for file download');
 }
+
+void openOrDownloadDocument(String source, String filename) {
+  throw UnsupportedError('Platform not supported for file viewing');
+}
+

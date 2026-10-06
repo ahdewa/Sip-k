@@ -3,6 +3,7 @@ import 'package:simodis_jatim/models/notification_model.dart';
 import 'package:simodis_jatim/widgets/app_header_profile_avatar.dart';
 import 'package:simodis_jatim/screens/notification_detail_screen.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
+import 'package:simodis_jatim/services/api_service.dart';
 
 class NotificationScreen extends StatefulWidget {
   final List<AppNotification> notifications;
@@ -73,6 +74,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     setState(() {
       item.isRead = true;
     });
+    ApiService.markNotificationRead(item.id);
 
     Navigator.push(
       context,

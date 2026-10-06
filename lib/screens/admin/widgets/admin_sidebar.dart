@@ -156,7 +156,7 @@ class AdminSidebar extends StatelessWidget {
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
-                              'SIP-K DINSOS',
+                              'OVBS DINSOS',
                               style: TextStyle(
                                 color: headerTextColor,
                                 fontWeight: FontWeight.w900,

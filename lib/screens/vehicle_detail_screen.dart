@@ -43,6 +43,180 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
     );
   }
 
+  void _openFullScreenGallery(int initialIndex) {
+    final images = widget.vehicle.allImages;
+    if (images.isEmpty) return;
+
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        barrierColor: Colors.black.withValues(alpha: 0.94),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          int activeIndex = initialIndex;
+          final pageController = PageController(initialPage: initialIndex);
+
+          return StatefulBuilder(
+            builder: (context, setModalState) {
+              return Scaffold(
+                backgroundColor: Colors.transparent,
+                body: SafeArea(
+                  child: Stack(
+                    children: [
+                      // Photo Swiper with InteractiveViewer (Zoom & Pan)
+                      PageView.builder(
+                        controller: pageController,
+                        itemCount: images.length,
+                        onPageChanged: (idx) {
+                          setModalState(() => activeIndex = idx);
+                          if (mounted) {
+                            setState(() => _currentImageIndex = idx);
+                            if (_imagePageController.hasClients) {
+                              _imagePageController.jumpToPage(idx);
+                            }
+                          }
+                        },
+                        itemBuilder: (context, idx) {
+                          return InteractiveViewer(
+                            panEnabled: true,
+                            minScale: 0.8,
+                            maxScale: 4.0,
+                            child: Center(
+                              child: AppImage(
+                                source: images[idx],
+                                fit: BoxFit.contain,
+                                placeholder: _buildPlaceholder(),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+
+                      // Header Atas: Info Kendaraan, Counter Foto, & Tombol Tutup
+                      Positioned(
+                        top: 12,
+                        left: 16,
+                        right: 16,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.6),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      widget.vehicle.name,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${widget.vehicle.plateNumber} • Foto ${activeIndex + 1} dari ${images.length}',
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 11.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.close_rounded, color: Colors.white, size: 24),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Strip Thumbnail di Bawah (jika lebih dari 1 foto)
+                      if (images.length > 1)
+                        Positioned(
+                          bottom: 16,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: SizedBox(
+                                height: 50,
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: images.length,
+                                  itemBuilder: (context, idx) {
+                                    final isSel = activeIndex == idx;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        pageController.animateToPage(
+                                          idx,
+                                          duration: const Duration(milliseconds: 250),
+                                          curve: Curves.easeInOut,
+                                        );
+                                      },
+                                      child: MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        child: Container(
+                                          width: 50,
+                                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: isSel ? const Color(0xFF38BDF8) : Colors.white30,
+                                              width: isSel ? 2.5 : 1,
+                                            ),
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(6),
+                                            child: AppImage(
+                                              source: images[idx],
+                                              fit: BoxFit.cover,
+                                              placeholder: _buildPlaceholder(),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = ThemeService.isDarkMode;
@@ -124,11 +298,54 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                       setState(() => _currentImageIndex = index);
                     },
                     itemBuilder: (context, index) {
-                      return _buildImageWidget(images[index]);
+                      return GestureDetector(
+                        onTap: () => _openFullScreenGallery(index),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: _buildImageWidget(images[index]),
+                        ),
+                      );
                     },
                   ),
 
-                  // Indikator Foto
+                  // Tombol Perbesar / Zoom di Kanan Atas
+                  Positioned(
+                    top: 12,
+                    right: 14,
+                    child: GestureDetector(
+                      onTap: () => _openFullScreenGallery(_currentImageIndex),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.zoom_in_rounded, color: Colors.white, size: 16),
+                              SizedBox(width: 4),
+                              Text(
+                                'Perbesar',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Indikator Foto di Kanan Bawah
                   if (images.length > 1)
                     Positioned(
                       bottom: 12,
@@ -169,27 +386,35 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                     final isSelected = _currentImageIndex == index;
                     return GestureDetector(
                       onTap: () {
-                        _imagePageController.animateToPage(
-                          index,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
+                        if (_currentImageIndex == index) {
+                          _openFullScreenGallery(index);
+                        } else {
+                          _imagePageController.animateToPage(
+                            index,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        }
                       },
-                      child: Container(
-                        width: 60,
-                        margin: const EdgeInsets.only(right: 8),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isSelected
-                                ? const Color(0xFF24487A)
-                                : Colors.transparent,
-                            width: 2,
+                      onDoubleTap: () => _openFullScreenGallery(index),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: Container(
+                          width: 60,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFF24487A)
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
                           ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: _buildImageWidget(images[index]),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: _buildImageWidget(images[index]),
+                          ),
                         ),
                       ),
                     );
@@ -291,9 +516,9 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                   Row(
                     children: [
                       _buildSpecCard(
-                        'Sisa BBM',
-                        widget.vehicle.fuelDisplay,
-                        Icons.local_gas_station_rounded,
+                        'Nomor Rangka',
+                        widget.vehicle.chassisNumberDisplay,
+                        Icons.tag_rounded,
                         isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7),
                         isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
                         isDark,
@@ -313,9 +538,9 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                   Row(
                     children: [
                       _buildSpecCard(
-                        'Odometer (KM)',
-                        '${widget.vehicle.currentOdometer} KM',
-                        Icons.speed_rounded,
+                        'Nomor Mesin',
+                        widget.vehicle.engineNumberDisplay,
+                        Icons.precision_manufacturing_rounded,
                         isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
                         isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
                         isDark,

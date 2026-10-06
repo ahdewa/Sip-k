@@ -21,7 +21,7 @@ return new class extends Migration
             $table->dateTime('start_date');
             $table->dateTime('end_date');
             $table->string('official_note_number')->default('-');
-            $table->string('sim_photo_path')->nullable();
+            $table->longText('sim_photo_path')->nullable();
             $table->string('status')->default('menunggu'); // menunggu, disetujui, digunakan, ditolak, dibatalkan, selesai
             $table->dateTime('submitted_at');
             $table->string('spk_number')->nullable();

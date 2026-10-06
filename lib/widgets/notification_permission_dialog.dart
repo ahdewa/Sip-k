@@ -152,7 +152,7 @@ class NotificationPermissionDialog extends StatelessWidget {
 
               // Judul & Deskripsi
               const Text(
-                'Aktifkan Notifikasi SIP-K',
+                'Aktifkan Notifikasi OVBS',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 15,

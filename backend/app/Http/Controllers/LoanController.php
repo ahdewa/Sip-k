@@ -106,19 +106,25 @@ class LoanController extends Controller
 
         // Simpan foto SIM jika dikirim dalam format base64 data URI
         if (!empty($validated['sim_photo_path'])) {
-            if (preg_match('/^data:image\/(\w+);base64,/', $validated['sim_photo_path'], $type)) {
-                $data = substr($validated['sim_photo_path'], strpos($validated['sim_photo_path'], ',') + 1);
-                $type = strtolower($type[1]);
-                $data = base64_decode($data);
-                if ($data !== false) {
-                    $fileName = 'sim_' . time() . '_' . uniqid() . '.' . $type;
-                    $dir = public_path('storage/sim_photos');
-                    if (!file_exists($dir)) {
-                        mkdir($dir, 0777, true);
+            try {
+                if (preg_match('/^data:image\/(\w+);base64,/', $validated['sim_photo_path'], $type)) {
+                    $data = substr($validated['sim_photo_path'], strpos($validated['sim_photo_path'], ',') + 1);
+                    $ext = strtolower($type[1]);
+                    $decoded = base64_decode($data);
+                    if ($decoded !== false) {
+                        $fileName = 'sim_' . time() . '_' . uniqid() . '.' . $ext;
+                        $dir = public_path('storage/sim_photos');
+                        if (!file_exists($dir)) {
+                            @mkdir($dir, 0777, true);
+                        }
+                        if (file_exists($dir) && is_writable($dir)) {
+                            file_put_contents($dir . '/' . $fileName, $decoded);
+                            $validated['sim_photo_path'] = asset('storage/sim_photos/' . $fileName);
+                        }
                     }
-                    file_put_contents($dir . '/' . $fileName, $data);
-                    $validated['sim_photo_path'] = asset('storage/sim_photos/' . $fileName);
                 }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Gagal menyimpan file foto SIM: " . $e->getMessage());
             }
         }
 

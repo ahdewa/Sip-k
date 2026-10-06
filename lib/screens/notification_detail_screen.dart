@@ -431,7 +431,7 @@ class NotificationDetailScreen extends StatelessWidget {
                   _buildMetaRow(
                     icon: Icons.shield_outlined,
                     label: 'Status Berkas',
-                    value: 'Terkonfirmasi di Database SIP-K',
+                    value: 'Terkonfirmasi di Database OVBS',
                     valueColor: const Color(0xFF16A34A),
                     isDark: isDark,
                   ),

@@ -10,6 +10,7 @@ class LoanFlowScreen extends StatelessWidget {
   final Vehicle? preselectedVehicle;
   final Function(LoanRequest) onSubmitLoan;
   final Function(int)? onNavigateTab;
+  final List<LoanRequest>? existingLoans;
 
   const LoanFlowScreen({
     super.key,
@@ -17,6 +18,7 @@ class LoanFlowScreen extends StatelessWidget {
     this.preselectedVehicle,
     required this.onSubmitLoan,
     this.onNavigateTab,
+    this.existingLoans,
   });
 
   void _navigateToForm(BuildContext context) {
@@ -27,6 +29,7 @@ class LoanFlowScreen extends StatelessWidget {
           vehicles: vehicles,
           preselectedVehicle: preselectedVehicle,
           onSubmit: onSubmitLoan,
+          existingLoans: existingLoans,
         ),
       ),
     );

@@ -142,7 +142,7 @@ class ReportExportService {
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               pw.Text(
-                'Dokumen ini digenerate oleh Sistem SIP-K • Rahasia / Internal Dinsos Prov. Jawa Timur',
+                'Dokumen ini digenerate oleh Sistem OVBS • Rahasia / Internal Dinsos Prov. Jawa Timur',
                 style: const pw.TextStyle(color: textSecondary, fontSize: 7),
               ),
               pw.Text(
@@ -178,7 +178,7 @@ class ReportExportService {
                 ),
                 pw.SizedBox(height: 4),
                 pw.Text(
-                  'Dinas Sosial Provinsi Jawa Timur – Sistem Informasi Peminjaman Kendaraan (SIP-K)',
+                  'Dinas Sosial Provinsi Jawa Timur – Sistem OVBS (Official Vehicle Booking System)',
                   style: const pw.TextStyle(color: white, fontSize: 9),
                 ),
                 pw.SizedBox(height: 8),
@@ -397,7 +397,7 @@ class ReportExportService {
                 ),
                 pw.SizedBox(height: 6),
                 pw.Text(
-                  '1. Dokumen ini merupakan hasil cetak laporan resmi dari Sistem Informasi Peminjaman Kendaraan (SIP-K) Dinas Sosial Provinsi Jawa Timur.\n'
+                  '1. Dokumen ini merupakan hasil cetak laporan resmi dari Sistem OVBS Dinas Sosial Provinsi Jawa Timur.\n'
                   '2. Data yang tercantum bersumber dari basis data sistem per tanggal cetak.\n'
                   '3. Laporan ini bersifat rahasia dan hanya untuk keperluan internal instansi.\n'
                   '4. Segala perubahan data setelah tanggal cetak tidak tercermin dalam dokumen ini.',
@@ -528,7 +528,7 @@ class ReportExportService {
     summarySheet.merge(
         CellIndex.indexByString('A2'), CellIndex.indexByString('F2'));
     summarySheet.cell(CellIndex.indexByString('A2')).value =
-        TextCellValue('Dinas Sosial Provinsi Jawa Timur – Sistem SIP-K');
+        TextCellValue('Dinas Sosial Provinsi Jawa Timur – Sistem OVBS');
     summarySheet.cell(CellIndex.indexByString('A2')).cellStyle = CellStyle(
       fontSize: 10,
       fontColorHex: ExcelColor.white,

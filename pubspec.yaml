@@ -41,6 +41,8 @@ dependencies:
   http: ^1.2.2
   firebase_core: ^3.12.1
   firebase_messaging: ^15.2.4
+  file_picker: ^13.1.0
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

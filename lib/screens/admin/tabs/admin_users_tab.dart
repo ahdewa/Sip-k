@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:simodis_jatim/models/user_model.dart';
 import 'package:simodis_jatim/screens/admin/dialogs/user_form_dialog.dart';
+import 'package:simodis_jatim/screens/admin/dialogs/user_import_dialog.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
 
 class AdminUsersTab extends StatefulWidget {
@@ -87,7 +88,43 @@ class _AdminUsersTabState extends State<AdminUsersTab> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => UserImportDialog.show(
+                      context,
+                      targetRole: widget.targetRole,
+                      isSuperAdmin: widget.isSuperAdmin,
+                      existingUsers: widget.userList,
+                      onAddUser: widget.onAddUser,
+                      onSuccess: () => setState(() {}),
+                    ),
+                    icon: const Icon(Icons.file_upload_outlined, size: 16),
+                    label: const Text(
+                      'Import Excel / CSV',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: widget.targetRole == UserRole.admin
+                          ? (isDark ? const Color(0xFF60A5FA) : const Color(0xFF1E40AF))
+                          : (isDark ? const Color(0xFF38BDF8) : const Color(0xFF24487A)),
+                      side: BorderSide(
+                        color: widget.targetRole == UserRole.admin
+                            ? (isDark ? const Color(0xFF2563EB) : const Color(0xFF93C5FD))
+                            : (isDark ? const Color(0xFF0284C7) : const Color(0xFFCBD5E1)),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed:
                         () => UserFormDialog.show(

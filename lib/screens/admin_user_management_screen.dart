@@ -42,6 +42,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     final emailController = TextEditingController(
       text: userToEdit?.email ?? '',
     );
+    final passwordController = TextEditingController();
 
     // Default role: jika superadmin buat akun baru -> default admin, jika admin biasa -> hanya user
     UserRole selectedRole =
@@ -180,6 +181,38 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                       },
                     ),
 
+                    const SizedBox(height: 12),
+
+                    // Input Password
+                    Text(
+                      isEdit ? 'Kata Sandi Baru (Kosongkan jika tidak diubah)' : 'Kata Sandi Akun',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        hintText: isEdit ? 'Minimal 6 karakter' : 'Default: password123',
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE2E8F0),
+                          ),
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 20),
 
                     SizedBox(
@@ -190,10 +223,12 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                             if (isEdit) {
                               userToEdit.name = nameController.text.trim();
                               userToEdit.nip = nipController.text.trim();
-                              userToEdit.department = deptController.text
-                                  .trim();
+                              userToEdit.department = deptController.text.trim();
                               userToEdit.email = emailController.text.trim();
                               userToEdit.role = selectedRole;
+                              if (passwordController.text.trim().isNotEmpty) {
+                                userToEdit.password = passwordController.text.trim();
+                              }
                               widget.onUpdateUser(userToEdit);
                             } else {
                               final newUser = AppUser(
@@ -203,6 +238,9 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                                 department: deptController.text.trim(),
                                 email: emailController.text.trim(),
                                 role: selectedRole,
+                                password: passwordController.text.trim().isNotEmpty
+                                    ? passwordController.text.trim()
+                                    : (selectedRole == UserRole.admin ? 'admin123' : 'password123'),
                               );
                               widget.onAddUser(newUser);
                             }

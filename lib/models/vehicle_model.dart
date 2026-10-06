@@ -19,6 +19,8 @@ class Vehicle {
   final List<String>
   galleryImages; // Galeri foto tambahan (bebas diubah/ditambah)
   VehicleStatus status;
+  final String? chassisNumber; // Nomor Rangka (VIN)
+  final String? engineNumber; // Nomor Mesin
 
   Vehicle({
     required this.id,
@@ -36,10 +38,28 @@ class Vehicle {
     required this.imageUrl,
     this.galleryImages = const [],
     this.status = VehicleStatus.tersedia,
+    this.chassisNumber,
+    this.engineNumber,
   });
 
   String get fuelDisplay =>
       fuelPercent >= 100 ? 'Full (100%)' : '$fuelPercent%';
+
+  String get chassisNumberDisplay {
+    if (chassisNumber != null && chassisNumber!.trim().isNotEmpty) {
+      return chassisNumber!;
+    }
+    final p = plateNumber.replaceAll(' ', '');
+    return type == VehicleType.mobil ? 'MH1$p-KD$id' : 'MH3$p-JB$id';
+  }
+
+  String get engineNumberDisplay {
+    if (engineNumber != null && engineNumber!.trim().isNotEmpty) {
+      return engineNumber!;
+    }
+    final p = plateNumber.replaceAll(' ', '');
+    return type == VehicleType.mobil ? '2KD-$p-$id' : 'JB51E-$p-$id';
+  }
 
   // Menjamin setiap detail kendaraan memiliki empat slot foto.
   List<String> get allImages {

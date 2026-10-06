@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('fuel_type')->default('Bensin');
             $table->text('condition_note')->nullable();
             $table->string('status')->default('tersedia'); // tersedia, digunakan, perawatan
-            $table->string('image_url')->nullable();
+            $table->longText('image_url')->nullable();
             $table->json('gallery_images')->nullable();
             $table->timestamps();
         });

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('position')->nullable();
             $table->string('department')->nullable();
             $table->string('phone')->nullable();
-            $table->string('profile_image_url')->nullable();
+            $table->longText('profile_image_url')->nullable();
             $table->text('fcm_token')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');

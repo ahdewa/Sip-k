@@ -4,6 +4,8 @@ import 'package:simodis_jatim/screens/vehicle_detail_screen.dart';
 import 'package:simodis_jatim/widgets/app_image.dart';
 import 'package:simodis_jatim/widgets/app_header_profile_avatar.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
+import 'package:simodis_jatim/services/api_service.dart';
+import 'package:simodis_jatim/services/url_launcher_helper.dart';
 
 class UserDashboardScreen extends StatefulWidget {
   final List<Vehicle> vehicles;
@@ -30,14 +32,14 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   int _currentNewsIndex = 0;
 
   // 6 Data Informasi & Pengumuman Dinsos Jatim (Gambar mudah diganti)
-  final List<Map<String, String>> _newsList = [
+  List<Map<String, String>> _newsList = [
     {
       'tag': 'PENGUMUMAN',
       'title': 'Uji Emisi & Servis Rutin Armada Tahap 1 Selesai',
       'desc':
           'Seluruh kendaraan dinas siap untuk penugasan luar kota dengan kondisi prima. Pemeriksaan mencakup sistem pengereman, oli mesin, dan kelayakan ban operasional.',
       'date': '01 Sep 2026',
-      'image': 'assets/images/logo_sipk.png',
+      'image': 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=800&q=80',
     },
     {
       'tag': 'OPERASIONAL',
@@ -45,7 +47,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       'desc':
           'Harap mengisi catatan angka odometer dan level sisa BBM saat pengembalian unit ke pool dinas demi ketertiban administrasi aset kendaraan dinas.',
       'date': '28 Ags 2026',
-      'image': 'assets/images/logo_sipk.png',
+      'image': 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
     },
     {
       'tag': 'KEGIATAN',
@@ -53,7 +55,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       'desc':
           'Armada minibus dan truk satgas Linjamsos standby 24 jam untuk kesiapsiagaan operasional bantuan tanggap bencana di seluruh wilayah Jawa Timur.',
       'date': '25 Ags 2026',
-      'image': 'assets/images/logo_sipk.png',
+      'image': 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80',
     },
     {
       'tag': 'KEBIJAKAN',
@@ -61,7 +63,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       'desc':
           'Pastikan telah mengunggah scan Nota Dinas resmi yang telah ditandatangani Kepala Bidang sebelum mengajukan peminjaman armada ke Kasubag Umum.',
       'date': '20 Ags 2026',
-      'image': 'assets/images/logo_sipk.png',
+      'image': 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80',
     },
     {
       'tag': 'PEMELIHARAAN',
@@ -69,7 +71,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       'desc':
           'Bagi pemegang unit sepeda motor dinas operasional diimbau membawa unit ke bengkel rekanan resmi Dinsos sesuai jadwal per semester.',
       'date': '15 Ags 2026',
-      'image': 'assets/images/logo_sipk.png',
+      'image': 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
     },
     {
       'tag': 'KESELAMATAN',
@@ -77,9 +79,24 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
       'desc':
           'Seluruh staf dan pengemudi dinas diwajibkan memeriksa kelengkapan P3K, segitiga pengaman, dan tekanan angin ban sebelum perjalanan dinas antar kota.',
       'date': '10 Ags 2026',
-      'image': 'assets/images/logo_sipk.png',
+      'image': 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=800&q=80',
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNews();
+  }
+
+  Future<void> _fetchNews() async {
+    final remoteNews = await ApiService.fetchNews();
+    if (remoteNews != null && remoteNews.isNotEmpty && mounted) {
+      setState(() {
+        _newsList = remoteNews;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -198,6 +215,26 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                           height: 1.5,
                         ),
                       ),
+                      const SizedBox(height: 18),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            launchCustomUrl('https://dinsos.jatimprov.go.id/berita-publik');
+                          },
+                          icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                          label: const Text('Buka Website Resmi Dinsos Jatim'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF24487A),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -220,6 +257,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
           color: const Color(0xFF24487A),
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           onRefresh: () async {
+            await _fetchNews();
             if (widget.onRefresh != null) {
               await widget.onRefresh!();
             } else {
@@ -274,7 +312,7 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'SIP-K Dinsos',
+                                'OVBS Dinsos',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,

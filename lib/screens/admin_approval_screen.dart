@@ -174,7 +174,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
               id: 'ADM-005',
               title: 'Pendaftaran Akun Pegawai Baru',
               message:
-                  'Siti Nurhaliza, S.Tr.Sos (Bidang Rehsos) mendaftarkan akun baru SIP-K.',
+                  'Siti Nurhaliza, S.Tr.Sos (Bidang Rehsos) mendaftarkan akun baru OVBS.',
               time: '2 hari lalu',
               fullDate: '08 September 2026, 14:00 WIB',
               detailContent:
@@ -794,7 +794,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
               ),
               const SizedBox(height: 16),
               Text(
-                widget.currentUser?.name ?? 'Administrator SIP-K',
+                widget.currentUser?.name ?? 'Administrator OVBS',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -1018,7 +1018,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                               )
                             else if (!_isSidebarExpanded) ...[
                               Text(
-                                'SIP-K',
+                                'OVBS',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w900,
                                   color: isDark
@@ -1047,10 +1047,10 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                                   Text(
                                     _isSuperAdmin
                                         ? (isMobile
-                                            ? 'SIP-K SUPERADMIN'
+                                            ? 'OVBS SUPERADMIN'
                                             : 'SISTEM INFORMASI KENDARAAN (SUPER)')
                                         : (isMobile
-                                            ? 'SIP-K ARMADA DINSOS'
+                                            ? 'OVBS ARMADA DINSOS'
                                             : 'MANAJEMEN ARMADA DINSOS'),
                                     style: TextStyle(
                                       fontSize: isMobile ? 12.5 : 13,

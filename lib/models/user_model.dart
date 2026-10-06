@@ -13,6 +13,7 @@ class AppUser {
   String email;
   UserRole role;
   bool isActive;
+  String? password;
 
   AppUser({
     required this.id,
@@ -23,6 +24,7 @@ class AppUser {
     required this.email,
     required this.role,
     this.isActive = true,
+    this.password,
   });
 
   bool get isSuperAdmin => role == UserRole.superadmin;

@@ -580,7 +580,7 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
                       Icon(Icons.verified_user_rounded, color: Color(0xFFFCD34D), size: 13),
                       SizedBox(width: 5),
                       Text(
-                        'SIP-K EKSEKUTIF • DINSOS PROV. JAWA TIMUR',
+                        'OVBS EKSEKUTIF • DINSOS PROV. JAWA TIMUR',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,

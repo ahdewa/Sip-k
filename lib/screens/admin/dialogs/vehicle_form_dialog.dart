@@ -503,6 +503,8 @@ class VehicleFormDialog {
                                     vehicleToEdit.galleryImages.isNotEmpty
                                         ? vehicleToEdit.galleryImages
                                         : [imgUrlCtrl.text.trim()],
+                                chassisNumber: vehicleToEdit.chassisNumber,
+                                engineNumber: vehicleToEdit.engineNumber,
                               );
                               onUpdateVehicle?.call(updatedVehicle);
                             } else {

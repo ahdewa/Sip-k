@@ -13,8 +13,13 @@ class FirebaseService
         return Cache::remember('fcm_access_token', 3000, function () {
             $keyPath = storage_path('app/firebase/service-account.json');
             if (!file_exists($keyPath)) {
-                Log::warning("Firebase service account key not found at $keyPath");
-                return null;
+                $altPath = storage_path('app/sip-k-a136d-firebase-adminsdk-fbsvc-0ecf2fdeaf.json');
+                if (file_exists($altPath)) {
+                    $keyPath = $altPath;
+                } else {
+                    Log::warning("Firebase service account key not found at $keyPath");
+                    return null;
+                }
             }
 
             $keyData = json_decode(file_get_contents($keyPath), true);
@@ -84,6 +89,9 @@ class FirebaseService
         }
 
         $keyPath = storage_path('app/firebase/service-account.json');
+        if (!file_exists($keyPath)) {
+            $keyPath = storage_path('app/sip-k-a136d-firebase-adminsdk-fbsvc-0ecf2fdeaf.json');
+        }
         $keyData = json_decode(@file_get_contents($keyPath), true);
         $projectId = $keyData['project_id'] ?? 'sip-k-a136d';
 

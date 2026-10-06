@@ -144,12 +144,22 @@ class FcmService {
 
   /// Sinkronisasi token ke server Laravel untuk user yang sedang aktif
   static Future<void> syncTokenWithBackend([String? userId]) async {
-    final token = _fcmToken;
+    String? token = _fcmToken;
+    if (token == null || token.isEmpty) {
+      try {
+        if (!kIsWeb) {
+          token = await FirebaseMessaging.instance.getToken();
+          _fcmToken = token;
+        }
+      } catch (e) {
+        debugPrint('FCM: Gagal mengambil token saat sync: $e');
+      }
+    }
     if (token == null || token.isEmpty) return;
 
     try {
       await ApiService.updateFcmToken(token);
-      debugPrint('FCM: Token berhasil disinkronkan ke backend untuk user ${userId ?? ApiConfig.currentUserId}');
+      debugPrint('FCM: Token berhasil disinkronkan ke backend untuk user ${userId ?? ApiConfig.currentUserId}: $token');
     } catch (e) {
       debugPrint('FCM: Gagal sinkronisasi token: $e');
     }

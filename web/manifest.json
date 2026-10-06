@@ -1,6 +1,6 @@
 {
-    "name": "SIP-K",
-    "short_name": "SIP-K",
+    "name": "OVBS",
+    "short_name": "OVBS",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

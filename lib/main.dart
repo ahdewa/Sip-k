@@ -23,7 +23,7 @@ class SimodisJatimApp extends StatelessWidget {
           valueListenable: ThemeService.textScaleNotifier,
           builder: (context, textScale, _) {
             return MaterialApp(
-              title: 'SIP-K',
+              title: 'OVBS',
               debugShowCheckedModeBanner: false,
               navigatorKey: rootNavigatorKey,
               scaffoldMessengerKey: rootScaffoldMessengerKey,

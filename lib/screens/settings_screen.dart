@@ -60,7 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Atur tampilan dan pemberitahuan agar SIP-K tetap nyaman digunakan setiap hari.',
+            'Atur tampilan dan pemberitahuan agar OVBS tetap nyaman digunakan setiap hari.',
             style: TextStyle(
               fontSize: isLarge ? 14 : 12,
               color: subtitleColor,

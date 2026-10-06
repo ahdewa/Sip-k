@@ -185,7 +185,7 @@ class _UserInformationScreenState extends State<UserInformationScreen> {
                         ),
                         const SizedBox(height: 4),
                         const Text(
-                          'Profil pegawai SIP-K',
+                          'Profil pegawai OVBS',
                           style: TextStyle(
                             color: Color(0xFFDBEAFE),
                             fontSize: 12,

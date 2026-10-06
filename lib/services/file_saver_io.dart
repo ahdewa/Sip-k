@@ -1,4 +1,4 @@
-// lib/services/file_saver_io.dart
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 
@@ -31,3 +31,19 @@ void saveAndDownloadFile(Uint8List bytes, String filename, String mimeType) {
     }
   }
 }
+
+void openOrDownloadDocument(String source, String filename) {
+  if (source.startsWith('data:')) {
+    try {
+      final commaIdx = source.indexOf(',');
+      if (commaIdx != -1) {
+        final rawData = source.substring(commaIdx + 1);
+        final bytes = base64Decode(rawData);
+        saveAndDownloadFile(bytes, filename, 'application/pdf');
+      }
+    } catch (e) {
+      debugPrint('openOrDownloadDocument io error: $e');
+    }
+  }
+}
+

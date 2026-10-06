@@ -26,7 +26,7 @@ class AdminInfoLine extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         SizedBox(
-          width: 85,
+          width: 100,
           child: Text(
             label,
             style: TextStyle(
@@ -69,10 +69,6 @@ class AdminLoanCard extends StatelessWidget {
     required this.onShowDetail,
     required this.onShowReturn,
   });
-
-  String _formatDate(DateTime d) {
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -145,13 +141,55 @@ class AdminLoanCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Text(
-                        item.vehicleName,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF1E293B),
-                        ),
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              item.vehicleName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                          if (item.isNewSubmission && isPending) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDC2626).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: const Color(0xFFDC2626).withValues(alpha: 0.35),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.fiber_new_rounded,
+                                    size: 13,
+                                    color: Color(0xFFDC2626),
+                                  ),
+                                  SizedBox(width: 2),
+                                  Text(
+                                    'BARU',
+                                    style: TextStyle(
+                                      color: Color(0xFFDC2626),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                     Container(
@@ -190,10 +228,15 @@ class AdminLoanCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 AdminInfoLine(
+                  icon: Icons.history_toggle_off_rounded,
+                  label: 'Waktu Pengajuan',
+                  value: '${item.formattedSubmittedAt} • ${item.timeAgoSubmitted}',
+                ),
+                const SizedBox(height: 4),
+                AdminInfoLine(
                   icon: Icons.calendar_month_rounded,
                   label: 'Jadwal',
-                  value:
-                      '${_formatDate(item.startDate)} s/d ${_formatDate(item.endDate)}',
+                  value: item.scheduleDisplay,
                 ),
                 const SizedBox(height: 4),
                 AdminInfoLine(
@@ -209,6 +252,12 @@ class AdminLoanCard extends StatelessWidget {
                       item.officialNoteNumber.isEmpty
                           ? '-'
                           : item.officialNoteNumber,
+                ),
+                const SizedBox(height: 4),
+                AdminInfoLine(
+                  icon: Icons.airline_seat_recline_normal_rounded,
+                  label: 'Layanan Sopir',
+                  value: item.driverOption,
                 ),
                 if (item.spkNumber != null) ...[
                   const SizedBox(height: 4),
@@ -256,26 +305,26 @@ class AdminLoanCard extends StatelessWidget {
             ),
           ],
 
-          // FOOTER KARTU AKTIF: PROSES BAST
+          // FOOTER KARTU AKTIF: PROSES BAST (OPSI SELESAI LEBIH AWAL) & INFO BATAS 23:59
           if (isActive) ...[
             Divider(
               height: 1,
               color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: onShowReturn,
                   icon: const Icon(
                     Icons.assignment_turned_in_rounded,
-                    size: 16,
+                    size: 15,
                     color: Colors.white,
                   ),
                   label: const Text(
-                    'Terima Unit & Proses BAST',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    'Terima Unit & BAST (Selesai Cepat)',
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF24487A),
@@ -283,8 +332,32 @@ class AdminLoanCard extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
+                    padding: const EdgeInsets.symmetric(vertical: 9),
                   ),
                 ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 2, 14, 10),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.auto_mode_rounded,
+                    size: 13,
+                    color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      'Batas Pengembalian: ${item.endDate.day.toString().padLeft(2, '0')}/${item.endDate.month.toString().padLeft(2, '0')}/${item.endDate.year} pukul 23:59 WIB (Otomatis Selesai)',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

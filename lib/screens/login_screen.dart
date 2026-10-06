@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:simodis_jatim/screens/home_screen.dart';
 import 'package:simodis_jatim/widgets/app_loading_widgets.dart';
 import 'package:simodis_jatim/services/api_service.dart';
+import 'package:simodis_jatim/services/api_config.dart';
 import 'package:simodis_jatim/services/fcm_service.dart';
+import 'package:simodis_jatim/services/url_launcher_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _passwordFocusNode = FocusNode();
 
   bool _isPasswordObscured = true;
   bool _isLoading = false;
@@ -131,34 +134,142 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
 
+  Future<void> _launchWhatsAppHelpdesk() async {
+    final phoneNumber = ApiConfig.helpdeskWhatsappNumber;
+    final message = Uri.encodeComponent(ApiConfig.helpdeskWhatsappMessage);
+    final urlString = 'https://wa.me/$phoneNumber?text=$message';
+    try {
+      final success = await launchCustomUrl(urlString);
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Tidak dapat membuka WhatsApp. Silakan hubungi ${ApiConfig.helpdeskWhatsappDisplay}.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal membuka WhatsApp: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showContactAdminDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+        title: Row(
           children: [
-            Icon(Icons.support_agent_rounded, color: Color(0xFF2B5B9E)),
-            SizedBox(width: 8),
-            Text(
-              'Bantuan Akun Login',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEBF3FC),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.support_agent_rounded, color: Color(0xFF2B5B9E), size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Bantuan Akun & Lupa Sandi',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+              ),
             ),
           ],
         ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Akun default sistem untuk pengujian (Semua pass: password):',
-              style: TextStyle(fontSize: 12, color: Color(0xFF475569)),
-            ),
-            SizedBox(height: 8),
-            Text('• Superadmin: superadmin', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            Text('• Admin Kasubag: admin', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            Text('• Pegawai Pemohon: pegawai', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Kartu WhatsApp Bantuan Lupa Sandi
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFA5D6A7)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.lock_reset_rounded, color: Color(0xFF2E7D32), size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Lupa Kata Sandi?',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1B5E20),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Silakan hubungi Admin Kasubag / Pengelola Aset Dinsos untuk verifikasi dan reset kata sandi akun Anda.',
+                      style: TextStyle(fontSize: 11.5, color: Color(0xFF2E3E33), height: 1.35),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.phone_android_rounded, size: 14, color: Color(0xFF2E7D32)),
+                          SizedBox(width: 4),
+                          Text(
+                            '${ApiConfig.helpdeskWhatsappDisplay} (Admin Kasubag)',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1B5E20),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _launchWhatsAppHelpdesk,
+                        icon: const Icon(Icons.chat_bubble_rounded, size: 16),
+                        label: const Text(
+                          'Hubungi Admin via WhatsApp',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF25D366),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           ElevatedButton(
@@ -179,6 +290,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _identifierController.dispose();
     _passwordController.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -252,7 +364,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       text: const TextSpan(
                         children: [
                           TextSpan(
-                            text: 'SIP-K ',
+                            text: 'OVBS ',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
@@ -283,6 +395,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: _identifierController,
+                      textInputAction: TextInputAction.next,
+                      onFieldSubmitted: (_) {
+                        if (_passwordController.text.isNotEmpty && !_isLoading) {
+                          _handleLogin();
+                        } else {
+                          FocusScope.of(context).requestFocus(_passwordFocusNode);
+                        }
+                      },
                       style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
                       decoration: InputDecoration(
                         hintText: 'Masukkan NIP atau Email dinas',
@@ -315,6 +435,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: _passwordController,
+                      focusNode: _passwordFocusNode,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) {
+                        if (!_isLoading) {
+                          _handleLogin();
+                        }
+                      },
                       obscureText: _isPasswordObscured,
                       style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
                       decoration: InputDecoration(

@@ -73,25 +73,32 @@ class _AdminLoansTabState extends State<AdminLoansTab> {
                   r.status == LoanStatus.menunggu ||
                   r.status == LoanStatus.pending,
             )
-            .toList();
+            .toList()
+          ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+
     final active =
         widget.requests
             .where(
               (r) =>
-                  r.status == LoanStatus.disetujui ||
-                  r.status == LoanStatus.approved ||
-                  r.status == LoanStatus.digunakan,
+                  !r.isPastDeadline &&
+                  (r.status == LoanStatus.disetujui ||
+                      r.status == LoanStatus.approved ||
+                      r.status == LoanStatus.digunakan),
             )
-            .toList();
+            .toList()
+          ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+
     final history =
         widget.requests
             .where(
               (r) =>
+                  r.isPastDeadline ||
                   r.status == LoanStatus.selesai ||
                   r.status == LoanStatus.ditolak ||
                   r.status == LoanStatus.rejected,
             )
-            .toList();
+            .toList()
+          ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
 
     List<LoanRequest> currentList;
     if (_requestSubTabIndex == 0) {
@@ -155,6 +162,9 @@ class _AdminLoansTabState extends State<AdminLoansTab> {
                             () => LoanDetailDialog.show(
                               context,
                               loan: item,
+                              onUpdate: (l) {
+                                setState(() {});
+                              },
                               onVerify: (l, ok) {
                                 widget.onVerify(l, ok);
                                 setState(() {});

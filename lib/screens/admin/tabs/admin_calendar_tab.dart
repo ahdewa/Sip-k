@@ -1187,7 +1187,7 @@ class _AdminCalendarTabState extends State<AdminCalendarTab> {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        'Periode: ${_formatRangeDate(item.startDate, item.endDate)}',
+                        'Periode: ${_formatRangeDate(item.startDate, item.endDate)} • ${item.timeRangeDisplay}',
                         style: TextStyle(
                           fontSize: 9.5,
                           fontWeight: FontWeight.w600,

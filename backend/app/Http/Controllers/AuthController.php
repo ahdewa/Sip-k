@@ -12,21 +12,52 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required',
+            'email' => 'nullable',
+            'login' => 'nullable',
             'password' => 'required',
             'fcm_token' => 'nullable|string',
         ]);
 
-        // Cari berdasarkan email ATAU nip
-        $loginInput = $request->email;
-        $user = User::where('email', $loginInput)
-            ->orWhere('nip', $loginInput)
+        $loginInput = trim($request->input('login') ?? $request->input('email') ?? '');
+
+        if (empty($loginInput)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'NIP atau Nama Lengkap wajib diisi!',
+            ], 422);
+        }
+
+        $cleanNip = str_replace([' ', '-', '.'], '', $loginInput);
+        $lower = strtolower($loginInput);
+
+        // 1. Cari exact match terlebih dahulu: NIP, Nama Lengkap (case-insensitive), atau Email
+        $user = User::where('nip', $loginInput)
+            ->orWhere('nip', $cleanNip)
+            ->orWhereRaw('REPLACE(REPLACE(REPLACE(nip, " ", ""), "-", ""), ".", "") = ?', [$cleanNip])
+            ->orWhereRaw('LOWER(name) = ?', [$lower])
+            ->orWhereRaw('LOWER(email) = ?', [$lower])
             ->first();
+
+        // 2. Jika belum ditemukan, coba LIKE pada nama (misal nama sebagian / panggilan)
+        if (!$user) {
+            $user = User::where('name', 'like', "%{$loginInput}%")->first();
+        }
+
+        // 3. Dukungan alias role default jika demo
+        if (!$user) {
+            if ($lower === 'superadmin' || $lower === 'super admin') {
+                $user = User::where('role', 'superadmin')->first();
+            } elseif ($lower === 'admin' || $lower === 'kasubag') {
+                $user = User::where('role', 'admin')->first();
+            } elseif ($lower === 'pegawai' || $lower === 'user') {
+                $user = User::where('role', 'pegawai')->first();
+            }
+        }
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'NIP/Email atau password salah!',
+                'message' => 'NIP/Nama atau password salah!',
             ], 401);
         }
 

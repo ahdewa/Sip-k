@@ -30,6 +30,7 @@ class ApiService {
       final url = Uri.parse('${ApiConfig.baseUrl}/login');
       final payload = <String, dynamic>{
         'email': loginInput,
+        'login': loginInput,
         'password': password,
       };
       if (fcmToken != null) payload['fcm_token'] = fcmToken;
@@ -132,6 +133,8 @@ class ApiService {
                       .toList() ??
                   const ['assets/images/logo_sipk.png'],
               status: vStatus,
+              chassisNumber: item['chassis_number']?.toString() ?? item['nomor_rangka']?.toString(),
+              engineNumber: item['engine_number']?.toString() ?? item['nomor_mesin']?.toString(),
             );
           }).toList();
         }
@@ -258,8 +261,8 @@ class ApiService {
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
         if (body['status'] == 'success') {
-          final list = body['data'] as List;
-          return list.map((item) {
+          final rawList = body['data'] as List;
+          final loans = rawList.map((item) {
             return LoanRequest(
               id: item['id'].toString(),
               borrowerName: item['borrower_name'] ?? '',
@@ -271,8 +274,39 @@ class ApiService {
               purposeDescription: item['purpose_description'] ?? '',
               startDate: DateTime.tryParse(item['start_date'] ?? '') ?? DateTime.now(),
               endDate: DateTime.tryParse(item['end_date'] ?? '') ?? DateTime.now(),
+              startTime: item['start_time']?.toString() ??
+                  (item['purpose_description'] != null &&
+                          item['purpose_description'].toString().contains('Jam Operasional: ')
+                      ? item['purpose_description'].toString().split('Jam Operasional: ').last.split(' s/d ').first.trim()
+                      : '08:00'),
+              endTime: item['end_time']?.toString() ??
+                  (item['purpose_description'] != null &&
+                          item['purpose_description'].toString().contains(' s/d ') &&
+                          item['purpose_description'].toString().contains('Jam Operasional: ')
+                      ? item['purpose_description'].toString().split(' s/d ').last.split('\n').first.replaceAll('WIB', '').trim()
+                      : '16:00'),
               officialNoteNumber: item['official_note_number'] ?? '-',
               simPhotoPath: item['sim_photo_path'],
+              withDriver: item['with_driver'] == true ||
+                  item['with_driver'] == 1 ||
+                  item['with_driver'] == '1' ||
+                  (item['purpose_description'] != null &&
+                      item['purpose_description']
+                          .toString()
+                          .contains('Dengan Driver')),
+              driverName: item['driver_name']?.toString() ??
+                  (item['purpose_description'] != null &&
+                          item['purpose_description']
+                              .toString()
+                              .contains('Dengan Driver: ')
+                      ? item['purpose_description']
+                          .toString()
+                          .split('Dengan Driver: ')
+                          .last
+                          .split('\n')
+                          .first
+                          .trim()
+                      : null),
               status: _parseLoanStatus(item['status']),
               submittedAt: DateTime.tryParse(item['submitted_at'] ?? '') ?? DateTime.now(),
               spkNumber: item['spk_number'],
@@ -281,6 +315,8 @@ class ApiService {
               returnNotes: item['return_notes'],
             );
           }).toList();
+          loans.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+          return loans;
         }
       }
     } catch (e) {
@@ -307,8 +343,12 @@ class ApiService {
           'purpose_description': loan.purposeDescription,
           'start_date': loan.startDate.toIso8601String(),
           'end_date': loan.endDate.toIso8601String(),
+          'start_time': loan.startTime ?? '08:00',
+          'end_time': loan.endTime ?? '16:00',
           'official_note_number': loan.officialNoteNumber,
           'sim_photo_path': loan.simPhotoPath,
+          'with_driver': loan.withDriver,
+          'driver_name': loan.driverName,
         }),
       );
       return res.statusCode == 200 || res.statusCode == 201;
@@ -318,11 +358,18 @@ class ApiService {
     }
   }
 
-  static Future<bool> approveLoan(String loanId, {String? spkNumber}) async {
+  static Future<bool> approveLoan(
+    String loanId, {
+    String? spkNumber,
+    String? driverName,
+    bool? withDriver,
+  }) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/loans/$loanId/approve');
       final payload = <String, dynamic>{};
       if (spkNumber != null) payload['spk_number'] = spkNumber;
+      if (driverName != null) payload['driver_name'] = driverName;
+      if (withDriver != null) payload['with_driver'] = withDriver;
 
       final res = await http.post(
         url,
@@ -332,6 +379,30 @@ class ApiService {
       return res.statusCode == 200;
     } catch (e) {
       debugPrint('ApiService.approveLoan error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> updateLoanDriver(
+    String loanId, {
+    required bool withDriver,
+    String? driverName,
+  }) async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/loans/$loanId');
+      final payload = <String, dynamic>{
+        'with_driver': withDriver,
+        'driver_name': withDriver ? driverName : null,
+      };
+
+      final res = await http.put(
+        url,
+        headers: _headers,
+        body: jsonEncode(payload),
+      );
+      return res.statusCode == 200;
+    } catch (e) {
+      debugPrint('ApiService.updateLoanDriver error: $e');
       return false;
     }
   }
@@ -690,5 +761,41 @@ class ApiService {
       debugPrint('ApiService.updateFcmToken error: $e');
     }
     return false;
+  }
+
+  // ─── BERITA & PENGUMUMAN (NEWS) ──────────────────────────────
+
+  static Future<List<Map<String, String>>?> fetchNews() async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/news');
+      final res = await http.get(url, headers: _headers);
+
+      if (res.statusCode == 200) {
+        String cleanBody = res.body;
+        if (cleanBody.startsWith('\uFEFF')) {
+          cleanBody = cleanBody.substring(1);
+        }
+        final body = jsonDecode(cleanBody);
+        if (body['status'] == 'success') {
+          final List list = body['data'] ?? [];
+          return list.map<Map<String, String>>((item) {
+            return {
+              'id': item['id']?.toString() ?? '',
+              'tag': item['tag']?.toString() ?? 'PENGUMUMAN',
+              'title': item['title']?.toString() ?? '',
+              'desc': item['desc']?.toString() ?? '',
+              'date': item['date']?.toString() ?? '',
+              'image': (item['image'] != null && item['image'].toString().isNotEmpty)
+                  ? item['image'].toString()
+                  : 'assets/images/logo_sipk.png',
+              'author': item['author']?.toString() ?? 'Admin Dinsos Jatim',
+            };
+          }).toList();
+        }
+      }
+    } catch (e) {
+      debugPrint('ApiService.fetchNews error: $e');
+    }
+    return null;
   }
 }

@@ -208,7 +208,7 @@ class NotaDinasDialog extends StatelessWidget {
                                 color: Color(0xFF1E293B),
                               ),
                               Text(
-                                'Validasi SIP-K',
+                                'Validasi OVBS',
                                 style: TextStyle(
                                   fontSize: 8,
                                   color: Color(0xFF64748B),

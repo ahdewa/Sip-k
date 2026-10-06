@@ -59,7 +59,7 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'nip' => 'nullable|string|max:50',
+            'nip' => 'nullable|string|max:50|unique:users,nip',
             'email' => 'required|email|unique:users,email',
             'role' => 'nullable|in:pegawai,admin,superadmin,user',
             'department' => 'nullable|string|max:255',
@@ -106,7 +106,7 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'nip' => 'nullable|string|max:50',
+            'nip' => 'nullable|string|max:50|unique:users,nip,' . $user->id,
             'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
             'role' => 'nullable|in:pegawai,admin,superadmin,user',
             'department' => 'nullable|string|max:255',

@@ -9,6 +9,7 @@ import 'package:simodis_jatim/screens/user_information_screen.dart';
 import 'package:simodis_jatim/widgets/nota_dinas_dialog.dart';
 import 'package:simodis_jatim/widgets/app_image.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
+import 'package:simodis_jatim/services/api_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final List<LoanRequest> loans;
@@ -622,7 +623,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       MaterialPageRoute(
         builder: (_) => LoanHistoryScreen(
           loans: widget.loans,
-          onLoanCancelled: (_) => setState(() {}),
+          onLoanCancelled: (loan) {
+            final idx = widget.loans.indexWhere((l) => l.id == loan.id);
+            if (idx != -1) {
+              widget.loans[idx].status = LoanStatus.dibatalkan;
+            }
+            ApiService.cancelLoan(loan.id);
+            setState(() {});
+          },
           onLoanCompleted: (loan) {
             widget.onLoanCompleted?.call(loan);
             setState(() {});
@@ -810,7 +818,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         content: const Text(
-          'Apakah Anda yakin ingin keluar dari aplikasi SIP-K Dinsos Jatim?',
+          'Apakah Anda yakin ingin keluar dari aplikasi OVBS Dinsos Jatim?',
         ),
         actions: [
           TextButton(
@@ -1080,7 +1088,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'SIP-K Dinsos Jatim v1.0.0',
+              'OVBS Dinsos Jatim v1.0.0',
               style: TextStyle(
                 fontSize: 12,
                 color: Color(0xFF94A3B8),

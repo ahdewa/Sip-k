@@ -55,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _loans.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
     _loadDataFromApi();
     // Polling berkala setiap 8 detik agar status persetujuan / penolakan admin langsung muncul real-time
     _pollTimer = Timer.periodic(const Duration(seconds: 8), (_) {
@@ -98,8 +99,10 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       final lList = await ApiService.fetchLoans();
       if (lList != null && lList.isNotEmpty && mounted) {
+        lList.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
         setState(() => _loans = lList);
       }
+      _autoCompleteExpiredLoans();
       final uid = ApiConfig.currentUserId ?? (widget.role == 'user' ? '4' : null);
       final nList = await ApiService.fetchNotifications(userId: uid, role: widget.role);
       if (nList != null && mounted) {
@@ -122,6 +125,66 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() => _currentUserProfile = prof);
       }
     } catch (_) {}
+  }
+
+  /// Fitur Otomatis Selesai 23:59:
+  /// Jika waktu saat ini sudah melewati pukul 23:59 WIB pada tanggal akhir penugasan,
+  /// sistem secara otomatis mengubah status peminjaman menjadi Selesai dan mengembalikan
+  /// armada ke status Tersedia / Available untuk hari berikutnya tanpa harus menunggu admin klik BAST.
+  void _autoCompleteExpiredLoans() {
+    final now = DateTime.now();
+    bool changed = false;
+
+    for (final loan in _loans) {
+      final isActive = loan.status == LoanStatus.disetujui ||
+          loan.status == LoanStatus.approved ||
+          loan.status == LoanStatus.digunakan;
+
+      if (!isActive) continue;
+
+      // Batas akhir pengembalian: Pukul 23:59:59 di tanggal tugas terakhir
+      final deadline = DateTime(
+        loan.endDate.year,
+        loan.endDate.month,
+        loan.endDate.day,
+        23,
+        59,
+        59,
+      );
+
+      if (now.isAfter(deadline)) {
+        loan.status = LoanStatus.selesai;
+        loan.returnNotes ??= 'Selesai otomatis oleh sistem (melewati batas waktu 23:59 WIB).';
+        changed = true;
+
+        // Panggil backend API untuk update status selesai
+        ApiService.completeLoan(
+          loan.id,
+          returnNotes: loan.returnNotes,
+        );
+
+        // Pulihkan status unit armada menjadi tersedia (jika tidak ada penugasan aktif lain di unit ini)
+        final hasOtherActive = _loans.any((l) =>
+            l.id != loan.id &&
+            l.vehicleId == loan.vehicleId &&
+            (l.status == LoanStatus.disetujui ||
+                l.status == LoanStatus.approved ||
+                l.status == LoanStatus.digunakan) &&
+            !l.isPastDeadline);
+
+        if (!hasOtherActive) {
+          final v = _vehicles.where((veh) => veh.id == loan.vehicleId).firstOrNull;
+          if (v != null && v.status != VehicleStatus.tersedia) {
+            v.status = VehicleStatus.tersedia;
+            ApiService.updateVehicle(v);
+          }
+        }
+      }
+    }
+
+    if (changed && mounted) {
+      setState(() {});
+    }
   }
 
   void _syncUserLoanStatusNotifications() {
@@ -263,6 +326,8 @@ class _HomeScreenState extends State<HomeScreen> {
           'AC dingin double blower, toolkit lengkap, ban tebal, siap operasional dinas luar kota.',
       imageUrl: 'assets/images/logo_sipk.png',
       galleryImages: ['assets/images/logo_sipk.png'],
+      chassisNumber: 'MHFG29G28N001429',
+      engineNumber: '2GD-FTV-89412',
     ),
     Vehicle(
       id: '2',
@@ -280,6 +345,8 @@ class _HomeScreenState extends State<HomeScreen> {
           'Kondisi mesin terawat, body mulus, rem baru diservis, kelengkapan surat lengkap.',
       imageUrl: 'assets/images/logo_sipk.png',
       galleryImages: ['assets/images/logo_sipk.png'],
+      chassisNumber: 'MHFM1BA3JN003291',
+      engineNumber: '1NR-VE-41029',
     ),
     Vehicle(
       id: '3',
@@ -298,6 +365,8 @@ class _HomeScreenState extends State<HomeScreen> {
           'Khusus penugasan rombongan satgas linjamsos & dropping logistik sosial.',
       imageUrl: 'assets/images/logo_sipk.png',
       galleryImages: ['assets/images/logo_sipk.png'],
+      chassisNumber: 'MHCNKR58L0081290',
+      engineNumber: '4JB1-TC-77124',
     ),
     Vehicle(
       id: '4',
@@ -315,6 +384,8 @@ class _HomeScreenState extends State<HomeScreen> {
           'Unit responsif dan lincah, khusus kurir dokumen dan dinas dalam kota Surabaya.',
       imageUrl: 'assets/images/logo_sipk.png',
       galleryImages: ['assets/images/logo_sipk.png'],
+      chassisNumber: 'MH1KF7118PK00412',
+      engineNumber: 'KF71E104819',
     ),
     Vehicle(
       id: '5',
@@ -332,6 +403,8 @@ class _HomeScreenState extends State<HomeScreen> {
           'Kondisi ban depan belakang baru, rem ABS responsif, bagasi lega untuk jas hujan dan helm.',
       imageUrl: 'assets/images/logo_sipk.png',
       galleryImages: ['assets/images/logo_sipk.png'],
+      chassisNumber: 'MH3SG5620NJ01928',
+      engineNumber: 'G3J1E059281',
     ),
     Vehicle(
       id: '6',
@@ -349,6 +422,8 @@ class _HomeScreenState extends State<HomeScreen> {
           'Sangat irit bahan bakar, cocok untuk tugas operasional kurir surat dinas harian.',
       imageUrl: 'assets/images/logo_sipk.png',
       galleryImages: ['assets/images/logo_sipk.png'],
+      chassisNumber: 'MH1JB9119NK00712',
+      engineNumber: 'JB91E102914',
     ),
   ];
 
@@ -488,14 +563,14 @@ class _HomeScreenState extends State<HomeScreen> {
   List<AppNotification> _notifications = [
     AppNotification(
       id: '1',
-      title: 'Selamat Datang di SIP-K Dinsos Jatim',
+      title: 'Selamat Datang di OVBS Dinsos Jatim',
       message:
           'Akun pegawai atas nama Alamsyah telah aktif dan siap digunakan untuk peminjaman kendaraan.',
       time: '14:05 WIB',
       fullDate: '01 September 2026, 14:05 WIB',
       createdAt: DateTime(2026, 9, 1, 14, 5),
       detailContent:
-          'Sistem Informasi Pengelolaan Kendaraan (SIP-K) Dinas Sosial Provinsi Jawa Timur memfasilitasi kebutuhan kendaraan operasional dinas secara transparan dan akuntabel. Harap selalu menjaga kebersihan dan kelengkapan armada yang dipinjam.',
+          'Sistem OVBS Dinas Sosial Provinsi Jawa Timur memfasilitasi kebutuhan kendaraan operasional dinas secara transparan dan akuntabel. Harap selalu menjaga kebersihan dan kelengkapan armada yang dipinjam.',
       referenceNumber: 'USR-2026-0901',
       type: NotificationType.welcome,
       isRead: false,
@@ -689,7 +764,7 @@ class _HomeScreenState extends State<HomeScreen> {
       id: 'ADM-005',
       title: 'Pendaftaran Akun Pegawai Baru',
       message:
-          'Siti Nurhaliza, S.Tr.Sos (Bidang Rehsos) mendaftarkan akun baru SIP-K.',
+          'Siti Nurhaliza, S.Tr.Sos (Bidang Rehsos) mendaftarkan akun baru OVBS.',
       time: '2 hari lalu',
       fullDate: '08 September 2026, 14:00 WIB',
       detailContent:
@@ -719,7 +794,8 @@ class _HomeScreenState extends State<HomeScreen> {
     ApiService.createLoan(request);
 
     setState(() {
-      _loans.add(request);
+      _loans.insert(0, request);
+      _loans.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
 
       final adminNotif = AppNotification(
         id: 'REQ-${DateTime.now().millisecondsSinceEpoch}',
@@ -766,6 +842,10 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (_) => LoanHistoryScreen(
             loans: _loans,
             onLoanCancelled: (loan) {
+              final idx = _loans.indexWhere((l) => l.id == loan.id);
+              if (idx != -1) {
+                _loans[idx].status = LoanStatus.dibatalkan;
+              }
               ApiService.cancelLoan(loan.id);
               setState(() {});
             },
@@ -807,6 +887,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (idx != -1) {
         _loans[idx].status = approved ? LoanStatus.disetujui : LoanStatus.ditolak;
         if (approved) _loans[idx].spkNumber = spkNum;
+        _loans[idx].withDriver = loan.withDriver;
+        _loans[idx].driverName = loan.driverName;
       }
 
       if (approved) {
@@ -816,12 +898,12 @@ class _HomeScreenState extends State<HomeScreen> {
             id: DateTime.now().millisecondsSinceEpoch.toString(),
             title: 'Pengajuan Disetujui (Nota Dinas Terbit)',
             message:
-                'Permohonan armada ${loan.vehicleName} telah disetujui. Softfile Nota Dinas resmi telah tersedia untuk dicetak dan diserahkan ke Kasubag TU.',
+                'Permohonan armada ${loan.vehicleName} (${loan.driverOption}) telah disetujui. Softfile Nota Dinas resmi telah tersedia untuk dicetak.',
             time: 'Hari ini',
             fullDate: '02 September 2026, 14:15 WIB',
             createdAt: DateTime.now(),
             detailContent:
-                'Pengajuan peminjaman telah disahkan Kasubag Umum dengan Nomor Registrasi: $spkNum. Silakan cetak lembar Nota Dinas dari menu Riwayat atau Profil untuk diserahkan ke loket Kasubag TU saat pengambilan kunci kontak dan STNK unit armada.',
+                'Pengajuan peminjaman telah disahkan Kasubag Umum dengan Nomor Registrasi: $spkNum. Layanan penugasan: ${loan.driverOption}. Silakan cetak lembar Nota Dinas dari menu Riwayat atau Profil untuk diserahkan ke loket Kasubag TU saat pengambilan kunci kontak dan STNK unit armada.',
             referenceNumber: spkNum ?? '-',
             type: NotificationType.approved,
           ),
@@ -848,7 +930,12 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     if (approved) {
-      await ApiService.approveLoan(loan.id, spkNumber: spkNum);
+      await ApiService.approveLoan(
+        loan.id,
+        spkNumber: spkNum,
+        withDriver: loan.withDriver,
+        driverName: loan.driverName,
+      );
     } else {
       await ApiService.rejectLoan(loan.id);
     }
@@ -877,7 +964,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final vehicle = _vehicles.where((v) => v.id == loan.vehicleId).firstOrNull;
       if (vehicle != null) {
         vehicle.status = VehicleStatus.tersedia;
-        vehicle.currentOdometer = km;
+        if (km > 0) {
+          vehicle.currentOdometer = km;
+        }
       }
     });
 
@@ -927,6 +1016,7 @@ class _HomeScreenState extends State<HomeScreen> {
         preselectedVehicle: _selectedUnitForForm,
         onSubmitLoan: _handleCreateLoan,
         onNavigateTab: _onTabChanged,
+        existingLoans: _loans,
       ),
       NotificationScreen(
         notifications: _notifications,

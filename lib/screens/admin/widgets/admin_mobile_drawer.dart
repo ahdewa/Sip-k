@@ -93,7 +93,7 @@ class AdminMobileDrawer extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'SIP-K DINSOS',
+                      'OVBS DINSOS',
                       style: TextStyle(
                         color: isDark ? Colors.white : const Color(0xFF1E293B),
                         fontWeight: FontWeight.w900,

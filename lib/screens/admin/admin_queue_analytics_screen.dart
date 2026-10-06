@@ -1264,6 +1264,7 @@ class _AdminQueueAnalyticsScreenState extends State<AdminQueueAnalyticsScreen> {
                           LoanDetailDialog.show(
                             context,
                             loan: item,
+                            onUpdate: (l) => setState(() {}),
                             onVerify: (loan, isApproved) {
                               widget.onVerify!(loan, isApproved);
                               setState(() {});
