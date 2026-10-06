@@ -136,17 +136,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _launchWhatsAppHelpdesk() async {
     final phoneNumber = ApiConfig.helpdeskWhatsappNumber;
-    final message = Uri.encodeComponent(ApiConfig.helpdeskWhatsappMessage);
-    final urlString = 'https://wa.me/$phoneNumber?text=$message';
+    final message = ApiConfig.helpdeskWhatsappMessage;
     try {
-      final success = await launchCustomUrl(urlString);
+      final success = await launchWhatsAppUrl(
+        phoneNumber: phoneNumber,
+        message: message,
+      );
       if (!success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Tidak dapat membuka WhatsApp. Silakan hubungi ${ApiConfig.helpdeskWhatsappDisplay}.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        final telSuccess = await launchCustomUrl('tel:$phoneNumber');
+        if (!telSuccess && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Tidak dapat membuka WhatsApp. Silakan hubungi ${ApiConfig.helpdeskWhatsappDisplay}.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
