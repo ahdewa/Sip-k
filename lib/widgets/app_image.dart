@@ -8,10 +8,16 @@ import 'package:simodis_jatim/services/api_config.dart';
 
 String normalizeImageSource(String source) {
   var url = source.trim();
-  if (kIsWeb && url.startsWith('https://dinsos.jatimprov.go.id/')) {
-    return '${ApiConfig.baseUrl}/image-proxy?url=${Uri.encodeComponent(url)}';
+  if (url.isEmpty) return '';
+
+  if (kIsWeb) {
+    if ((url.startsWith('http://') || url.startsWith('https://')) &&
+        !url.contains('/image-proxy?url=')) {
+      return '${ApiConfig.baseUrl}/image-proxy?url=${Uri.encodeComponent(url)}';
+    }
+    return url;
   }
-  if (kIsWeb) return url;
+
   try {
     if (Platform.isAndroid && url.startsWith('http://localhost')) {
       final host = Uri.parse(ApiConfig.baseUrl).host;

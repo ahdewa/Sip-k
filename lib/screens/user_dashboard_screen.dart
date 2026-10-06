@@ -34,52 +34,52 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
   // 6 Data Informasi & Pengumuman Dinsos Jatim (Gambar mudah diganti)
   List<Map<String, String>> _newsList = [
     {
+      'tag': 'SEKRETARIAT',
+      'title': 'Ziarah ke Makam Bung Karno & Refleksi Hari Jadi Jawa Timur',
+      'desc':
+          'Peringatan hari jadi Pemprov Jawa Timur dipimpin jajaran pimpinan dan keluarga besar Dinas Sosial Provinsi Jawa Timur.',
+      'date': '05 Okt 2026',
+      'image': 'https://dinsos.jatimprov.go.id/uploads/berita/QqqUaJ4ZIf1mslXmPV9WWZ3H62hQQ65Gu9oAwODV.jpg',
+    },
+    {
+      'tag': 'REHABILITASI SOSIAL',
+      'title': 'JSC Dampingi Keluarga Korban Kecelakaan KM Virgo Transport 8',
+      'desc':
+          'Tim Jatim Social Care (JSC) Dinas Sosial Jatim sigap memberikan pendampingan psikososial dan pemenuhan kebutuhan dasar bagi keluarga korban.',
+      'date': '05 Okt 2026',
+      'image': 'https://dinsos.jatimprov.go.id/uploads/berita/crv30KIUzzNqSZMJioZX5aMMcqkJlAwt5DvNyb65.jpg',
+    },
+    {
+      'tag': 'UNIT PELAKSANA TEKNIS',
+      'title': 'UPT PSTW Jombang Asramakan Lansia Terlantar Milastri',
+      'desc':
+          'Dinas Sosial Provinsi Jawa Timur memastikan setiap lansia rentan mendapatkan hunian layak, perawatan medis, dan bimbingan sosial.',
+      'date': '05 Okt 2026',
+      'image': 'https://dinsos.jatimprov.go.id/uploads/berita/M3CAlb8Co54Ege5BpmgaJMmaPXjYEUZ7gsvDrdzX.jpg',
+    },
+    {
+      'tag': 'UNIT PELAKSANA TEKNIS',
+      'title': 'UPT PSTW Jombang Gelar Upacara Hari Kesaktian Pancasila',
+      'desc':
+          'Seluruh pegawai dan penerima manfaat bersama-sama meneguhkan nilai-nilai kebangsaan dan persatuan dalam pengabdian sosial.',
+      'date': '01 Okt 2026',
+      'image': 'https://dinsos.jatimprov.go.id/uploads/berita/elhaHbCAfKZlgGsnLAjGfK947X3MhBpH4sKXkCfQ.jpg',
+    },
+    {
       'tag': 'PENGUMUMAN',
       'title': 'Uji Emisi & Servis Rutin Armada Tahap 1 Selesai',
       'desc':
-          'Seluruh kendaraan dinas siap untuk penugasan luar kota dengan kondisi prima. Pemeriksaan mencakup sistem pengereman, oli mesin, dan kelayakan ban operasional.',
-      'date': '01 Sep 2026',
-      'image': 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=800&q=80',
+          'Seluruh kendaraan dinas siap untuk penugasan luar kota dengan kondisi prima demi kelancaran tugas pelayanan sosial di seluruh Jawa Timur.',
+      'date': '28 Sep 2026',
+      'image': 'https://dinsos.jatimprov.go.id/uploads/berita/BUmi3ryHVz5oJ9jBLp4mAkRPyabedokubNmk0HJT.jpg',
     },
     {
-      'tag': 'OPERASIONAL',
-      'title': 'Kewajiban Pengisian Form BAST Unit Kendaraan',
+      'tag': 'PELAYANAN SOSIAL',
+      'title': 'Pemulasaraan Jenazah Penerima Manfaat Terlantar Suparmi',
       'desc':
-          'Harap mengisi catatan angka odometer dan level sisa BBM saat pengembalian unit ke pool dinas demi ketertiban administrasi aset kendaraan dinas.',
-      'date': '28 Ags 2026',
-      'image': 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      'tag': 'KEGIATAN',
-      'title': 'Penyaluran Logistik Tanggap Bencana Dinsos',
-      'desc':
-          'Armada minibus dan truk satgas Linjamsos standby 24 jam untuk kesiapsiagaan operasional bantuan tanggap bencana di seluruh wilayah Jawa Timur.',
-      'date': '25 Ags 2026',
-      'image': 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      'tag': 'KEBIJAKAN',
-      'title': 'Prosedur Baru Pengajuan Surat Perintah Kerja (SPK)',
-      'desc':
-          'Pastikan telah mengunggah scan Nota Dinas resmi yang telah ditandatangani Kepala Bidang sebelum mengajukan peminjaman armada ke Kasubag Umum.',
-      'date': '20 Ags 2026',
-      'image': 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      'tag': 'PEMELIHARAAN',
-      'title': 'Jadwal Penggantian Pelumas Armada Roda Dua',
-      'desc':
-          'Bagi pemegang unit sepeda motor dinas operasional diimbau membawa unit ke bengkel rekanan resmi Dinsos sesuai jadwal per semester.',
-      'date': '15 Ags 2026',
-      'image': 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80',
-    },
-    {
-      'tag': 'KESELAMATAN',
-      'title': 'Edukasi Protokol Berkendara Aman (Defensive Driving)',
-      'desc':
-          'Seluruh staf dan pengemudi dinas diwajibkan memeriksa kelengkapan P3K, segitiga pengaman, dan tekanan angin ban sebelum perjalanan dinas antar kota.',
-      'date': '10 Ags 2026',
-      'image': 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=800&q=80',
+          'Pelayanan komprehensif hingga peristirahatan terakhir bagi penerima manfaat terlantar dilaksanakan secara khidmat.',
+      'date': '25 Sep 2026',
+      'image': 'https://dinsos.jatimprov.go.id/uploads/berita/6TCHPMrBrUEdiIHgfg8jbsD9Bi7YEWe46vv67Yo5.jpg',
     },
   ];
 

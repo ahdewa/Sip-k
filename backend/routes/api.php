@@ -51,6 +51,40 @@ Route::post('/news', [NewsController::class, 'store']);
 Route::put('/news/{id}', [NewsController::class, 'update']);
 Route::delete('/news/{id}', [NewsController::class, 'destroy']);
 
+// Image Proxy (Bypass CORS untuk Flutter Web)
+Route::get('/image-proxy', function (\Illuminate\Http\Request $request) {
+    $url = $request->query('url');
+    if (!$url) {
+        return response('Missing url parameter', 400);
+    }
+
+    try {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+        $content = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        curl_close($ch);
+
+        if ($httpCode >= 200 && $httpCode < 300 && !empty($content)) {
+            return response($content, 200)
+                ->header('Content-Type', $contentType ?: 'image/jpeg')
+                ->header('Access-Control-Allow-Origin', '*')
+                ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+                ->header('Cache-Control', 'public, max-age=86400');
+        }
+
+        return response('Failed to fetch image', $httpCode ?: 404);
+    } catch (\Throwable $e) {
+        return response('Proxy error: ' . $e->getMessage(), 500);
+    }
+});
+
 // Notifications
 Route::get('/notifications', [NotificationController::class, 'index']);
 Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);

@@ -15,10 +15,13 @@ class NewsController extends Controller
      */
     public function index(Request $request)
     {
-        // Cek jika data kosong atau sudah lebih dari 4 jam belum disinkronisasi
-        $latest = News::orderBy('updated_at', 'desc')->first();
-        if (!$latest || $latest->updated_at->diffInHours(now()) >= 4) {
+        if (News::count() === 0) {
             $this->syncFromOfficialPortal();
+            if (News::count() === 0) {
+                foreach ($this->getDefaultNewsItems() as $item) {
+                    News::create($item);
+                }
+            }
         }
 
         $news = News::where('is_active', true)
@@ -193,5 +196,65 @@ class NewsController extends Controller
         }
 
         return 0;
+    }
+
+    private function getDefaultNewsItems(): array
+    {
+        return [
+            [
+                'tag'       => 'SEKRETARIAT',
+                'title'     => 'Ziarah ke Makam Bung Karno dan Gubernur Jatim Terdahulu, Refleksi 81 Tahun Jawa Timur Unggul dan Berkelanjutan',
+                'desc'      => 'Peringatan hari jadi Pemprov Jawa Timur dipimpin jajaran pimpinan dan keluarga besar Dinas Sosial Provinsi Jawa Timur.',
+                'date'      => '05 Okt 2026',
+                'image'     => 'https://dinsos.jatimprov.go.id/uploads/berita/QqqUaJ4ZIf1mslXmPV9WWZ3H62hQQ65Gu9oAwODV.jpg',
+                'author'    => 'Dinas Sosial Prov. Jatim',
+                'is_active' => true,
+            ],
+            [
+                'tag'       => 'REHABILITASI SOSIAL',
+                'title'     => 'JSC Kembali Dampingi Keluarga Gondham Prakoso Korban Kecelakaan KM Virgo Transport 8',
+                'desc'      => 'Tim Jatim Social Care (JSC) Dinas Sosial Jatim sigap memberikan pendampingan psikososial dan pemenuhan kebutuhan dasar bagi keluarga korban.',
+                'date'      => '05 Okt 2026',
+                'image'     => 'https://dinsos.jatimprov.go.id/uploads/berita/crv30KIUzzNqSZMJioZX5aMMcqkJlAwt5DvNyb65.jpg',
+                'author'    => 'Dinas Sosial Prov. Jatim',
+                'is_active' => true,
+            ],
+            [
+                'tag'       => 'UNIT PELAKSANA TEKNIS',
+                'title'     => 'Tindak Lanjut Penjangkauan Pemprov Jatim, UPT PSTW Jombang Terima dan Asramakan Lansia Terlantar Milastri',
+                'desc'      => 'Dinas Sosial Provinsi Jawa Timur memastikan setiap lansia rentan dan terlantar mendapatkan hunian layak, perawatan medis, dan bimbingan sosial.',
+                'date'      => '05 Okt 2026',
+                'image'     => 'https://dinsos.jatimprov.go.id/uploads/berita/M3CAlb8Co54Ege5BpmgaJMmaPXjYEUZ7gsvDrdzX.jpg',
+                'author'    => 'Dinas Sosial Prov. Jatim',
+                'is_active' => true,
+            ],
+            [
+                'tag'       => 'UNIT PELAKSANA TEKNIS',
+                'title'     => 'Pemprov Jatim - UPT PSTW Jombang Laksanakan Pemulasaraan Jenazah Penerima Manfaat Suparmi',
+                'desc'      => 'Pelayanan komprehensif hingga peristirahatan terakhir bagi penerima manfaat terlantar dilaksanakan secara khidmat dan penuh rasa hormat.',
+                'date'      => '05 Okt 2026',
+                'image'     => 'https://dinsos.jatimprov.go.id/uploads/berita/6TCHPMrBrUEdiIHgfg8jbsD9Bi7YEWe46vv67Yo5.jpg',
+                'author'    => 'Dinas Sosial Prov. Jatim',
+                'is_active' => true,
+            ],
+            [
+                'tag'       => 'UNIT PELAKSANA TEKNIS',
+                'title'     => 'Pemprov Jatim - UPT PSTW Jombang Gelar Upacara Peringatan Hari Kesaktian Pancasila',
+                'desc'      => 'Seluruh pegawai dan penerima manfaat bersama-sama meneguhkan nilai-nilai kebangsaan dan persatuan dalam pengabdian sosial.',
+                'date'      => '01 Okt 2026',
+                'image'     => 'https://dinsos.jatimprov.go.id/uploads/berita/elhaHbCAfKZlgGsnLAjGfK947X3MhBpH4sKXkCfQ.jpg',
+                'author'    => 'Dinas Sosial Prov. Jatim',
+                'is_active' => true,
+            ],
+            [
+                'tag'       => 'PENGUMUMAN OPERASIONAL',
+                'title'     => 'Uji Emisi & Servis Rutin Armada Tahap 1 Selesai Dilaksanakan',
+                'desc'      => 'Seluruh kendaraan dinas siap untuk penugasan luar kota dengan kondisi prima demi kelancaran tugas pelayanan sosial di seluruh Jawa Timur.',
+                'date'      => '28 Sep 2026',
+                'image'     => 'https://dinsos.jatimprov.go.id/uploads/berita/BUmi3ryHVz5oJ9jBLp4mAkRPyabedokubNmk0HJT.jpg',
+                'author'    => 'Subbag Tata Usaha & Aset',
+                'is_active' => true,
+            ],
+        ];
     }
 }
