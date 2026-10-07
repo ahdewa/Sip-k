@@ -127,7 +127,7 @@ class UserImportService {
               h.contains('opd'))) {
         deptCol = i;
         mappedColumns['Bidang'] = detectedHeaders[i];
-      } else if (roleCol == -1 && (h.contains('role') || h.contains('peran') || h.contains('akses'))) {
+      } else if (roleCol == -1 && (h.contains('role') || h.contains('peran') || h.contains('akses') || h.contains('hakakses') || h.contains('tipe') || h.contains('level') || h.contains('kewenangan'))) {
         roleCol = i;
         mappedColumns['Role'] = detectedHeaders[i];
       }
@@ -149,13 +149,18 @@ class UserImportService {
       String rawDept = deptCol != -1 && deptCol < row.length ? row[deptCol].trim() : '';
       String rawRole = roleCol != -1 && roleCol < row.length ? row[roleCol].trim().toLowerCase() : '';
 
-      // Tentukan Role
+      // Tentukan Role (Bisa membaca 'admin', 'user', 'pegawai', 'superadmin', dll)
       UserRole assignedRole = defaultRole;
       if (rawRole.contains('super')) {
         assignedRole = UserRole.superadmin;
       } else if (rawRole.contains('admin')) {
         assignedRole = UserRole.admin;
-      } else if (rawRole.contains('user') || rawRole.contains('pegawai')) {
+      } else if (rawRole.contains('user') ||
+          rawRole.contains('pegawai') ||
+          rawRole.contains('staf') ||
+          rawRole.contains('staff') ||
+          rawRole.contains('peminjam') ||
+          rawRole.contains('karyawan')) {
         assignedRole = UserRole.user;
       }
 
@@ -312,11 +317,11 @@ class UserImportService {
   /// Unduh contoh format CSV yang siap diedit
   static void downloadTemplateCsv() {
     const csvContent =
-        'NIP,Nama Lengkap,Email,Password,Bidang\r\n'
-        '198507122010011005,Ahmad Fauzi S.Sos,ahmad.fauzi@dinsos.jatimprov.go.id,dinsos123,Bidang Perlindungan & Jaminan Sosial (Linjamsos)\r\n'
-        '199203152019032008,Siti Nurhaliza S.ST,siti.nurhaliza@dinsos.jatimprov.go.id,dinsos123,Bidang Rehabilitasi Sosial (Rehsos)\r\n'
-        '198811202015021003,Budi Santoso S.Kom,budi.santoso@dinsos.jatimprov.go.id,dinsos123,Sekretariat / Subbag Tata Usaha\r\n'
-        '199505102020122014,Dewi Sekar Arum S.Psi,dewi.sekar@dinsos.jatimprov.go.id,dinsos123,Bidang Pemberdayaan Sosial (Dayasos)\r\n';
+        'NIP,Nama Lengkap,Email,Password,Bidang,Role\r\n'
+        '198507122010011005,Ahmad Fauzi S.Sos,ahmad.fauzi@dinsos.jatimprov.go.id,dinsos123,Bidang Perlindungan & Jaminan Sosial (Linjamsos),Pegawai\r\n'
+        '199203152019032008,Siti Nurhaliza S.ST,siti.nurhaliza@dinsos.jatimprov.go.id,dinsos123,Bidang Rehabilitasi Sosial (Rehsos),Pegawai\r\n'
+        '198811202015021003,Budi Santoso S.Kom,budi.santoso@dinsos.jatimprov.go.id,dinsos123,Sekretariat / Subbag Tata Usaha,Admin\r\n'
+        '199505102020122014,Dewi Sekar Arum S.Psi,dewi.sekar@dinsos.jatimprov.go.id,dinsos123,Bidang Pemberdayaan Sosial (Dayasos),Pegawai\r\n';
 
     final bytes = Uint8List.fromList(utf8.encode(csvContent));
     saveAndDownloadFile(
@@ -333,7 +338,7 @@ class UserImportService {
     excel.setDefaultSheet('Data_User');
 
     // Header Kolom
-    final headers = ['NIP', 'Nama Lengkap', 'Email', 'Password', 'Bidang'];
+    final headers = ['NIP', 'Nama Lengkap', 'Email', 'Password', 'Bidang', 'Role'];
     for (int c = 0; c < headers.length; c++) {
       final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: c, rowIndex: 0));
       cell.value = TextCellValue(headers[c]);
@@ -352,6 +357,7 @@ class UserImportService {
         'ahmad.fauzi@dinsos.jatimprov.go.id',
         'dinsos123',
         'Bidang Perlindungan & Jaminan Sosial (Linjamsos)',
+        'Pegawai',
       ],
       [
         '199203152019032008',
@@ -359,6 +365,7 @@ class UserImportService {
         'siti.nurhaliza@dinsos.jatimprov.go.id',
         'dinsos123',
         'Bidang Rehabilitasi Sosial (Rehsos)',
+        'Pegawai',
       ],
       [
         '198811202015021003',
@@ -366,6 +373,7 @@ class UserImportService {
         'budi.santoso@dinsos.jatimprov.go.id',
         'dinsos123',
         'Sekretariat / Subbag Tata Usaha',
+        'Admin',
       ],
       [
         '199505102020122014',
@@ -373,6 +381,7 @@ class UserImportService {
         'dewi.sekar@dinsos.jatimprov.go.id',
         'dinsos123',
         'Bidang Pemberdayaan Sosial (Dayasos)',
+        'Pegawai',
       ],
     ];
 

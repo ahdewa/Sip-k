@@ -179,10 +179,22 @@ class _UserImportDialogState extends State<UserImportDialog> {
             children: [
               const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
               const SizedBox(width: 10),
-              Text(
-                'Berhasil mengimpor $successCount akun ${widget.targetRole == UserRole.admin ? "Admin" : "Pegawai"}!',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+              Builder(builder: (_) {
+                final adminCount = validItems.where((u) => u.role == UserRole.admin || u.role == UserRole.superadmin).length;
+                final userCount = validItems.where((u) => u.role == UserRole.user).length;
+                String msg = 'Berhasil mengimpor $successCount akun!';
+                if (adminCount > 0 && userCount > 0) {
+                  msg = 'Berhasil mengimpor $successCount akun ($userCount Pegawai, $adminCount Admin)!';
+                } else if (adminCount > 0) {
+                  msg = 'Berhasil mengimpor $adminCount akun Admin!';
+                } else {
+                  msg = 'Berhasil mengimpor $userCount akun Pegawai!';
+                }
+                return Text(
+                  msg,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                );
+              }),
             ],
           ),
           backgroundColor: const Color(0xFF16A34A),
@@ -608,6 +620,7 @@ class _UserImportDialogState extends State<UserImportDialog> {
                         _buildHeaderMappingChip('Email', result.mappedColumns['Email'], isDark),
                         _buildHeaderMappingChip('Password', result.mappedColumns['Password'], isDark),
                         _buildHeaderMappingChip('Bidang', result.mappedColumns['Bidang'], isDark),
+                        _buildHeaderMappingChip('Role', result.mappedColumns['Role'], isDark),
                       ],
                     ),
                   ),
@@ -873,6 +886,43 @@ class _UserImportDialogState extends State<UserImportDialog> {
                   ],
                 ),
               ],
+            ),
+          ),
+
+          // Role Badge
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+            decoration: BoxDecoration(
+              color: item.role == UserRole.admin
+                  ? const Color(0xFF2563EB).withValues(alpha: 0.15)
+                  : item.role == UserRole.superadmin
+                      ? const Color(0xFF7C3AED).withValues(alpha: 0.15)
+                      : const Color(0xFF16A34A).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: item.role == UserRole.admin
+                    ? const Color(0xFF2563EB).withValues(alpha: 0.4)
+                    : item.role == UserRole.superadmin
+                        ? const Color(0xFF7C3AED).withValues(alpha: 0.4)
+                        : const Color(0xFF16A34A).withValues(alpha: 0.4),
+              ),
+            ),
+            child: Text(
+              item.role == UserRole.admin
+                  ? 'Admin'
+                  : item.role == UserRole.superadmin
+                      ? 'Superadmin'
+                      : 'Pegawai',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: item.role == UserRole.admin
+                    ? const Color(0xFF2563EB)
+                    : item.role == UserRole.superadmin
+                        ? const Color(0xFF7C3AED)
+                        : const Color(0xFF16A34A),
+              ),
             ),
           ),
 
