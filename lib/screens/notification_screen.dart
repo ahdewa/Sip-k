@@ -176,8 +176,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       const SizedBox(height: 2),
                       Text(
                         widget.isAdmin
-                            ? 'Daftar aktivitas permohonan dinas & operasional armada'
-                            : 'Informasi terbaru aktivitas akun Anda',
+                            ? 'Daftar permohonan masuk & pemantauan armada dinas'
+                            : 'Informasi status permohonan dinas & aktivitas akun',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -240,9 +240,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Pusat Aktivitas & Status',
-                        style: TextStyle(
+                      Text(
+                        widget.isAdmin
+                            ? 'Pusat Operasional & Verifikasi'
+                            : 'Pusat Status Permohonan',
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                           color: Colors.white,
@@ -250,7 +252,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '$unreadCount notifikasi baru belum dibaca',
+                        widget.isAdmin
+                            ? '$unreadCount agenda/verifikasi baru perlu ditindaklanjuti'
+                            : '$unreadCount pembaruan status belum dibaca',
                         style: const TextStyle(
                           fontSize: 11,
                           color: Colors.white70,
@@ -420,7 +424,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         iconBg = isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7);
         iconColor = isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
         icon = Icons.hourglass_top_rounded;
-        tagLabel = 'Menunggu Verifikasi';
+        tagLabel = widget.isAdmin ? 'Permohonan Masuk' : 'Menunggu Verifikasi';
         tagBg = isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7);
         tagTextColor = isDark ? const Color(0xFFFDE68A) : const Color(0xFFB45309);
         break;
@@ -428,7 +432,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         iconBg = isDark ? const Color(0xFF166534) : const Color(0xFFDCFCE7);
         iconColor = isDark ? const Color(0xFF86EFAC) : const Color(0xFF16A34A);
         icon = Icons.check_circle_rounded;
-        tagLabel = 'Disetujui Kasubag';
+        tagLabel = widget.isAdmin ? 'Verifikasi Disetujui' : 'Disetujui Kasubag';
         tagBg = isDark ? const Color(0xFF166534) : const Color(0xFFDCFCE7);
         tagTextColor = isDark ? const Color(0xFFBBF7D0) : const Color(0xFF15803D);
         break;
@@ -436,7 +440,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         iconBg = isDark ? const Color(0xFF991B1B) : const Color(0xFFFEE2E2);
         iconColor = isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626);
         icon = Icons.cancel_rounded;
-        tagLabel = 'Ditolak Aset';
+        tagLabel = widget.isAdmin ? 'Verifikasi Ditolak' : 'Ditolak Kasubag';
         tagBg = isDark ? const Color(0xFF991B1B) : const Color(0xFFFEE2E2);
         tagTextColor = isDark ? const Color(0xFFFECACA) : const Color(0xFFB91C1C);
         break;
@@ -444,7 +448,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         iconBg = isDark ? const Color(0xFF581C87) : const Color(0xFFF3E8FF);
         iconColor = isDark ? const Color(0xFFC084FC) : const Color(0xFF7E22CE);
         icon = Icons.build_circle_rounded;
-        tagLabel = 'Info Pemeliharaan';
+        tagLabel = widget.isAdmin ? 'Peringatan Servis' : 'Info Pemeliharaan';
         tagBg = isDark ? const Color(0xFF581C87) : const Color(0xFFF3E8FF);
         tagTextColor = isDark ? const Color(0xFFE9D5FF) : const Color(0xFF6B21A8);
         break;
@@ -452,7 +456,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         iconBg = isDark ? const Color(0xFF0C4A6E) : const Color(0xFFE0F2FE);
         iconColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
         icon = Icons.schedule_rounded;
-        tagLabel = 'Pengingat Jadwal';
+        tagLabel = widget.isAdmin ? 'Pengingat Operasional' : 'Pengingat Jadwal';
         tagBg = isDark ? const Color(0xFF0C4A6E) : const Color(0xFFE0F2FE);
         tagTextColor = isDark ? const Color(0xFFBAE6FD) : const Color(0xFF0369A1);
         break;

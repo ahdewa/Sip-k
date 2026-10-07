@@ -110,7 +110,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
     });
 
     _notifications = widget.notifications != null
-        ? List.from(widget.notifications!)
+        ? widget.notifications!.where((n) => n.isForAdmin).toList()
         : [
             AppNotification(
               id: 'ADM-001',
@@ -210,7 +210,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
 
     if (widget.notifications != null && widget.notifications != oldWidget.notifications) {
       setState(() {
-        _notifications = List.from(widget.notifications!);
+        _notifications = widget.notifications!.where((n) => n.isForAdmin).toList();
       });
     }
     _syncPendingLoanNotifications();
@@ -243,6 +243,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
             referenceNumber: req.id,
             type: NotificationType.submitted,
             isRead: false,
+            targetRole: 'admin',
           ),
         );
       }
@@ -254,9 +255,9 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
       final fresh = await ApiService.fetchNotifications(
         role: _isSuperAdmin ? 'superadmin' : 'admin',
       );
-      if (fresh != null && fresh.isNotEmpty && mounted) {
+      if (fresh != null && mounted) {
         setState(() {
-          _notifications = fresh;
+          _notifications = fresh.where((n) => n.isForAdmin).toList();
         });
       }
     } catch (_) {}

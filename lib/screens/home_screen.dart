@@ -123,13 +123,18 @@ class _HomeScreenState extends State<HomeScreen> {
       final nList = await ApiService.fetchNotifications(userId: uid, role: widget.role);
       if (nList != null && mounted) {
         setState(() {
-          _notifications = nList;
-          _syncUserLoanStatusNotifications();
-          _adminNotifications = List.from(nList);
+          if (widget.role == 'admin' || widget.role == 'superadmin') {
+            _adminNotifications = nList.where((n) => n.isForAdmin).toList();
+          } else {
+            _notifications = nList.where((n) => n.isForPegawai).toList();
+            _syncUserLoanStatusNotifications();
+          }
         });
       } else if (mounted) {
         setState(() {
-          _syncUserLoanStatusNotifications();
+          if (widget.role == 'user') {
+            _syncUserLoanStatusNotifications();
+          }
         });
       }
       final uList = await ApiService.fetchUsers();
@@ -206,7 +211,18 @@ class _HomeScreenState extends State<HomeScreen> {
   void _syncUserLoanStatusNotifications() {
     if (widget.role != 'user') return;
 
+    final currentUserName = _currentUserProfile.name.trim().toLowerCase();
+
     for (final loan in _loans) {
+      final borrowerName = loan.borrowerName.trim().toLowerCase();
+      // Hanya sinkronisasi jika peminjaman dibuat oleh akun pegawai yang sedang login
+      final isOwnLoan = currentUserName.isEmpty ||
+          borrowerName.isEmpty ||
+          borrowerName == currentUserName ||
+          borrowerName.contains(currentUserName) ||
+          currentUserName.contains(borrowerName);
+      if (!isOwnLoan) continue;
+
       final isApproved = loan.status == LoanStatus.disetujui ||
           loan.status == LoanStatus.approved;
       final isRejected = loan.status == LoanStatus.ditolak ||
@@ -237,6 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
               referenceNumber: spk,
               type: NotificationType.approved,
               isRead: false,
+              targetRole: 'pegawai',
             ),
           );
         }
@@ -263,6 +280,7 @@ class _HomeScreenState extends State<HomeScreen> {
               referenceNumber: loan.id,
               type: NotificationType.rejected,
               isRead: false,
+              targetRole: 'pegawai',
             ),
           );
         }
@@ -845,6 +863,7 @@ class _HomeScreenState extends State<HomeScreen> {
           referenceNumber:
               'REQ-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
           type: NotificationType.submitted,
+          targetRole: 'pegawai',
         ),
       );
       _currentIndex = 0;
@@ -908,38 +927,41 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       if (approved) {
-        _notifications.insert(
+        _adminNotifications.insert(
           0,
           AppNotification(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            title: 'Pengajuan Disetujui (Nota Dinas Terbit)',
+            id: 'VERIF-APP-${DateTime.now().millisecondsSinceEpoch}',
+            title: 'Verifikasi Pengajuan Disetujui',
             message:
-                'Permohonan armada ${loan.vehicleName} (${loan.driverOption}) telah disetujui. Softfile Nota Dinas resmi telah tersedia untuk dicetak.',
-            time: 'Hari ini',
-            fullDate: '02 September 2026, 14:15 WIB',
+                'Pengajuan ${loan.vehicleName} atas nama ${loan.borrowerName} telah disetujui ($spkNum).',
+            time: 'Baru saja',
+            fullDate:
+                '${DateTime.now().day.toString().padLeft(2, '0')}/${DateTime.now().month.toString().padLeft(2, '0')}/${DateTime.now().year}, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')} WIB',
             createdAt: DateTime.now(),
             detailContent:
-                'Pengajuan peminjaman telah disahkan Kasubag Umum dengan Nomor Registrasi: $spkNum. Layanan penugasan: ${loan.driverOption}. Silakan cetak lembar Nota Dinas dari menu Riwayat atau Profil untuk diserahkan ke loket Kasubag TU saat pengambilan kunci kontak dan STNK unit armada.',
+                'Anda telah menyetujui permohonan kendaraan dinas ${loan.vehicleName} untuk ${loan.borrowerName} dengan nomor registrasi $spkNum. Berkas Nota Dinas dan SPK siap diserahkan.',
             referenceNumber: spkNum ?? '-',
             type: NotificationType.approved,
+            targetRole: 'admin',
           ),
         );
       } else {
-        _notifications.insert(
+        _adminNotifications.insert(
           0,
           AppNotification(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            title: 'Pengajuan Ditolak',
+            id: 'VERIF-REJ-${DateTime.now().millisecondsSinceEpoch}',
+            title: 'Verifikasi Pengajuan Ditolak',
             message:
-                'Permohonan ${loan.vehicleName} ditolak. Silakan periksa kelengkapan administrasi atau pilih jadwal armada lain.',
-            time: 'Hari ini',
-            fullDate: '02 September 2026, 14:15 WIB',
+                'Pengajuan ${loan.vehicleName} atas nama ${loan.borrowerName} telah ditolak.',
+            time: 'Baru saja',
+            fullDate:
+                '${DateTime.now().day.toString().padLeft(2, '0')}/${DateTime.now().month.toString().padLeft(2, '0')}/${DateTime.now().year}, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')} WIB',
             createdAt: DateTime.now(),
             detailContent:
-                'Pengajuan ditolak oleh Kasubag Umum. Periksa kembali kelengkapan surat usulan atau silakan ajukan armada pengganti.',
-            referenceNumber:
-                'REJ-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+                'Anda telah menolak permohonan kendaraan dinas ${loan.vehicleName} untuk ${loan.borrowerName}. Notifikasi telah dikirimkan ke pemohon.',
+            referenceNumber: loan.id,
             type: NotificationType.rejected,
+            targetRole: 'admin',
           ),
         );
       }

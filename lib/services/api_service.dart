@@ -533,6 +533,7 @@ class ApiService {
               createdAt: dt,
               type: nType,
               isRead: item['is_read'] == true || item['is_read'] == 1,
+              targetRole: (item['target_role'] ?? role ?? 'all').toString(),
             );
           }).toList();
         }

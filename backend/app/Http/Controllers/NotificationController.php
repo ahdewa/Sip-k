@@ -32,31 +32,59 @@ class NotificationController extends Controller
         }
 
         if ($role === 'admin' || $role === 'superadmin') {
-            // Admin melihat semua notifikasi permohonan masuk & info broadcast
+            // Admin / Superadmin:
+            // Hanya melihat notifikasi operasional (verifikasi, servis, BAST, akun baru, rekapitulasi)
             $query->where(function ($q) use ($userId) {
-                $q->whereNull('user_id')
-                  ->orWhere('title', 'like', '%Perlu Verifikasi%');
+                $q->where('title', 'like', '%Perlu Verifikasi%')
+                  ->orWhere('title', 'like', '%Servis%')
+                  ->orWhere('title', 'like', '%BAST%')
+                  ->orWhere('title', 'like', '%Bentrok%')
+                  ->orWhere('title', 'like', '%Akun Baru%')
+                  ->orWhere('title', 'like', '%Pendaftaran Akun%')
+                  ->orWhere('title', 'like', '%Rekapitulasi%')
+                  ->orWhere('type', 'maintenance')
+                  ->orWhere(function ($sub) {
+                      $sub->whereNull('user_id')
+                          ->where('title', 'not like', '%Selamat Datang%')
+                          ->where('title', 'not like', '%Permohonan Berhasil Dikirim%')
+                          ->where('title', 'not like', '%Pengajuan Terkirim%');
+                  });
                 if ($userId) {
                     $q->orWhere('user_id', $userId);
                 }
             });
-            // Admin tidak perlu melihat notifikasi pribadi pemohon "Permohonan Berhasil Dikirim"
-            $query->where('title', 'not like', '%Permohonan Berhasil Dikirim%');
+            // Admin TIDAK melihat notifikasi permohonan pribadi pegawai
+            $query->where('title', 'not like', '%Permohonan Berhasil Dikirim%')
+                  ->where('title', 'not like', '%Pengajuan Terkirim%')
+                  ->where('title', 'not like', '%Selamat Datang di OVBS%');
         } else {
             // User / Pegawai:
-            // 1. Filter keluar SEMUA notifikasi verifikasi khusus admin
-            $query->where('title', 'not like', '%Perlu Verifikasi%');
+            // 1. Filter KELUAR semua notifikasi verifikasi & teknis khusus admin
+            $query->where('title', 'not like', '%Perlu Verifikasi%')
+                  ->where('title', 'not like', '%Servis Rutin%')
+                  ->where('title', 'not like', '%Peringatan Servis%')
+                  ->where('title', 'not like', '%Penugasan Bentrok%')
+                  ->where('title', 'not like', '%Pendaftaran Akun Pegawai%')
+                  ->where('title', 'not like', '%Rekapitulasi Bulanan%');
 
-            // 2. Ambil notifikasi milik user (user_id), notifikasi status persetujuan/penolakan, dan info broadcast
+            // 2. Ambil hanya notifikasi milik user ini atau broadcast pegawai (welcome, reminder)
             $query->where(function ($q) use ($userId) {
                 if ($userId) {
                     $q->where('user_id', $userId)
-                      ->orWhereIn('type', ['approved', 'rejected'])
                       ->orWhere(function ($sub) {
-                          $sub->whereNull('user_id')->whereIn('type', ['welcome', 'maintenance', 'reminder']);
+                          $sub->whereNull('user_id')
+                              ->whereIn('type', ['welcome', 'reminder'])
+                              ->where('title', 'not like', '%Verifikasi%')
+                              ->where('title', 'not like', '%Servis%')
+                              ->where('title', 'not like', '%Bentrok%')
+                              ->where('title', 'not like', '%Rekapitulasi%');
                       });
                 } else {
-                    $q->whereIn('type', ['approved', 'rejected', 'submitted', 'welcome', 'maintenance', 'reminder']);
+                    $q->whereIn('type', ['welcome', 'reminder'])
+                      ->where('title', 'not like', '%Verifikasi%')
+                      ->where('title', 'not like', '%Servis%')
+                      ->where('title', 'not like', '%Bentrok%')
+                      ->where('title', 'not like', '%Rekapitulasi%');
                 }
             });
         }
@@ -104,24 +132,52 @@ class NotificationController extends Controller
 
         if ($role === 'admin' || $role === 'superadmin') {
             $query->where(function ($q) use ($userId) {
-                $q->whereNull('user_id')
-                  ->orWhere('title', 'like', '%Perlu Verifikasi%');
+                $q->where('title', 'like', '%Perlu Verifikasi%')
+                  ->orWhere('title', 'like', '%Servis%')
+                  ->orWhere('title', 'like', '%BAST%')
+                  ->orWhere('title', 'like', '%Bentrok%')
+                  ->orWhere('title', 'like', '%Akun Baru%')
+                  ->orWhere('title', 'like', '%Pendaftaran Akun%')
+                  ->orWhere('title', 'like', '%Rekapitulasi%')
+                  ->orWhere('type', 'maintenance')
+                  ->orWhere(function ($sub) {
+                      $sub->whereNull('user_id')
+                          ->where('title', 'not like', '%Selamat Datang%')
+                          ->where('title', 'not like', '%Permohonan Berhasil Dikirim%')
+                          ->where('title', 'not like', '%Pengajuan Terkirim%');
+                  });
                 if ($userId) {
                     $q->orWhere('user_id', $userId);
                 }
             });
-            $query->where('title', 'not like', '%Permohonan Berhasil Dikirim%');
+            $query->where('title', 'not like', '%Permohonan Berhasil Dikirim%')
+                  ->where('title', 'not like', '%Pengajuan Terkirim%')
+                  ->where('title', 'not like', '%Selamat Datang di OVBS%');
         } else {
-            $query->where('title', 'not like', '%Perlu Verifikasi%');
+            $query->where('title', 'not like', '%Perlu Verifikasi%')
+                  ->where('title', 'not like', '%Servis Rutin%')
+                  ->where('title', 'not like', '%Peringatan Servis%')
+                  ->where('title', 'not like', '%Penugasan Bentrok%')
+                  ->where('title', 'not like', '%Pendaftaran Akun Pegawai%')
+                  ->where('title', 'not like', '%Rekapitulasi Bulanan%');
+
             $query->where(function ($q) use ($userId) {
                 if ($userId) {
                     $q->where('user_id', $userId)
-                      ->orWhereIn('type', ['approved', 'rejected'])
                       ->orWhere(function ($sub) {
-                          $sub->whereNull('user_id')->whereIn('type', ['welcome', 'maintenance', 'reminder']);
+                          $sub->whereNull('user_id')
+                              ->whereIn('type', ['welcome', 'reminder'])
+                              ->where('title', 'not like', '%Verifikasi%')
+                              ->where('title', 'not like', '%Servis%')
+                              ->where('title', 'not like', '%Bentrok%')
+                              ->where('title', 'not like', '%Rekapitulasi%');
                       });
                 } else {
-                    $q->whereIn('type', ['approved', 'rejected', 'submitted', 'welcome', 'maintenance', 'reminder']);
+                    $q->whereIn('type', ['welcome', 'reminder'])
+                      ->where('title', 'not like', '%Verifikasi%')
+                      ->where('title', 'not like', '%Servis%')
+                      ->where('title', 'not like', '%Bentrok%')
+                      ->where('title', 'not like', '%Rekapitulasi%');
                 }
             });
         }
