@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:simodis_jatim/models/loan_model.dart';
 import 'package:simodis_jatim/services/file_saver_helper.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
+import 'package:simodis_jatim/widgets/app_image.dart';
+import 'package:simodis_jatim/widgets/pdf_viewer_dialog.dart';
 
 class NotaDinasDialog extends StatelessWidget {
   final LoanRequest loan;
@@ -11,143 +11,26 @@ class NotaDinasDialog extends StatelessWidget {
   const NotaDinasDialog({super.key, required this.loan});
 
   String _formatDate(DateTime d) {
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    final months = [
+      '',
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember'
+    ];
+    return '${d.day} ${months[d.month]} ${d.year}';
   }
 
   Future<void> _generateAndDownloadPdf(BuildContext context) async {
-    final pdf = pw.Document();
-    final regNumber = loan.spkNumber ?? 'ND-0901/DINSOS/${DateTime.now().year}';
-
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(36),
-        build: (pw.Context ctx) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Center(
-                child: pw.Column(
-                  children: [
-                    pw.Text('PEMERINTAH PROVINSI JAWA TIMUR', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                    pw.Text('DINAS SOSIAL', style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
-                    pw.Text('Jl. Gayung Kebonsari No.56, Surabaya, Jawa Timur 60235', style: const pw.TextStyle(fontSize: 9)),
-                    pw.SizedBox(height: 6),
-                    pw.Divider(thickness: 2),
-                    pw.SizedBox(height: 10),
-                    pw.Text('NOTA DINAS', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
-                    pw.Text('Nomor: $regNumber', style: const pw.TextStyle(fontSize: 10)),
-                  ],
-                ),
-              ),
-              pw.SizedBox(height: 16),
-              pw.Table(
-                columnWidths: {
-                  0: const pw.FixedColumnWidth(100),
-                  1: const pw.FixedColumnWidth(15),
-                  2: const pw.FlexColumnWidth(),
-                },
-                children: [
-                  pw.TableRow(children: [
-                    pw.Text('Kepada', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text(':', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('Kepala Dinas Sosial Provinsi Jawa Timur', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                  ]),
-                  pw.TableRow(children: [
-                    pw.Text('Dari', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text(':', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('Kasubag Tata Usaha / Pengelola Aset', style: const pw.TextStyle(fontSize: 10)),
-                  ]),
-                  pw.TableRow(children: [
-                    pw.Text('Tanggal', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text(':', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text(_formatDate(DateTime.now()), style: const pw.TextStyle(fontSize: 10)),
-                  ]),
-                  pw.TableRow(children: [
-                    pw.Text('Hal', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text(':', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('Persetujuan Peminjaman Kendaraan Dinas Operasional', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                  ]),
-                ],
-              ),
-              pw.SizedBox(height: 14),
-              pw.Divider(thickness: 0.5),
-              pw.SizedBox(height: 10),
-              pw.Text('RINCIAN PEMINJAMAN:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 6),
-              pw.Table(
-                columnWidths: {
-                  0: const pw.FixedColumnWidth(120),
-                  1: const pw.FixedColumnWidth(15),
-                  2: const pw.FlexColumnWidth(),
-                },
-                children: [
-                  pw.TableRow(children: [
-                    pw.Text('Nama Peminjam', style: const pw.TextStyle(fontSize: 9.5)),
-                    pw.Text(':', style: const pw.TextStyle(fontSize: 9.5)),
-                    pw.Text(loan.borrowerName, style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
-                  ]),
-                  pw.TableRow(children: [
-                    pw.Text('Bidang / Seksi', style: const pw.TextStyle(fontSize: 9.5)),
-                    pw.Text(':', style: const pw.TextStyle(fontSize: 9.5)),
-                    pw.Text(loan.department, style: const pw.TextStyle(fontSize: 9.5)),
-                  ]),
-                  pw.TableRow(children: [
-                    pw.Text('Kendaraan', style: const pw.TextStyle(fontSize: 9.5)),
-                    pw.Text(':', style: const pw.TextStyle(fontSize: 9.5)),
-                    pw.Text(loan.vehicleName, style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
-                  ]),
-                  pw.TableRow(children: [
-                    pw.Text('Tujuan Perjalanan', style: const pw.TextStyle(fontSize: 9.5)),
-                    pw.Text(':', style: const pw.TextStyle(fontSize: 9.5)),
-                    pw.Text(loan.destination, style: const pw.TextStyle(fontSize: 9.5)),
-                  ]),
-                  pw.TableRow(children: [
-                    pw.Text('Keperluan Tugas', style: const pw.TextStyle(fontSize: 9.5)),
-                    pw.Text(':', style: const pw.TextStyle(fontSize: 9.5)),
-                    pw.Text(loan.purposeDescription.isNotEmpty ? loan.purposeDescription : '-', style: const pw.TextStyle(fontSize: 9.5)),
-                  ]),
-                  pw.TableRow(children: [
-                    pw.Text('Masa Penugasan', style: const pw.TextStyle(fontSize: 9.5)),
-                    pw.Text(':', style: const pw.TextStyle(fontSize: 9.5)),
-                    pw.Text('${_formatDate(loan.startDate)} s/d ${_formatDate(loan.endDate)}', style: const pw.TextStyle(fontSize: 9.5)),
-                  ]),
-                ],
-              ),
-              pw.Spacer(),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text('Mengetahui / Menyetujui:', style: const pw.TextStyle(fontSize: 9.5)),
-                      pw.Text('Kasubag Tata Usaha', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
-                      pw.SizedBox(height: 40),
-                      pw.Text('H. BAMBANG S., S.Sos., M.Si.', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
-                      pw.Text('NIP. 19740512 199803 1 004', style: const pw.TextStyle(fontSize: 8.5)),
-                    ],
-                  ),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text('Surabaya, ${_formatDate(DateTime.now())}', style: const pw.TextStyle(fontSize: 9.5)),
-                      pw.Text('Peminjam / Pemohon,', style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
-                      pw.SizedBox(height: 40),
-                      pw.Text(loan.borrowerName.toUpperCase(), style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Petugas Operasional', style: const pw.TextStyle(fontSize: 8.5)),
-                    ],
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 15),
-            ],
-          );
-        },
-      ),
-    );
-
-    final bytes = await pdf.save();
+    final bytes = await PdfViewerDialog.generateNotaDinasDocument(loan);
     final safeId = loan.id.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
     final filename = 'Nota_Dinas_$safeId.pdf';
     final savedPath = saveAndDownloadFile(bytes, filename, 'application/pdf');
@@ -171,14 +54,30 @@ class NotaDinasDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = ThemeService.isDarkMode;
-    final regNumber = loan.spkNumber ?? 'ND-0901/DINSOS/${DateTime.now().year}';
+    final regNumber = loan.officialNoteNumber.isNotEmpty && loan.officialNoteNumber != '-'
+        ? loan.officialNoteNumber
+        : (loan.spkNumber ?? 'ND-0901/DINSOS/${DateTime.now().year}');
+
+    final department = loan.department.isNotEmpty ? loan.department : 'Bidang Penanganan Fakir Miskin';
+    final dateRange = '${_formatDate(loan.startDate)} s.d ${_formatDate(loan.endDate)}';
+    String purposeClean = loan.purposeDescription;
+    if (purposeClean.contains('\n')) {
+      purposeClean = purposeClean.split('\n').first.trim();
+    }
+    if (purposeClean.isEmpty) purposeClean = 'kegiatan perjalanan dinas operasional';
+
+    final hasUploadedFile = loan.simPhotoPath != null && loan.simPhotoPath!.isNotEmpty;
+    final isUploadedImage = hasUploadedFile &&
+        !loan.simPhotoPath!.startsWith('data:application/pdf') &&
+        !loan.simPhotoPath!.toLowerCase().endsWith('.pdf');
 
     return Dialog(
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        constraints: const BoxConstraints(maxWidth: 620),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -188,17 +87,23 @@ class NotaDinasDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Dialog (Tombol Tutup)
+              // Header Dialog (Judul & Tombol Tutup)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Softfile Lembar Nota Dinas',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
-                    ),
+                  Row(
+                    children: [
+                      const Icon(Icons.description_rounded, size: 20, color: Color(0xFF24487A)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Lembar Nota Dinas Resmi',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF1E293B),
+                        ),
+                      ),
+                    ],
                   ),
                   InkWell(
                     onTap: () => Navigator.pop(context),
@@ -219,197 +124,268 @@ class NotaDinasDialog extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
-              // AREA KERTAS DOKUMEN CETAK (BORDER GREY SEPERTI SELEMBAR SURAT)
+              // AREA LEMBAR DOKUMEN CETAK (PERSIS SESUAI GAMBAR TEMPLATE)
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAFA),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0xFFCBD5E1)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // KOP SURAT PEMERINTAH PROVINSI JAWA TIMUR
-                    Center(
-                      child: Column(
-                        children: [
-                          const Text(
-                            'PEMERINTAH PROVINSI JAWA TIMUR',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const Text(
-                            'DINAS SOSIAL',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                          const Text(
-                            'Jl. Gayung Kebonsari No.56, Surabaya, Jawa Timur 60235',
-                            style: TextStyle(
-                              fontSize: 9,
-                              color: Color(0xFF475569),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(height: 2, color: Colors.black),
-                          const SizedBox(height: 2),
-                          Container(height: 0.8, color: Colors.black),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // JUDUL NOTA DINAS
-                    const Center(
-                      child: Text(
-                        'NOTA DINAS / IZIN PENGGUNAAN KENDARAAN',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                    Center(
-                      child: Text(
-                        'Nomor: $regNumber',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF334155),
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // ISI SURAT KEDINASAN
-                    _buildRowText(
-                      'Kepada',
-                      'Kasubag Tata Usaha & Pengelola Kendaraan',
-                    ),
-                    _buildRowText(
-                      'Dari',
-                      loan.department.isEmpty
-                          ? 'Staf Pemohon Dinas'
-                          : loan.department,
-                    ),
-                    _buildRowText(
-                      'Tanggal Terbit',
-                      _formatDate(DateTime.now()),
-                    ),
-                    _buildRowText(
-                      'Perihal',
-                      'Izin Pemakaian Kendaraan Operasional Dinas',
-                    ),
-
-                    const SizedBox(height: 10),
-                    const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                    const SizedBox(height: 10),
-
-                    const Text(
-                      'Diberikan persetujuan pemakaian armada dinas dengan rincian data sebagai berikut:',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color.fromARGB(255, 51, 77, 85),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    _buildFieldBox(
-                      'Nama Pemohon / Pengemudi',
-                      loan.borrowerName,
-                    ),
-                    _buildFieldBox('Armada Kendaraan', loan.vehicleName),
-                    _buildFieldBox(
-                      'Jadwal Pelaksanaan Tugas',
-                      '${_formatDate(loan.startDate)} s/d ${_formatDate(loan.endDate)}',
-                    ),
-                    _buildFieldBox('Tujuan Dinas', loan.destination),
-                    if (loan.destinationAddress.isNotEmpty)
-                      _buildFieldBox(
-                        'Alamat Lokasi Tujuan',
-                        loan.destinationAddress,
-                      ),
-                    _buildFieldBox(
-                      'Status Verifikasi',
-                      'DISETUJUI / DISAHKAN OLEH KASUBAG UMUM',
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // TANDA TANGAN ELEKTRONIK / STEMPEL VALIDASI
+                    // KOP SURAT (LOGO JATIM & TEKS CENTER)
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Barcode verifikasi digital
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: const Color(0xFFCBD5E1)),
-                            borderRadius: BorderRadius.circular(6),
+                        Image.asset(
+                          'assets/images/logo_jatim.png',
+                          width: 44,
+                          height: 52,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Image.asset(
+                            'assets/images/logo_sipk.png',
+                            width: 44,
+                            height: 44,
+                            fit: BoxFit.contain,
                           ),
-                          child: const Column(
-                            children: [
-                              Icon(
-                                Icons.qr_code_2_rounded,
-                                size: 48,
-                                color: Color(0xFF1E293B),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: const [
+                              Text(
+                                'PEMERINTAH PROVINSI JAWA TIMUR',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.4,
+                                  color: Colors.black,
+                                ),
                               ),
                               Text(
-                                'Validasi OVBS',
+                                'DINAS SOSIAL',
                                 style: TextStyle(
-                                  fontSize: 8,
-                                  color: Color(0xFF64748B),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.8,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              SizedBox(height: 1),
+                              Text(
+                                'Jalan Gayung Kebonsari No.56b, Gayungan, Surabaya, Jawa Timur 60235',
+                                style: TextStyle(fontSize: 7.5, color: Color(0xFF334155)),
+                              ),
+                              Text(
+                                'Tlp./Fax (031) 8290794 – 826515 Laman dinsos.jatimprov.go.id',
+                                style: TextStyle(fontSize: 7.5, color: Color(0xFF334155)),
+                              ),
+                              Text(
+                                'Pos-el dinsosjatim56b@gmail.com',
+                                style: TextStyle(
+                                  fontSize: 7.5,
+                                  color: Color(0xFF1D4ED8),
+                                  decoration: TextDecoration.underline,
                                 ),
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(width: 44), // Penyeimbang center
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Container(height: 1.5, color: Colors.black),
+                    const SizedBox(height: 10),
 
-                        // Blok Tanda Tangan Kasubag
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                    // JUDUL NOTA DINAS
+                    const Center(
+                      child: Text(
+                        'NOTA DINAS',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // TABEL KEPALA SURAT
+                    _buildRowText('KEPADA', 'Yth. Kepala Dinas Sosial Provinsi Jawa Timur', isBoldVal: true),
+                    _buildRowText('DARI', department),
+                    _buildRowText('TANGGAL', _formatDate(loan.submittedAt)),
+                    _buildRowText('NOMOR', regNumber),
+                    _buildRowText('SIFAT', 'Terbuka'),
+                    _buildRowText('LAMPIRAN', hasUploadedFile ? '1 (satu) Berkas' : '-'),
+                    _buildRowText('PERIHAL', 'Permohonan Peminjaman Kendaraan Dinas', isBoldVal: true),
+
+                    const SizedBox(height: 8),
+                    Container(height: 1, color: Colors.black),
+                    const SizedBox(height: 10),
+
+                    // PARAGRAF NARASI
+                    Text(
+                      'Dalam rangka mendukung operasional $department pada tanggal $dateRange dalam kegiatan di Kabupaten/Kota ${loan.destination}, dan untuk keperluan $purposeClean maka diperlukan 1 unit Kendaraan Operasional (${loan.vehicleName}), sehubungan dengan hal tersebut bersama ini diajukan permohonan peminjaman kendaraan operasional yang dimaksud dengan deskripsi sebagai berikut :',
+                      style: const TextStyle(
+                        fontSize: 9.5,
+                        color: Color(0xFF1E293B),
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // TABEL DESKRIPSI PEMINJAMAN
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFCBD5E1), width: 0.8),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildTableItem('Nama Pemohon', loan.borrowerName, isBold: true),
+                          _buildTableItem('NIP / No. Identitas', loan.nip ?? '-'),
+                          _buildTableItem('Bidang / Unit Kerja', department),
+                          _buildTableItem('Unit Kendaraan', loan.vehicleName, isBold: true),
+                          _buildTableItem('Kota Tujuan', loan.destination),
+                          if (loan.destinationAddress.isNotEmpty && loan.destinationAddress != '-')
+                            _buildTableItem('Alamat Lokasi', loan.destinationAddress),
+                          _buildTableItem('Jadwal Pelaksanaan', dateRange),
+                          _buildTableItem(
+                            'Jam Operasional',
+                            '${loan.startTime ?? "08:00"} s/d ${loan.endTime ?? "16:00"} WIB',
+                          ),
+                          _buildTableItem(
+                            'Layanan Driver',
+                            loan.withDriver
+                                ? 'Dengan Driver Dinas${loan.driverName != null ? " (${loan.driverName})" : ""}'
+                                : 'Tanpa Driver (Lepas Kunci)',
+                          ),
+                          _buildTableItem('Keperluan / Agenda', purposeClean),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // KALIMAT PENUTUP
+                    const Text(
+                      'Demikian atas bantuan dan kerjasamanya, dihaturkan terima kasih.',
+                      style: TextStyle(fontSize: 9.5, color: Color(0xFF1E293B)),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // KOTAK TANDA TANGAN (SEBELAH KANAN SESUAI GAMBAR)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        width: 200,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.black, width: 0.8),
+                        ),
+                        child: Column(
                           children: [
-                            Text(
-                              'Surabaya, Kasubag Umum',
-                              style: TextStyle(fontSize: 10),
-                            ),
-                            SizedBox(height: 34), // Ruang Tanda Tangan
-                            Text(
-                              'Drs. H. PENGELOLA ASET, M.Si',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Kepala $department',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 8.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 38), // Ruang Tanda Tangan
+                                  Text(
+                                    loan.borrowerName,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 8.5,
+                                      fontWeight: FontWeight.bold,
+                                      decoration: TextDecoration.underline,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'NIP. ${loan.nip ?? "-"}',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 7.5, color: Color(0xFF334155)),
+                                  ),
+                                ],
                               ),
                             ),
-                            Text(
-                              'NIP. 19780512 200501 1 004',
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: Color(0xFF64748B),
+                            Container(height: 0.8, color: Colors.black),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(5),
+                              color: const Color(0xFFF8FAFC),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: const [
+                                  Text(
+                                    'Catatan / Disposisi Kasubag TU:',
+                                    style: TextStyle(fontSize: 7, color: Color(0xFF64748B)),
+                                  ),
+                                  SizedBox(height: 10),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
+
+                    // LAMPIRAN GAMBAR DARI USER (JIKA ADA)
+                    if (isUploadedImage) ...[
+                      const SizedBox(height: 16),
+                      Container(height: 1, color: const Color(0xFFE2E8F0)),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Lampiran Berkas yang Diunggah Pemohon:',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF24487A),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          constraints: const BoxConstraints(maxHeight: 180),
+                          width: double.infinity,
+                          color: const Color(0xFFF1F5F9),
+                          child: AppImage(
+                            source: loan.simPhotoPath!,
+                            fit: BoxFit.contain,
+                            placeholder: const Center(
+                              child: Icon(Icons.image_outlined, size: 36, color: Colors.grey),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              // TOMBOL AKSI CETAK & UNDUH DOKUMEN
+              // TOMBOL AKSI
               Row(
                 children: [
                   Expanded(
@@ -418,18 +394,13 @@ class NotaDinasDialog extends StatelessWidget {
                       icon: const Icon(Icons.download_rounded, size: 16),
                       label: const Text(
                         'Unduh PDF',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFF24487A),
                         side: const BorderSide(color: Color(0xFF24487A)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
                   ),
@@ -438,31 +409,25 @@ class NotaDinasDialog extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Mengirim dokumen ke printer kantor... Silakan serahkan cetakan ke Kasubag TU.',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Color(0xFF16A34A),
-                          ),
+                        PdfViewerDialog.show(
+                          context,
+                          docSource: loan.simPhotoPath ?? '',
+                          title: 'Dokumen Nota Dinas - ${loan.borrowerName}',
+                          subtitle: 'Pemohon: ${loan.borrowerName} • $department',
+                          fileName: 'Nota_Dinas_${loan.id}.pdf',
+                          loan: loan,
                         );
                       },
-                      icon: const Icon(Icons.print_rounded, size: 16),
+                      icon: const Icon(Icons.visibility_rounded, size: 16),
                       label: const Text(
-                        'Cetak Berkas',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        'Buka Preview PDF',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF16A34A),
+                        backgroundColor: const Color(0xFF24487A),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
                   ),
@@ -475,30 +440,31 @@ class NotaDinasDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildRowText(String label, String value) {
+  Widget _buildRowText(String label, String value, {bool isBoldVal = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 3),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 85,
+            width: 78,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 10, color: Color(0xFF475569)),
+              style: const TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
             ),
           ),
-          const Text(
-            ': ',
-            style: TextStyle(fontSize: 10, color: Color(0xFF475569)),
-          ),
+          const Text(': ', style: TextStyle(fontSize: 9, color: Colors.black)),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B),
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: isBoldVal ? FontWeight.bold : FontWeight.normal,
+                color: Colors.black,
               ),
             ),
           ),
@@ -507,30 +473,29 @@ class NotaDinasDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildFieldBox(String label, String val) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 5),
+  Widget _buildTableItem(String label, String val, {bool isBold = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 3.5, horizontal: 8),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0), width: 0.5)),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 125,
+            width: 110,
             child: Text(
-              '• $label',
-              style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+              label,
+              style: const TextStyle(fontSize: 8.5, color: Color(0xFF64748B)),
             ),
-          ),
-          const Text(
-            ': ',
-            style: TextStyle(fontSize: 10, color: Color(0xFF64748B)),
           ),
           Expanded(
             child: Text(
               val,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E293B),
+              style: TextStyle(
+                fontSize: 8.5,
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                color: Colors.black,
               ),
             ),
           ),
