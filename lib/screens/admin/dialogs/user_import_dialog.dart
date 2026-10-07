@@ -57,11 +57,27 @@ class _UserImportDialogState extends State<UserImportDialog> {
   int _importedCount = 0;
   String _defaultPassword = 'dinsos123';
   final TextEditingController _defaultPasswordCtrl = TextEditingController(text: 'dinsos123');
+  UserRole? _filterRole; // null = Semua, UserRole.admin = Hanya Admin, UserRole.user = Hanya Pegawai
 
   @override
   void dispose() {
     _defaultPasswordCtrl.dispose();
     super.dispose();
+  }
+
+  List<ParsedUserItem> _getFilteredItems() {
+    if (_parsedResult == null) return [];
+    if (_filterRole == null) return _parsedResult!.items;
+    if (_filterRole == UserRole.admin) {
+      return _parsedResult!.items
+          .where((it) => it.role == UserRole.admin || it.role == UserRole.superadmin)
+          .toList();
+    }
+    return _parsedResult!.items.where((it) => it.role == _filterRole).toList();
+  }
+
+  List<ParsedUserItem> _getFilteredValidItems() {
+    return _getFilteredItems().where((it) => it.isValid).toList();
   }
 
   Future<void> _pickFile() async {
@@ -84,18 +100,32 @@ class _UserImportDialogState extends State<UserImportDialog> {
         );
 
         // Tandai duplikasi dengan user yang sudah terdaftar di sistem
-        final existingNips = widget.existingUsers.map((u) => u.nip.trim()).toSet();
+        final cleanExistingNips = widget.existingUsers
+            .map((u) => u.nip.replaceAll(RegExp(r'\s+'), ''))
+            .toSet();
         for (var item in parseRes.items) {
-          if (item.isValid && existingNips.contains(item.nip.trim())) {
+          final cleanItemNip = item.nip.replaceAll(RegExp(r'\s+'), '');
+          if (item.isValid && cleanExistingNips.contains(cleanItemNip)) {
             item.isValid = false;
             item.validationError = 'NIP sudah terdaftar di sistem';
           }
+        }
+
+        // Tentukan filter tampilan default sesuai konteks menu
+        UserRole? initialFilter;
+        if (widget.targetRole == UserRole.admin && parseRes.adminCount > 0) {
+          initialFilter = UserRole.admin;
+        } else if (widget.targetRole == UserRole.user && parseRes.userCount > 0) {
+          initialFilter = UserRole.user;
+        } else {
+          initialFilter = null;
         }
 
         setState(() {
           _selectedFileName = fileName;
           _fileBytes = bytes;
           _parsedResult = parseRes;
+          _filterRole = initialFilter;
           _isLoadingFile = false;
         });
       } else {
@@ -125,9 +155,12 @@ class _UserImportDialogState extends State<UserImportDialog> {
       defaultPassword: newPass,
     );
 
-    final existingNips = widget.existingUsers.map((u) => u.nip.trim()).toSet();
+    final cleanExistingNips = widget.existingUsers
+        .map((u) => u.nip.replaceAll(RegExp(r'\s+'), ''))
+        .toSet();
     for (var item in parseRes.items) {
-      if (item.isValid && existingNips.contains(item.nip.trim())) {
+      final cleanItemNip = item.nip.replaceAll(RegExp(r'\s+'), '');
+      if (item.isValid && cleanExistingNips.contains(cleanItemNip)) {
         item.isValid = false;
         item.validationError = 'NIP sudah terdaftar di sistem';
       }
@@ -139,8 +172,7 @@ class _UserImportDialogState extends State<UserImportDialog> {
   }
 
   Future<void> _executeImport() async {
-    if (_parsedResult == null) return;
-    final validItems = _parsedResult!.items.where((it) => it.isValid).toList();
+    final validItems = _getFilteredValidItems();
     if (validItems.isEmpty) return;
 
     setState(() {
@@ -173,28 +205,29 @@ class _UserImportDialogState extends State<UserImportDialog> {
       Navigator.pop(context);
       widget.onSuccess?.call();
 
+      final adminCount = validItems.where((u) => u.role == UserRole.admin || u.role == UserRole.superadmin).length;
+      final userCount = validItems.where((u) => u.role == UserRole.user).length;
+      String msg = 'Berhasil mengimpor $successCount akun!';
+      if (adminCount > 0 && userCount > 0) {
+        msg = 'Berhasil mengimpor $successCount akun ($userCount Pegawai, $adminCount Admin)!';
+      } else if (adminCount > 0) {
+        msg = 'Berhasil mengimpor $adminCount akun Admin!';
+      } else {
+        msg = 'Berhasil mengimpor $userCount akun Pegawai!';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
             children: [
               const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
               const SizedBox(width: 10),
-              Builder(builder: (_) {
-                final adminCount = validItems.where((u) => u.role == UserRole.admin || u.role == UserRole.superadmin).length;
-                final userCount = validItems.where((u) => u.role == UserRole.user).length;
-                String msg = 'Berhasil mengimpor $successCount akun!';
-                if (adminCount > 0 && userCount > 0) {
-                  msg = 'Berhasil mengimpor $successCount akun ($userCount Pegawai, $adminCount Admin)!';
-                } else if (adminCount > 0) {
-                  msg = 'Berhasil mengimpor $adminCount akun Admin!';
-                } else {
-                  msg = 'Berhasil mengimpor $userCount akun Pegawai!';
-                }
-                return Text(
+              Expanded(
+                child: Text(
                   msg,
                   style: const TextStyle(fontWeight: FontWeight.bold),
-                );
-              }),
+                ),
+              ),
             ],
           ),
           backgroundColor: const Color(0xFF16A34A),
@@ -388,34 +421,45 @@ class _UserImportDialogState extends State<UserImportDialog> {
                       child: const Text('Ganti File'),
                     ),
                     const SizedBox(width: 10),
-                    ElevatedButton.icon(
-                      onPressed: (_isImporting || (_parsedResult?.validRows ?? 0) == 0)
-                          ? null
-                          : _executeImport,
-                      icon: _isImporting
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.check_circle_rounded, size: 16),
-                      label: Text(
-                        _isImporting
-                            ? 'Mengimpor ($_importedCount/${_parsedResult?.validRows ?? 0})...'
-                            : 'Impor (${_parsedResult?.validRows ?? 0}) Akun',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF16A34A),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        elevation: 0,
-                      ),
-                    ),
+                    Builder(builder: (_) {
+                      final validToImport = _getFilteredValidItems();
+                      final count = validToImport.length;
+                      String btnLabel;
+                      if (_isImporting) {
+                        btnLabel = 'Mengimpor ($_importedCount/$count)...';
+                      } else if (_filterRole == UserRole.admin) {
+                        btnLabel = 'Impor ($count) Akun Admin';
+                      } else if (_filterRole == UserRole.user) {
+                        btnLabel = 'Impor ($count) Akun Pegawai';
+                      } else {
+                        btnLabel = 'Impor Semua ($count) Akun';
+                      }
+
+                      return ElevatedButton.icon(
+                        onPressed: (_isImporting || count == 0) ? null : _executeImport,
+                        icon: _isImporting
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.check_circle_rounded, size: 16),
+                        label: Text(
+                          btnLabel,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF16A34A),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          elevation: 0,
+                        ),
+                      );
+                    }),
                   ],
                 ],
               ),
@@ -532,7 +576,7 @@ class _UserImportDialogState extends State<UserImportDialog> {
 
   Widget _buildPreviewContentView(bool isDark) {
     final result = _parsedResult!;
-    final items = result.items;
+    final displayItems = _getFilteredItems();
 
     return Column(
       children: [
@@ -558,51 +602,58 @@ class _UserImportDialogState extends State<UserImportDialog> {
                     color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    _selectedFileName ?? '',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
-                    ),
-                  ),
-                  const Spacer(),
-                  // Badges Ringkasan
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF16A34A).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.3)),
-                    ),
+                  Expanded(
                     child: Text(
-                      '${result.validRows} Siap Diimpor',
-                      style: const TextStyle(
-                        fontSize: 11,
+                      _selectedFileName ?? '',
+                      style: TextStyle(
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF16A34A),
+                        color: isDark ? Colors.white : const Color(0xFF1E293B),
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (result.invalidRows > 0) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDC2626).withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFDC2626).withValues(alpha: 0.3)),
-                      ),
-                      child: Text(
-                        '${result.invalidRows} Tidak Valid / Duplikat',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFDC2626),
+                  const SizedBox(width: 8),
+                  // Badges Ringkasan
+                  Wrap(
+                    spacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF16A34A).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          '${result.validRows} Siap Diimpor',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF16A34A),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                      if (result.invalidRows > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDC2626).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFDC2626).withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            '${result.invalidRows} Tidak Valid',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFDC2626),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -660,6 +711,45 @@ class _UserImportDialogState extends State<UserImportDialog> {
                   ],
                 ],
               ),
+              const SizedBox(height: 10),
+              // Filter Role Bar
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    'Filter Tampilan:',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  _buildFilterTab(
+                    label: 'Semua (${result.validRows})',
+                    isSelected: _filterRole == null,
+                    color: const Color(0xFF64748B),
+                    onTap: () => setState(() => _filterRole = null),
+                    isDark: isDark,
+                  ),
+                  _buildFilterTab(
+                    label: 'Admin (${result.adminCount})',
+                    isSelected: _filterRole == UserRole.admin,
+                    color: const Color(0xFF2563EB),
+                    onTap: () => setState(() => _filterRole = UserRole.admin),
+                    isDark: isDark,
+                  ),
+                  _buildFilterTab(
+                    label: 'Pegawai (${result.userCount})',
+                    isSelected: _filterRole == UserRole.user,
+                    color: const Color(0xFF16A34A),
+                    onTap: () => setState(() => _filterRole = UserRole.user),
+                    isDark: isDark,
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -675,10 +765,14 @@ class _UserImportDialogState extends State<UserImportDialog> {
 
         // ─── TABEL PRATINJAU DATA ──────────────────────────────────
         Expanded(
-          child: items.isEmpty
+          child: displayItems.isEmpty
               ? Center(
                   child: Text(
-                    'Tidak ada baris data pengguna yang ditemukan di dalam file.',
+                    _filterRole == UserRole.admin
+                        ? 'Tidak ada akun dengan role Admin di dalam file.'
+                        : _filterRole == UserRole.user
+                            ? 'Tidak ada akun dengan role Pegawai di dalam file.'
+                            : 'Tidak ada baris data pengguna yang ditemukan di dalam file.',
                     style: TextStyle(
                       color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                     ),
@@ -686,13 +780,13 @@ class _UserImportDialogState extends State<UserImportDialog> {
                 )
               : ListView.separated(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: items.length,
+                  itemCount: displayItems.length,
                   separatorBuilder: (context, index) => Divider(
                     height: 1,
                     color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
                   ),
                   itemBuilder: (context, index) {
-                    final it = items[index];
+                    final it = displayItems[index];
                     return _buildUserPreviewRow(it, index + 1, isDark);
                   },
                 ),
@@ -755,6 +849,45 @@ class _UserImportDialogState extends State<UserImportDialog> {
             child: const Text('Terapkan'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterTab({
+    required String label,
+    required bool isSelected,
+    required Color color,
+    required VoidCallback onTap,
+    required bool isDark,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: isDark ? 0.35 : 0.15)
+              : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected
+                ? color
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected
+                ? (isDark ? Colors.white : color)
+                : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B)),
+          ),
+        ),
       ),
     );
   }
@@ -889,39 +1022,97 @@ class _UserImportDialogState extends State<UserImportDialog> {
             ),
           ),
 
-          // Role Badge
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-            decoration: BoxDecoration(
-              color: item.role == UserRole.admin
-                  ? const Color(0xFF2563EB).withValues(alpha: 0.15)
-                  : item.role == UserRole.superadmin
-                      ? const Color(0xFF7C3AED).withValues(alpha: 0.15)
-                      : const Color(0xFF16A34A).withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: item.role == UserRole.admin
-                    ? const Color(0xFF2563EB).withValues(alpha: 0.4)
-                    : item.role == UserRole.superadmin
-                        ? const Color(0xFF7C3AED).withValues(alpha: 0.4)
-                        : const Color(0xFF16A34A).withValues(alpha: 0.4),
+          // Role Badge (dapat diklik untuk mengganti role jika diperlukan)
+          PopupMenuButton<UserRole>(
+            tooltip: 'Klik untuk ubah role',
+            onSelected: (newRole) {
+              setState(() {
+                item.role = newRole;
+              });
+            },
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: UserRole.user,
+                child: Row(
+                  children: [
+                    Icon(Icons.person_outline, size: 16, color: Color(0xFF16A34A)),
+                    SizedBox(width: 8),
+                    Text('Pegawai', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
               ),
-            ),
-            child: Text(
-              item.role == UserRole.admin
-                  ? 'Admin'
-                  : item.role == UserRole.superadmin
-                      ? 'Superadmin'
-                      : 'Pegawai',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
+              const PopupMenuItem(
+                value: UserRole.admin,
+                child: Row(
+                  children: [
+                    Icon(Icons.admin_panel_settings_outlined, size: 16, color: Color(0xFF2563EB)),
+                    SizedBox(width: 8),
+                    Text('Admin', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ),
+              if (widget.isSuperAdmin)
+                const PopupMenuItem(
+                  value: UserRole.superadmin,
+                  child: Row(
+                    children: [
+                      Icon(Icons.shield_outlined, size: 16, color: Color(0xFF7C3AED)),
+                      SizedBox(width: 8),
+                      Text('Superadmin', style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                ),
+            ],
+            child: Container(
+              margin: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              decoration: BoxDecoration(
                 color: item.role == UserRole.admin
-                    ? const Color(0xFF2563EB)
+                    ? const Color(0xFF2563EB).withValues(alpha: 0.15)
                     : item.role == UserRole.superadmin
-                        ? const Color(0xFF7C3AED)
-                        : const Color(0xFF16A34A),
+                        ? const Color(0xFF7C3AED).withValues(alpha: 0.15)
+                        : const Color(0xFF16A34A).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: item.role == UserRole.admin
+                      ? const Color(0xFF2563EB).withValues(alpha: 0.4)
+                      : item.role == UserRole.superadmin
+                          ? const Color(0xFF7C3AED).withValues(alpha: 0.4)
+                          : const Color(0xFF16A34A).withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.role == UserRole.admin
+                        ? 'Admin'
+                        : item.role == UserRole.superadmin
+                            ? 'Superadmin'
+                            : 'Pegawai',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: item.role == UserRole.admin
+                          ? const Color(0xFF2563EB)
+                          : item.role == UserRole.superadmin
+                              ? const Color(0xFF7C3AED)
+                              : const Color(0xFF16A34A),
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  Icon(
+                    Icons.arrow_drop_down,
+                    size: 13,
+                    color: item.role == UserRole.admin
+                        ? const Color(0xFF2563EB)
+                        : item.role == UserRole.superadmin
+                            ? const Color(0xFF7C3AED)
+                            : const Color(0xFF16A34A),
+                  ),
+                ],
               ),
             ),
           ),

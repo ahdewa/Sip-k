@@ -56,6 +56,18 @@ class UserImportResult {
     required this.validRows,
     required this.invalidRows,
   });
+
+  int get adminCount =>
+      items.where((it) => it.isValid && (it.role == UserRole.admin || it.role == UserRole.superadmin)).length;
+
+  int get onlyAdminCount =>
+      items.where((it) => it.isValid && it.role == UserRole.admin).length;
+
+  int get superAdminCount =>
+      items.where((it) => it.isValid && it.role == UserRole.superadmin).length;
+
+  int get userCount =>
+      items.where((it) => it.isValid && it.role == UserRole.user).length;
 }
 
 class UserImportService {
@@ -147,21 +159,36 @@ class UserImportService {
       String rawEmail = emailCol != -1 && emailCol < row.length ? row[emailCol].trim() : '';
       String rawPass = passCol != -1 && passCol < row.length ? row[passCol].trim() : '';
       String rawDept = deptCol != -1 && deptCol < row.length ? row[deptCol].trim() : '';
-      String rawRole = roleCol != -1 && roleCol < row.length ? row[roleCol].trim().toLowerCase() : '';
+      String rawRole = roleCol != -1 && roleCol < row.length ? row[roleCol].trim() : '';
 
-      // Tentukan Role (Bisa membaca 'admin', 'user', 'pegawai', 'superadmin', dll)
+      // Tentukan Role (Bisa membaca kode angka 1, 2, 3 maupun teks 'admin', 'user', 'pegawai', dll)
       UserRole assignedRole = defaultRole;
-      if (rawRole.contains('super')) {
-        assignedRole = UserRole.superadmin;
-      } else if (rawRole.contains('admin')) {
-        assignedRole = UserRole.admin;
-      } else if (rawRole.contains('user') ||
-          rawRole.contains('pegawai') ||
-          rawRole.contains('staf') ||
-          rawRole.contains('staff') ||
-          rawRole.contains('peminjam') ||
-          rawRole.contains('karyawan')) {
-        assignedRole = UserRole.user;
+      UserRole? detected;
+
+      // 1. Cek nilai di kolom role utama
+      if (rawRole.isNotEmpty) {
+        detected = parseRoleValue(rawRole);
+      }
+
+      // 2. Cek kolom persis di sebelahnya (misal kolom D berisi angka kode 1/2/3, kolom E berisi teks ADMIN/USER)
+      if (detected == null && roleCol != -1 && (roleCol + 1) < row.length) {
+        detected = parseRoleValue(row[roleCol + 1].trim());
+      }
+
+      // 3. Fallback: periksa seluruh sel di baris ini selain kolom NIP, Nama, Email, Password, atau Bidang
+      if (detected == null) {
+        for (int c = 0; c < row.length; c++) {
+          if (c == nipCol || c == nameCol || c == emailCol || c == passCol || c == deptCol) continue;
+          final cellRole = parseRoleValue(row[c].trim());
+          if (cellRole != null) {
+            detected = cellRole;
+            break;
+          }
+        }
+      }
+
+      if (detected != null) {
+        assignedRole = detected;
       }
 
       // Fallback email jika kolom email tidak ada / kosong
@@ -235,6 +262,63 @@ class UserImportService {
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9]'), '')
         .trim();
+  }
+
+  /// Parsing nilai role dari string atau kode numerik Excel:
+  /// - 3 / 3.0 / 'super' / 'superadmin' -> superadmin
+  /// - 2 / 2.0 / 'admin' / 'administrator' -> admin
+  /// - 1 / 1.0 / 0 / 'user' / 'pegawai' / 'staf' dll -> user
+  static UserRole? parseRoleValue(String? raw) {
+    if (raw == null) return null;
+    final s = raw.trim().toLowerCase();
+    if (s.isEmpty) return null;
+
+    // 1. Super Admin
+    if (s == '3' ||
+        s == '3.0' ||
+        s.startsWith('3 ') ||
+        s.startsWith('3.') ||
+        s.contains('super')) {
+      return UserRole.superadmin;
+    }
+
+    // 2. Admin
+    if (s == '2' ||
+        s == '2.0' ||
+        s.startsWith('2 ') ||
+        s.startsWith('2.') ||
+        s == 'admin' ||
+        (s.contains('admin') && !s.contains('super'))) {
+      return UserRole.admin;
+    }
+
+    // 3. User / Pegawai
+    if (s == '1' ||
+        s == '1.0' ||
+        s == '0' ||
+        s == '0.0' ||
+        s.startsWith('1 ') ||
+        s.startsWith('1.') ||
+        s.startsWith('0 ') ||
+        s.startsWith('0.') ||
+        s.contains('user') ||
+        s.contains('pegawai') ||
+        s.contains('staf') ||
+        s.contains('staff') ||
+        s.contains('peminjam') ||
+        s.contains('karyawan') ||
+        s.contains('member') ||
+        s.contains('pemohon') ||
+        s.contains('biasa')) {
+      return UserRole.user;
+    }
+
+    // Fallback: regex pencocokan digit tunggal
+    if (RegExp(r'\b3\b').hasMatch(s)) return UserRole.superadmin;
+    if (RegExp(r'\b2\b').hasMatch(s)) return UserRole.admin;
+    if (RegExp(r'\b1\b').hasMatch(s)) return UserRole.user;
+
+    return null;
   }
 
   static List<List<String>> _parseCsv(Uint8List bytes) {
