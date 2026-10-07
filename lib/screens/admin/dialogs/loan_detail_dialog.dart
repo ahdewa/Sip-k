@@ -3,6 +3,7 @@ import 'package:simodis_jatim/models/loan_model.dart';
 import 'package:simodis_jatim/services/file_saver_helper.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
 import 'package:simodis_jatim/widgets/app_image.dart';
+import 'package:simodis_jatim/widgets/pdf_viewer_dialog.dart';
 
 class LoanDetailDialog {
   static void _showSimPhotoViewer(
@@ -13,6 +14,17 @@ class LoanDetailDialog {
     final isDarkViewer = ThemeService.isDarkMode;
     final isPdfDoc = photoSource.startsWith('data:application/pdf') ||
         photoSource.toLowerCase().endsWith('.pdf');
+
+    if (isPdfDoc) {
+      PdfViewerDialog.show(
+        context,
+        docSource: photoSource,
+        title: 'Berkas Nota Dinas Pemohon',
+        subtitle: 'Pemohon: $borrowerName',
+        fileName: 'Nota_Dinas_${borrowerName.replaceAll(' ', '_')}.pdf',
+      );
+      return;
+    }
 
     showDialog(
       context: context,
@@ -919,13 +931,20 @@ class LoanDetailDialog {
                             ),
                             const SizedBox(height: 10),
                             if (isPdfDoc) ...[
-                              // Dedicated PDF Card with direct Open in New Tab
+                              // Dedicated PDF Card with direct in-app interactive preview
                               InkWell(
-                                onTap: () => openOrDownloadDocument(docSource, pdfFilename),
+                                onTap: () => PdfViewerDialog.show(
+                                  context,
+                                  docSource: docSource,
+                                  title: 'Dokumen Nota Dinas - ${loan.borrowerName}',
+                                  subtitle: 'Pemohon: ${loan.borrowerName} • ${loan.department}',
+                                  fileName: pdfFilename,
+                                  loan: loan,
+                                ),
                                 borderRadius: BorderRadius.circular(10),
                                 child: Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                                   decoration: BoxDecoration(
                                     color: isDark ? const Color(0xFF1E293B) : const Color(0xFFFEF2F2),
                                     borderRadius: BorderRadius.circular(10),
@@ -962,7 +981,7 @@ class LoanDetailDialog {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Surat usulan / permohonan dinas terlampir dalam format PDF digital.\nKlik tombol di bawah untuk membuka dan membaca dokumen.',
+                                        'Surat usulan / permohonan dinas terlampir dalam format PDF digital.\nKlik tombol di bawah untuk membaca langsung dokumen di aplikasi.',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontSize: 11,
@@ -970,32 +989,61 @@ class LoanDetailDialog {
                                         ),
                                       ),
                                       const SizedBox(height: 14),
-                                      ElevatedButton.icon(
-                                        onPressed: () async {
-                                          final path = await openOrDownloadDocument(docSource, pdfFilename);
-                                          if (ctx.mounted) {
-                                            ScaffoldMessenger.of(ctx).showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  path != null
-                                                      ? 'Dokumen tersimpan di: Download/OVBS/$pdfFilename'
-                                                      : 'Dokumen berhasil diunduh.',
-                                                ),
-                                                behavior: SnackBarBehavior.floating,
-                                                backgroundColor: const Color(0xFF24487A),
+                                      Wrap(
+                                        alignment: WrapAlignment.center,
+                                        spacing: 10,
+                                        runSpacing: 8,
+                                        children: [
+                                          ElevatedButton.icon(
+                                            onPressed: () => PdfViewerDialog.show(
+                                              context,
+                                              docSource: docSource,
+                                              title: 'Dokumen Nota Dinas - ${loan.borrowerName}',
+                                              subtitle: 'Pemohon: ${loan.borrowerName} • ${loan.department}',
+                                              fileName: pdfFilename,
+                                              loan: loan,
+                                            ),
+                                            icon: const Icon(Icons.visibility_rounded, size: 16),
+                                            label: const Text('Lihat Dokumen PDF Langsung'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFFDC2626),
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                              elevation: 0,
+                                            ),
+                                          ),
+                                          OutlinedButton.icon(
+                                            onPressed: () async {
+                                              final path = await openOrDownloadDocument(docSource, pdfFilename);
+                                              if (ctx.mounted) {
+                                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                      path != null
+                                                          ? 'Dokumen tersimpan di: Download/OVBS/$pdfFilename'
+                                                          : 'Dokumen berhasil diunduh.',
+                                                    ),
+                                                    behavior: SnackBarBehavior.floating,
+                                                    backgroundColor: const Color(0xFF24487A),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                            icon: const Icon(Icons.download_rounded, size: 15),
+                                            label: const Text('Unduh PDF'),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: isDark ? Colors.white : const Color(0xFF991B1B),
+                                              side: BorderSide(
+                                                color: isDark
+                                                    ? const Color(0xFFDC2626).withValues(alpha: 0.5)
+                                                    : const Color(0xFFFECACA),
                                               ),
-                                            );
-                                          }
-                                        },
-                                        icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                                        label: const Text('Buka Dokumen PDF di Tab Baru'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFFDC2626),
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          elevation: 0,
-                                        ),
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -1073,7 +1121,14 @@ class LoanDetailDialog {
                                 InkWell(
                                   onTap: () {
                                     if (isPdfDoc) {
-                                      openOrDownloadDocument(docSource, pdfFilename);
+                                      PdfViewerDialog.show(
+                                        context,
+                                        docSource: docSource,
+                                        title: 'Dokumen Nota Dinas - ',
+                                        subtitle: 'Pemohon:  • ',
+                                        fileName: pdfFilename,
+                                        loan: loan,
+                                      );
                                     } else {
                                       _showSimPhotoViewer(context, docSource, loan.borrowerName);
                                     }
@@ -1082,13 +1137,13 @@ class LoanDetailDialog {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
-                                        isPdfDoc ? Icons.open_in_new_rounded : Icons.zoom_in_rounded,
+                                        isPdfDoc ? Icons.visibility_rounded : Icons.zoom_in_rounded,
                                         size: 15,
                                         color: isPdfDoc ? const Color(0xFFDC2626) : const Color(0xFF2563EB),
                                       ),
                                       const SizedBox(width: 3),
                                       Text(
-                                        isPdfDoc ? 'Buka Dokumen PDF' : 'Buka Ukuran Penuh',
+                                        isPdfDoc ? 'Lihat Dokumen PDF' : 'Buka Ukuran Penuh',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,

@@ -7,6 +7,7 @@ import 'package:simodis_jatim/services/fcm_service.dart';
 import 'package:simodis_jatim/services/file_saver_helper.dart';
 import 'package:simodis_jatim/widgets/app_image.dart';
 import 'package:simodis_jatim/widgets/nota_dinas_dialog.dart';
+import 'package:simodis_jatim/widgets/pdf_viewer_dialog.dart';
 
 class LoanHistoryScreen extends StatefulWidget {
   final List<LoanRequest> loans;
@@ -905,31 +906,56 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen>
                                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                                 ),
                                 const SizedBox(height: 10),
-                                ElevatedButton.icon(
-                                  onPressed: () async {
-                                    final path = await openOrDownloadDocument(docSource, filename);
-                                    if (ctx.mounted) {
-                                      ScaffoldMessenger.of(ctx).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            path != null
-                                                ? 'Dokumen tersimpan di: Download/OVBS/$filename'
-                                                : 'Dokumen berhasil diunduh.',
-                                          ),
-                                          behavior: SnackBarBehavior.floating,
-                                          backgroundColor: const Color(0xFF24487A),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  icon: const Icon(Icons.open_in_new_rounded, size: 15),
-                                  label: const Text('Buka Dokumen PDF'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFDC2626),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  ),
+                                Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 8,
+                                  runSpacing: 6,
+                                  children: [
+                                    ElevatedButton.icon(
+                                      onPressed: () => PdfViewerDialog.show(
+                                        context,
+                                        docSource: docSource,
+                                        title: 'Berkas Lampiran Pengajuan',
+                                        subtitle: 'Pemohon: ${loan.borrowerName} • ${loan.department}',
+                                        fileName: filename,
+                                        loan: loan,
+                                      ),
+                                      icon: const Icon(Icons.visibility_rounded, size: 15),
+                                      label: const Text('Lihat Dokumen'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFDC2626),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                    ),
+                                    OutlinedButton.icon(
+                                      onPressed: () async {
+                                        final path = await openOrDownloadDocument(docSource, filename);
+                                        if (ctx.mounted) {
+                                          ScaffoldMessenger.of(ctx).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                path != null
+                                                    ? 'Dokumen tersimpan di: Download/OVBS/$filename'
+                                                    : 'Dokumen berhasil diunduh.',
+                                              ),
+                                              behavior: SnackBarBehavior.floating,
+                                              backgroundColor: const Color(0xFF24487A),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      icon: const Icon(Icons.download_rounded, size: 14),
+                                      label: const Text('Unduh'),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFFDC2626),
+                                        side: const BorderSide(color: Color(0xFFFECACA)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
