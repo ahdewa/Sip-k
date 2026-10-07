@@ -241,18 +241,27 @@ class _UserImportDialogState extends State<UserImportDialog> {
   Widget build(BuildContext context) {
     final isDark = ThemeService.isDarkMode;
     final roleName = widget.targetRole == UserRole.admin ? 'Admin' : 'Pegawai';
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final isMobile = screenWidth < 680;
 
     return Dialog(
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8 : 20,
+        vertical: isMobile ? 12 : 24,
+      ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 820, maxHeight: 680),
+        constraints: BoxConstraints(
+          maxWidth: 820,
+          maxHeight: isMobile ? (screenHeight * 0.94) : 680,
+        ),
         child: Column(
           children: [
             // ─── HEADER DIALOG ──────────────────────────────────────
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
+              padding: EdgeInsets.fromLTRB(isMobile ? 14 : 20, 14, isMobile ? 8 : 16, 14),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
@@ -273,10 +282,10 @@ class _UserImportDialogState extends State<UserImportDialog> {
                     child: Icon(
                       Icons.upload_file_rounded,
                       color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
-                      size: 22,
+                      size: isMobile ? 20 : 22,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,18 +293,21 @@ class _UserImportDialogState extends State<UserImportDialog> {
                         Text(
                           'Import Akun $roleName (Excel / CSV)',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: isMobile ? 14.5 : 16,
                             fontWeight: FontWeight.w800,
                             color: isDark ? Colors.white : const Color(0xFF1E293B),
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           'Membaca kolom NIP, Nama Lengkap, Email, Password, dan Bidang secara otomatis.',
                           style: TextStyle(
-                            fontSize: 11.5,
+                            fontSize: isMobile ? 10.5 : 11.5,
                             color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
                           ),
+                          maxLines: isMobile ? 2 : 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -313,159 +325,206 @@ class _UserImportDialogState extends State<UserImportDialog> {
             Expanded(
               child: _selectedFileName == null
                   ? _buildEmptyUploadView(isDark)
-                  : _buildPreviewContentView(isDark),
+                  : _buildPreviewContentView(isDark, isMobile),
             ),
 
             // ─── FOOTER ACTION ──────────────────────────────────────
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-                border: Border(
-                  top: BorderSide(
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  // Tombol download template di kiri
-                  PopupMenuButton<String>(
-                    tooltip: 'Unduh contoh format file',
-                    onSelected: (val) {
-                      if (val == 'csv') {
-                        UserImportService.downloadTemplateCsv();
-                      } else {
-                        UserImportService.downloadTemplateExcel();
-                      }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Mengunduh template $val...'),
-                          duration: const Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                    itemBuilder: (ctx) => [
-                      const PopupMenuItem(
-                        value: 'excel',
-                        child: Row(
-                          children: [
-                            Icon(Icons.table_chart_rounded, color: Color(0xFF16A34A), size: 18),
-                            SizedBox(width: 8),
-                            Text('Unduh Template Excel (.xlsx)'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'csv',
-                        child: Row(
-                          children: [
-                            Icon(Icons.description_outlined, color: Color(0xFF2563EB), size: 18),
-                            SizedBox(width: 8),
-                            Text('Unduh Template CSV (.csv)'),
-                          ],
+            _buildFooter(isDark, isMobile),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooter(bool isDark, bool isMobile) {
+    final validToImport = _getFilteredValidItems();
+    final count = validToImport.length;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(isMobile ? 12 : 20, 10, isMobile ? 12 : 20, isMobile ? 12 : 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+        border: Border(
+          top: BorderSide(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          ),
+        ),
+      ),
+      child: isMobile
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: _buildTemplateDownloadButton(isDark, isMobile: true)),
+                    if (_selectedFileName != null) ...[
+                      const SizedBox(width: 8),
+                      OutlinedButton.icon(
+                        onPressed: _isImporting ? null : _pickFile,
+                        icon: const Icon(Icons.file_upload_outlined, size: 14),
+                        label: const Text('Ganti File', style: TextStyle(fontSize: 11)),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         ),
                       ),
                     ],
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.download_rounded,
-                            size: 16,
-                            color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Unduh Contoh Template',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_drop_down,
-                            size: 16,
-                            color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  if (_selectedFileName != null) ...[
-                    OutlinedButton(
-                      onPressed: _isImporting ? null : _pickFile,
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
-                        ),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      ),
-                      child: const Text('Ganti File'),
-                    ),
-                    const SizedBox(width: 10),
-                    Builder(builder: (_) {
-                      final validToImport = _getFilteredValidItems();
-                      final count = validToImport.length;
-                      String btnLabel;
-                      if (_isImporting) {
-                        btnLabel = 'Mengimpor ($_importedCount/$count)...';
-                      } else if (_filterRole == UserRole.admin) {
-                        btnLabel = 'Impor ($count) Akun Admin';
-                      } else if (_filterRole == UserRole.user) {
-                        btnLabel = 'Impor ($count) Akun Pegawai';
-                      } else {
-                        btnLabel = 'Impor Semua ($count) Akun';
-                      }
-
-                      return ElevatedButton.icon(
-                        onPressed: (_isImporting || count == 0) ? null : _executeImport,
-                        icon: _isImporting
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.check_circle_rounded, size: 16),
-                        label: Text(
-                          btnLabel,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF16A34A),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          elevation: 0,
-                        ),
-                      );
-                    }),
                   ],
+                ),
+                if (_selectedFileName != null) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 40,
+                    child: _buildImportButton(count, isDark),
+                  ),
                 ],
+              ],
+            )
+          : Row(
+              children: [
+                _buildTemplateDownloadButton(isDark, isMobile: false),
+                const Spacer(),
+                if (_selectedFileName != null) ...[
+                  OutlinedButton(
+                    onPressed: _isImporting ? null : _pickFile,
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                        color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                    child: const Text('Ganti File'),
+                  ),
+                  const SizedBox(width: 10),
+                  _buildImportButton(count, isDark),
+                ],
+              ],
+            ),
+    );
+  }
+
+  Widget _buildTemplateDownloadButton(bool isDark, {bool isMobile = false}) {
+    return PopupMenuButton<String>(
+      tooltip: 'Unduh contoh format file',
+      onSelected: (val) {
+        if (val == 'csv') {
+          UserImportService.downloadTemplateCsv();
+        } else {
+          UserImportService.downloadTemplateExcel();
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Mengunduh template $val...'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      },
+      itemBuilder: (ctx) => [
+        const PopupMenuItem(
+          value: 'excel',
+          child: Row(
+            children: [
+              Icon(Icons.table_chart_rounded, color: Color(0xFF16A34A), size: 18),
+              SizedBox(width: 8),
+              Text('Unduh Template Excel (.xlsx)'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'csv',
+          child: Row(
+            children: [
+              Icon(Icons.description_outlined, color: Color(0xFF2563EB), size: 18),
+              SizedBox(width: 8),
+              Text('Unduh Template CSV (.csv)'),
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.download_rounded,
+              size: 15,
+              color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB),
+            ),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                isMobile ? 'Unduh Template' : 'Unduh Contoh Template',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
+            ),
+            const SizedBox(width: 2),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 16,
+              color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildImportButton(int count, bool isDark) {
+    String btnLabel;
+    if (_isImporting) {
+      btnLabel = 'Mengimpor ($_importedCount/$count)...';
+    } else if (_filterRole == UserRole.admin) {
+      btnLabel = 'Impor ($count) Akun Admin';
+    } else if (_filterRole == UserRole.user) {
+      btnLabel = 'Impor ($count) Akun Pegawai';
+    } else {
+      btnLabel = 'Impor Semua ($count) Akun';
+    }
+
+    return ElevatedButton.icon(
+      onPressed: (_isImporting || count == 0) ? null : _executeImport,
+      icon: _isImporting
+          ? const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Icons.check_circle_rounded, size: 16),
+      label: Text(
+        btnLabel,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        overflow: TextOverflow.ellipsis,
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF16A34A),
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        elevation: 0,
       ),
     );
   }
@@ -574,7 +633,7 @@ class _UserImportDialogState extends State<UserImportDialog> {
     );
   }
 
-  Widget _buildPreviewContentView(bool isDark) {
+  Widget _buildPreviewContentView(bool isDark, bool isMobile) {
     final result = _parsedResult!;
     final displayItems = _getFilteredItems();
 
@@ -582,7 +641,7 @@ class _UserImportDialogState extends State<UserImportDialog> {
       children: [
         // ─── BARIS INFORMASI PEMETAAN FILE ─────────────────────────
         Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          padding: EdgeInsets.fromLTRB(isMobile ? 12 : 16, 10, isMobile ? 12 : 16, 10),
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
             border: Border(
@@ -606,7 +665,7 @@ class _UserImportDialogState extends State<UserImportDialog> {
                     child: Text(
                       _selectedFileName ?? '',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: isMobile ? 12.5 : 13,
                         fontWeight: FontWeight.bold,
                         color: isDark ? Colors.white : const Color(0xFF1E293B),
                       ),
@@ -657,61 +716,22 @@ class _UserImportDialogState extends State<UserImportDialog> {
                 ],
               ),
               const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Expanded(
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [
-                        _buildHeaderMappingChip('NIP', result.mappedColumns['NIP'], isDark),
-                        _buildHeaderMappingChip('Nama Lengkap', result.mappedColumns['Nama Lengkap'], isDark),
-                        _buildHeaderMappingChip('Email', result.mappedColumns['Email'], isDark),
-                        _buildHeaderMappingChip('Password', result.mappedColumns['Password'], isDark),
-                        _buildHeaderMappingChip('Bidang', result.mappedColumns['Bidang'], isDark),
-                        _buildHeaderMappingChip('Role', result.mappedColumns['Role'], isDark),
-                      ],
-                    ),
-                  ),
-                  if (result.mappedColumns['Password'] == null) ...[
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: () => _showEditDefaultPasswordDialog(isDark),
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.key_rounded, size: 12, color: Color(0xFFFBBF24)),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Pass Default: $_defaultPassword',
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white70 : const Color(0xFF475569),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.edit_outlined, size: 11),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                  _buildHeaderMappingChip('NIP', result.mappedColumns['NIP'], isDark),
+                  _buildHeaderMappingChip('Nama Lengkap', result.mappedColumns['Nama Lengkap'], isDark),
+                  _buildHeaderMappingChip('Email', result.mappedColumns['Email'], isDark),
+                  _buildHeaderMappingChip('Password', result.mappedColumns['Password'], isDark),
+                  _buildHeaderMappingChip('Bidang', result.mappedColumns['Bidang'], isDark),
+                  _buildHeaderMappingChip('Role', result.mappedColumns['Role'], isDark),
+                  if (result.mappedColumns['Password'] == null)
+                    _buildDefaultPasswordChip(isDark),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               // Filter Role Bar
               Wrap(
                 spacing: 6,
@@ -779,19 +799,55 @@ class _UserImportDialogState extends State<UserImportDialog> {
                   ),
                 )
               : ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: EdgeInsets.symmetric(vertical: isMobile ? 6 : 8),
                   itemCount: displayItems.length,
-                  separatorBuilder: (context, index) => Divider(
-                    height: 1,
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                  ),
+                  separatorBuilder: (context, index) => isMobile
+                      ? const SizedBox(height: 2)
+                      : Divider(
+                          height: 1,
+                          color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                        ),
                   itemBuilder: (context, index) {
                     final it = displayItems[index];
-                    return _buildUserPreviewRow(it, index + 1, isDark);
+                    return _buildUserPreviewRow(it, index + 1, isDark, isMobile);
                   },
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDefaultPasswordChip(bool isDark) {
+    return InkWell(
+      onTap: () => _showEditDefaultPasswordDialog(isDark),
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.key_rounded, size: 11, color: Color(0xFFFBBF24)),
+            const SizedBox(width: 4),
+            Text(
+              'Pass Default: $_defaultPassword',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white70 : const Color(0xFF475569),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.edit_outlined, size: 10),
+          ],
+        ),
+      ),
     );
   }
 
@@ -921,7 +977,11 @@ class _UserImportDialogState extends State<UserImportDialog> {
     );
   }
 
-  Widget _buildUserPreviewRow(ParsedUserItem item, int index, bool isDark) {
+  Widget _buildUserPreviewRow(ParsedUserItem item, int index, bool isDark, bool isMobile) {
+    if (isMobile) {
+      return _buildMobileUserPreviewCard(item, index, isDark);
+    }
+
     return Container(
       color: !item.isValid
           ? (isDark ? const Color(0xFF3B1518).withValues(alpha: 0.4) : const Color(0xFFFEF2F2))
@@ -1022,100 +1082,8 @@ class _UserImportDialogState extends State<UserImportDialog> {
             ),
           ),
 
-          // Role Badge (dapat diklik untuk mengganti role jika diperlukan)
-          PopupMenuButton<UserRole>(
-            tooltip: 'Klik untuk ubah role',
-            onSelected: (newRole) {
-              setState(() {
-                item.role = newRole;
-              });
-            },
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            itemBuilder: (ctx) => [
-              const PopupMenuItem(
-                value: UserRole.user,
-                child: Row(
-                  children: [
-                    Icon(Icons.person_outline, size: 16, color: Color(0xFF16A34A)),
-                    SizedBox(width: 8),
-                    Text('Pegawai', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: UserRole.admin,
-                child: Row(
-                  children: [
-                    Icon(Icons.admin_panel_settings_outlined, size: 16, color: Color(0xFF2563EB)),
-                    SizedBox(width: 8),
-                    Text('Admin', style: TextStyle(fontSize: 12)),
-                  ],
-                ),
-              ),
-              if (widget.isSuperAdmin)
-                const PopupMenuItem(
-                  value: UserRole.superadmin,
-                  child: Row(
-                    children: [
-                      Icon(Icons.shield_outlined, size: 16, color: Color(0xFF7C3AED)),
-                      SizedBox(width: 8),
-                      Text('Superadmin', style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ),
-            ],
-            child: Container(
-              margin: const EdgeInsets.only(right: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: item.role == UserRole.admin
-                    ? const Color(0xFF2563EB).withValues(alpha: 0.15)
-                    : item.role == UserRole.superadmin
-                        ? const Color(0xFF7C3AED).withValues(alpha: 0.15)
-                        : const Color(0xFF16A34A).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: item.role == UserRole.admin
-                      ? const Color(0xFF2563EB).withValues(alpha: 0.4)
-                      : item.role == UserRole.superadmin
-                          ? const Color(0xFF7C3AED).withValues(alpha: 0.4)
-                          : const Color(0xFF16A34A).withValues(alpha: 0.4),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    item.role == UserRole.admin
-                        ? 'Admin'
-                        : item.role == UserRole.superadmin
-                            ? 'Superadmin'
-                            : 'Pegawai',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: item.role == UserRole.admin
-                          ? const Color(0xFF2563EB)
-                          : item.role == UserRole.superadmin
-                              ? const Color(0xFF7C3AED)
-                              : const Color(0xFF16A34A),
-                    ),
-                  ),
-                  const SizedBox(width: 3),
-                  Icon(
-                    Icons.arrow_drop_down,
-                    size: 13,
-                    color: item.role == UserRole.admin
-                        ? const Color(0xFF2563EB)
-                        : item.role == UserRole.superadmin
-                            ? const Color(0xFF7C3AED)
-                            : const Color(0xFF16A34A),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // Role Badge
+          _buildRoleBadge(item, isDark),
 
           // Password & Keterangan Status
           SizedBox(
@@ -1153,6 +1121,272 @@ class _UserImportDialogState extends State<UserImportDialog> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMobileUserPreviewCard(ParsedUserItem item, int index, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: !item.isValid
+            ? (isDark ? const Color(0xFF3B1518).withValues(alpha: 0.3) : const Color(0xFFFEF2F2))
+            : (isDark ? const Color(0xFF1E293B) : Colors.white),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: !item.isValid
+              ? const Color(0xFFDC2626).withValues(alpha: 0.4)
+              : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          width: !item.isValid ? 1.2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Baris 1: Status Icon + Nama Lengkap + Role Dropdown
+          Row(
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: item.isValid
+                      ? (isDark ? const Color(0xFF14532D) : const Color(0xFFDCFCE7))
+                      : (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2)),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  item.isValid ? Icons.check : Icons.close,
+                  size: 13,
+                  color: item.isValid ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  item.name.isNotEmpty ? item.name : '(Nama kosong)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: item.isValid
+                        ? (isDark ? Colors.white : const Color(0xFF1E293B))
+                        : const Color(0xFFDC2626),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              _buildRoleBadge(item, isDark),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Baris 2: NIP (lebar penuh / horizontal, tidak vertikal) & Password/Status
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
+                  item.nip.isNotEmpty ? 'NIP: ${item.nip}' : '(NIP kosong)',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              if (!item.isValid)
+                Flexible(
+                  child: Text(
+                    item.validationError ?? 'Data tidak valid',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFDC2626),
+                    ),
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                      width: 0.6,
+                    ),
+                  ),
+                  child: Text(
+                    'Pass: ${item.password}',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          // Baris 3: Email dan Bidang
+          if (item.email.isNotEmpty || item.department.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 12,
+              runSpacing: 4,
+              children: [
+                if (item.email.isNotEmpty)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.email_outlined, size: 11, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                      const SizedBox(width: 4),
+                      Text(
+                        item.email,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                        ),
+                      ),
+                    ],
+                  ),
+                if (item.department.isNotEmpty)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.business_rounded, size: 11, color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8)),
+                      const SizedBox(width: 4),
+                      Text(
+                        item.department,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoleBadge(ParsedUserItem item, bool isDark) {
+    return PopupMenuButton<UserRole>(
+      tooltip: 'Klik untuk ubah role',
+      onSelected: (newRole) {
+        setState(() {
+          item.role = newRole;
+        });
+      },
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      itemBuilder: (ctx) => [
+        const PopupMenuItem(
+          value: UserRole.user,
+          child: Row(
+            children: [
+              Icon(Icons.person_outline, size: 16, color: Color(0xFF16A34A)),
+              SizedBox(width: 8),
+              Text('Pegawai', style: TextStyle(fontSize: 12)),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: UserRole.admin,
+          child: Row(
+            children: [
+              Icon(Icons.admin_panel_settings_outlined, size: 16, color: Color(0xFF2563EB)),
+              SizedBox(width: 8),
+              Text('Admin', style: TextStyle(fontSize: 12)),
+            ],
+          ),
+        ),
+        if (widget.isSuperAdmin)
+          const PopupMenuItem(
+            value: UserRole.superadmin,
+            child: Row(
+              children: [
+                Icon(Icons.shield_outlined, size: 16, color: Color(0xFF7C3AED)),
+                SizedBox(width: 8),
+                Text('Superadmin', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+      ],
+      child: Container(
+        margin: const EdgeInsets.only(right: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: item.role == UserRole.admin
+              ? const Color(0xFF2563EB).withValues(alpha: 0.15)
+              : item.role == UserRole.superadmin
+                  ? const Color(0xFF7C3AED).withValues(alpha: 0.15)
+                  : const Color(0xFF16A34A).withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: item.role == UserRole.admin
+                ? const Color(0xFF2563EB).withValues(alpha: 0.4)
+                : item.role == UserRole.superadmin
+                    ? const Color(0xFF7C3AED).withValues(alpha: 0.4)
+                    : const Color(0xFF16A34A).withValues(alpha: 0.4),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              item.role == UserRole.admin
+                  ? 'Admin'
+                  : item.role == UserRole.superadmin
+                      ? 'Superadmin'
+                      : 'Pegawai',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: item.role == UserRole.admin
+                    ? const Color(0xFF2563EB)
+                    : item.role == UserRole.superadmin
+                        ? const Color(0xFF7C3AED)
+                        : const Color(0xFF16A34A),
+              ),
+            ),
+            const SizedBox(width: 3),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 13,
+              color: item.role == UserRole.admin
+                  ? const Color(0xFF2563EB)
+                  : item.role == UserRole.superadmin
+                      ? const Color(0xFF7C3AED)
+                      : const Color(0xFF16A34A),
+            ),
+          ],
+        ),
       ),
     );
   }
