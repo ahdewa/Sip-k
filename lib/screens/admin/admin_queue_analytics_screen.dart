@@ -658,7 +658,7 @@ class _AdminQueueAnalyticsScreenState extends State<AdminQueueAnalyticsScreen> {
                       'Grafik Tren Permohonan (${switch (_selectedPeriod) {
                         QueueChartPeriod.harian => '7 Hari Terakhir',
                         QueueChartPeriod.mingguan => 'Bulan Ini / Minggu',
-                        QueueChartPeriod.bulanan => 'Tahun 2026 / Bulan',
+                        QueueChartPeriod.bulanan => 'Tahun ${DateTime.now().year} / Bulan',
                       }})',
                       style: TextStyle(
                         fontSize: 13,

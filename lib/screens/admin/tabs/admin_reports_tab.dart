@@ -24,13 +24,55 @@ class AdminReportsTab extends StatefulWidget {
 class _AdminReportsTabState extends State<AdminReportsTab> {
   bool get isDark => ThemeService.isDarkMode;
 
-  String _selectedPeriod = 'Bulan Ini (September 2026)';
+  static const List<String> _bulanIndo = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
+
+  static List<String> get availablePeriods {
+    final now = DateTime.now();
+    final currentMonthName = _bulanIndo[now.month - 1];
+    final currentYear = now.year;
+
+    // Bulan lalu
+    final lastMonthDate = DateTime(now.year, now.month - 1, 1);
+    final lastMonthName = _bulanIndo[lastMonthDate.month - 1];
+    final lastMonthYear = lastMonthDate.year;
+
+    // Triwulan (Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Sep, Q4: Okt-Des)
+    final quarter = ((now.month - 1) ~/ 3) + 1;
+
+    return [
+      'Bulan Ini ($currentMonthName $currentYear)',
+      'Bulan Lalu ($lastMonthName $lastMonthYear)',
+      'Triwulan $quarter ($currentYear)',
+      'Tahun $currentYear Penuh',
+    ];
+  }
+
+  late String _selectedPeriod;
   String _searchQuery = '';
   String _selectedStatusFilter = 'Semua';
   bool _isExportingPdf = false;
   bool _isExportingExcel = false;
 
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPeriod = availablePeriods.first;
+  }
 
   @override
   void dispose() {
@@ -657,49 +699,53 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedPeriod,
-                            isExpanded: true,
-                            dropdownColor: isDark
-                                ? const Color(0xFF1E293B)
-                                : Colors.white,
-                            icon: Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              color: isDark
-                                  ? const Color(0xFF60A5FA)
-                                  : const Color(0xFF24487A),
-                              size: 18,
-                            ),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF1E3A5F),
-                            ),
-                            items: [
-                              'Bulan Ini (September 2026)',
-                              'Bulan Lalu (Agustus 2026)',
-                              'Triwulan 3 (2026)',
-                              'Tahun 2026 Penuh',
-                            ]
-                                .map(
-                                  (p) => DropdownMenuItem(
-                                    value: p,
-                                    child: Text(
-                                      p,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white
-                                            : const Color(0xFF1E3A5F),
+                          child: Builder(
+                            builder: (context) {
+                              final periods = availablePeriods;
+                              final currentSelected = periods.contains(_selectedPeriod)
+                                  ? _selectedPeriod
+                                  : periods.first;
+
+                              return DropdownButton<String>(
+                                value: currentSelected,
+                                isExpanded: true,
+                                dropdownColor: isDark
+                                    ? const Color(0xFF1E293B)
+                                    : Colors.white,
+                                icon: Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  color: isDark
+                                      ? const Color(0xFF60A5FA)
+                                      : const Color(0xFF24487A),
+                                  size: 18,
+                                ),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1E3A5F),
+                                ),
+                                items: periods
+                                    .map(
+                                      (p) => DropdownMenuItem(
+                                        value: p,
+                                        child: Text(
+                                          p,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: isDark
+                                                ? Colors.white
+                                                : const Color(0xFF1E3A5F),
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (v) {
-                              if (v != null) setState(() => _selectedPeriod = v);
+                                    )
+                                    .toList(),
+                                onChanged: (v) {
+                                  if (v != null) setState(() => _selectedPeriod = v);
+                                },
+                              );
                             },
                           ),
                         ),

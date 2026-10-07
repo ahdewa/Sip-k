@@ -580,12 +580,61 @@ class _AdminPerformanceTabState extends State<AdminPerformanceTab> {
     );
   }
 
+  static const List<String> _namaHariIndo = [
+    'Senin',
+    'Selasa',
+    'Rabu',
+    'Kamis',
+    'Jumat',
+    'Sabtu',
+    'Minggu',
+  ];
+
+  static const List<String> _namaBulanIndo = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
+
+  String _getDynamicPeriodText() {
+    final now = DateTime.now();
+    final dayName = _namaHariIndo[now.weekday - 1];
+    final monthName = _namaBulanIndo[now.month - 1];
+    final year = now.year;
+
+    switch (_selectedPeriod) {
+      case PerformancePeriod.harian:
+        return 'Hari Ini: $dayName, ${now.day} $monthName $year';
+
+      case PerformancePeriod.mingguan:
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        final weekOfMonth = ((now.day - 1) ~/ 7) + 1;
+
+        String weekRangeStr;
+        if (startOfWeek.month == endOfWeek.month) {
+          weekRangeStr = '${startOfWeek.day} - ${endOfWeek.day} ${_namaBulanIndo[endOfWeek.month - 1]} ${endOfWeek.year}';
+        } else {
+          weekRangeStr = '${startOfWeek.day} ${_namaBulanIndo[startOfWeek.month - 1]} - ${endOfWeek.day} ${_namaBulanIndo[endOfWeek.month - 1]} ${endOfWeek.year}';
+        }
+        return 'Minggu Ini: $weekRangeStr (Minggu ke-$weekOfMonth)';
+
+      case PerformancePeriod.bulanan:
+        return 'Bulan Ini: $monthName $year (Tahun Anggaran $year)';
+    }
+  }
+
   Widget _buildPeriodSelectorCard(bool isDark, bool isMobile) {
-    final periodText = switch (_selectedPeriod) {
-      PerformancePeriod.harian => 'Hari Ini: Jumat, 11 September 2026',
-      PerformancePeriod.mingguan => 'Minggu Ini: 7 - 13 September 2026 (Minggu ke-2)',
-      PerformancePeriod.bulanan => 'Bulan Ini: September 2026 (Tahun Anggaran 2026)',
-    };
+    final periodText = _getDynamicPeriodText();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
