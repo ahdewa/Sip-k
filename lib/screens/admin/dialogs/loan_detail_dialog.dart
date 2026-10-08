@@ -755,7 +755,7 @@ class LoanDetailDialog {
                       if (currentWithDriver) ...[
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
-                          value: kAvailableDrivers.any((d) => d['name'] == currentDriver)
+                          initialValue: kAvailableDrivers.any((d) => d['name'] == currentDriver)
                               ? currentDriver
                               : kAvailableDrivers.first['name'],
                           isExpanded: true,

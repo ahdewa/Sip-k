@@ -2155,9 +2155,8 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
           ),
         ),
         const SizedBox(height: 6),
-        // ignore: deprecated_member_use
         DropdownButtonFormField<String>(
-          value: safeValue,
+          initialValue: safeValue,
           isExpanded: true,
           dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           icon: Icon(
@@ -2250,9 +2249,8 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
           ),
         ),
         const SizedBox(height: 6),
-        // ignore: deprecated_member_use
         DropdownButtonFormField<T>(
-          value: safeValue,
+          initialValue: safeValue,
           isExpanded: true,
           dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           icon: isLoading
