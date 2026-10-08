@@ -8,6 +8,42 @@ import 'package:simodis_jatim/models/vehicle_model.dart';
 import 'package:simodis_jatim/services/api_config.dart';
 
 class ApiService {
+  static final http.Client _client = http.Client();
+
+  // ─── IN-MEMORY CACHE FOR HIGH CONCURRENCY OPTIMIZATION ─────────
+  static List<Vehicle>? _cachedVehicles;
+  static DateTime? _cachedVehiclesTime;
+  static const Duration _vehiclesTtl = Duration(seconds: 30);
+
+  static List<AppUser>? _cachedUsers;
+  static DateTime? _cachedUsersTime;
+  static const Duration _usersTtl = Duration(seconds: 60);
+
+  static UserProfile? _cachedProfile;
+  static DateTime? _cachedProfileTime;
+  static const Duration _profileTtl = Duration(minutes: 3);
+
+  static void invalidateVehiclesCache() {
+    _cachedVehicles = null;
+    _cachedVehiclesTime = null;
+  }
+
+  static void invalidateUsersCache() {
+    _cachedUsers = null;
+    _cachedUsersTime = null;
+  }
+
+  static void invalidateProfileCache() {
+    _cachedProfile = null;
+    _cachedProfileTime = null;
+  }
+
+  static void clearAllCache() {
+    invalidateVehiclesCache();
+    invalidateUsersCache();
+    invalidateProfileCache();
+  }
+
   static Map<String, String> get _headers {
     final headers = {
       'Content-Type': 'application/json',
@@ -35,7 +71,7 @@ class ApiService {
       };
       if (fcmToken != null) payload['fcm_token'] = fcmToken;
 
-      final res = await http.post(
+      final res = await _client.post(
         url,
         headers: _headers,
         body: jsonEncode(payload),
@@ -76,6 +112,9 @@ class ApiService {
           ApiConfig.currentUserId = u['id'].toString();
           ApiConfig.currentUserProfile = userProfile;
 
+          // Invalidate cache on new login
+          clearAllCache();
+
           return {
             'user': appUser,
             'profile': userProfile,
@@ -92,16 +131,24 @@ class ApiService {
 
   // ─── VEHICLES ────────────────────────────────────────────────
 
-  static Future<List<Vehicle>?> fetchVehicles() async {
+  static Future<List<Vehicle>?> fetchVehicles({bool forceRefresh = false}) async {
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        _cachedVehicles != null &&
+        _cachedVehiclesTime != null &&
+        now.difference(_cachedVehiclesTime!) < _vehiclesTtl) {
+      return _cachedVehicles;
+    }
+
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/vehicles');
-      final res = await http.get(url, headers: _headers);
+      final res = await _client.get(url, headers: _headers);
 
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
         if (body['status'] == 'success') {
           final list = body['data'] as List;
-          return list.map((item) {
+          final result = list.map((item) {
             final typeStr = (item['type'] ?? 'mobil').toString();
             final statusStr = (item['status'] ?? 'tersedia').toString();
 
@@ -137,12 +184,16 @@ class ApiService {
               engineNumber: item['engine_number']?.toString() ?? item['nomor_mesin']?.toString(),
             );
           }).toList();
+
+          _cachedVehicles = result;
+          _cachedVehiclesTime = now;
+          return result;
         }
       }
     } catch (e) {
       debugPrint('ApiService.fetchVehicles error: $e');
     }
-    return null;
+    return _cachedVehicles;
   }
 
   static Future<bool> createVehicle(Vehicle vehicle) async {
@@ -171,12 +222,16 @@ class ApiService {
         'image_url': vehicle.imageUrl,
       };
 
-      final res = await http.post(
+      final res = await _client.post(
         url,
         headers: _headers,
         body: jsonEncode(payload),
       );
-      return res.statusCode == 200 || res.statusCode == 201;
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        invalidateVehiclesCache();
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('ApiService.createVehicle error: $e');
       return false;
@@ -209,12 +264,16 @@ class ApiService {
         'image_url': vehicle.imageUrl,
       };
 
-      final res = await http.put(
+      final res = await _client.put(
         url,
         headers: _headers,
         body: jsonEncode(payload),
       );
-      return res.statusCode == 200;
+      if (res.statusCode == 200) {
+        invalidateVehiclesCache();
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('ApiService.updateVehicle error: $e');
       return false;
@@ -224,8 +283,12 @@ class ApiService {
   static Future<bool> deleteVehicle(String id) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/vehicles/$id');
-      final res = await http.delete(url, headers: _headers);
-      return res.statusCode == 200;
+      final res = await _client.delete(url, headers: _headers);
+      if (res.statusCode == 200) {
+        invalidateVehiclesCache();
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('ApiService.deleteVehicle error: $e');
       return false;
@@ -256,7 +319,7 @@ class ApiService {
   static Future<List<LoanRequest>?> fetchLoans() async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/loans');
-      final res = await http.get(url, headers: _headers);
+      final res = await _client.get(url, headers: _headers);
 
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
@@ -328,7 +391,7 @@ class ApiService {
   static Future<bool> createLoan(LoanRequest loan) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/loans');
-      final res = await http.post(
+      final res = await _client.post(
         url,
         headers: _headers,
         body: jsonEncode({
@@ -351,7 +414,11 @@ class ApiService {
           'driver_name': loan.driverName,
         }),
       );
-      return res.statusCode == 200 || res.statusCode == 201;
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        invalidateVehiclesCache();
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('ApiService.createLoan error: $e');
       return false;
@@ -371,12 +438,16 @@ class ApiService {
       if (driverName != null) payload['driver_name'] = driverName;
       if (withDriver != null) payload['with_driver'] = withDriver;
 
-      final res = await http.post(
+      final res = await _client.post(
         url,
         headers: _headers,
         body: jsonEncode(payload),
       );
-      return res.statusCode == 200;
+      if (res.statusCode == 200) {
+        invalidateVehiclesCache();
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('ApiService.approveLoan error: $e');
       return false;
@@ -395,7 +466,7 @@ class ApiService {
         'driver_name': withDriver ? driverName : null,
       };
 
-      final res = await http.put(
+      final res = await _client.put(
         url,
         headers: _headers,
         body: jsonEncode(payload),
@@ -413,12 +484,16 @@ class ApiService {
       final payload = <String, dynamic>{};
       if (reason != null) payload['rejection_reason'] = reason;
 
-      final res = await http.post(
+      final res = await _client.post(
         url,
         headers: _headers,
         body: jsonEncode(payload),
       );
-      return res.statusCode == 200;
+      if (res.statusCode == 200) {
+        invalidateVehiclesCache();
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('ApiService.rejectLoan error: $e');
       return false;
@@ -428,8 +503,12 @@ class ApiService {
   static Future<bool> startLoan(String loanId) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/loans/$loanId/start');
-      final res = await http.post(url, headers: _headers);
-      return res.statusCode == 200;
+      final res = await _client.post(url, headers: _headers);
+      if (res.statusCode == 200) {
+        invalidateVehiclesCache();
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('ApiService.startLoan error: $e');
       return false;
@@ -449,12 +528,16 @@ class ApiService {
       if (returnFuel != null) payload['return_fuel'] = returnFuel;
       if (returnNotes != null) payload['return_notes'] = returnNotes;
 
-      final res = await http.post(
+      final res = await _client.post(
         url,
         headers: _headers,
         body: jsonEncode(payload),
       );
-      return res.statusCode == 200;
+      if (res.statusCode == 200) {
+        invalidateVehiclesCache();
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('ApiService.completeLoan error: $e');
       return false;
@@ -464,8 +547,12 @@ class ApiService {
   static Future<bool> cancelLoan(String loanId) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/loans/$loanId/cancel');
-      final res = await http.post(url, headers: _headers);
-      return res.statusCode == 200;
+      final res = await _client.post(url, headers: _headers);
+      if (res.statusCode == 200) {
+        invalidateVehiclesCache();
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('ApiService.cancelLoan error: $e');
       return false;
@@ -486,7 +573,7 @@ class ApiService {
 
       final uri = Uri.parse('${ApiConfig.baseUrl}/notifications')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      final res = await http.get(uri, headers: _headers);
+      final res = await _client.get(uri, headers: _headers);
 
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
@@ -547,7 +634,7 @@ class ApiService {
   static Future<bool> markNotificationRead(String id) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/notifications/$id/read');
-      final res = await http.post(url, headers: _headers);
+      final res = await _client.post(url, headers: _headers);
       return res.statusCode == 200;
     } catch (_) {
       return false;
@@ -563,7 +650,7 @@ class ApiService {
 
       final uri = Uri.parse('${ApiConfig.baseUrl}/notifications/read-all')
           .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
-      final res = await http.post(uri, headers: _headers);
+      final res = await _client.post(uri, headers: _headers);
       return res.statusCode == 200;
     } catch (_) {
       return false;
@@ -572,16 +659,24 @@ class ApiService {
 
   // ─── USERS ───────────────────────────────────────────────────
 
-  static Future<List<AppUser>?> fetchUsers() async {
+  static Future<List<AppUser>?> fetchUsers({bool forceRefresh = false}) async {
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        _cachedUsers != null &&
+        _cachedUsersTime != null &&
+        now.difference(_cachedUsersTime!) < _usersTtl) {
+      return _cachedUsers;
+    }
+
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/users');
-      final res = await http.get(url, headers: _headers);
+      final res = await _client.get(url, headers: _headers);
 
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
         if (body['status'] == 'success') {
           final list = body['data'] as List;
-          return list.map((item) {
+          final result = list.map((item) {
             final roleStr = (item['role'] ?? 'pegawai').toString();
             UserRole uRole;
             if (roleStr == 'superadmin') {
@@ -603,12 +698,16 @@ class ApiService {
               isActive: true,
             );
           }).toList();
+
+          _cachedUsers = result;
+          _cachedUsersTime = now;
+          return result;
         }
       }
     } catch (e) {
       debugPrint('ApiService.fetchUsers error: $e');
     }
-    return null;
+    return _cachedUsers;
   }
 
   static Future<bool> createUser(AppUser user, {String? password}) async {
@@ -632,12 +731,16 @@ class ApiService {
         payload['password'] = password;
       }
 
-      final res = await http.post(
+      final res = await _client.post(
         url,
         headers: _headers,
         body: jsonEncode(payload),
       );
-      return res.statusCode == 200 || res.statusCode == 201;
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        invalidateUsersCache();
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('ApiService.createUser error: $e');
       return false;
@@ -662,12 +765,16 @@ class ApiService {
         'role': roleStr,
       };
 
-      final res = await http.put(
+      final res = await _client.put(
         url,
         headers: _headers,
         body: jsonEncode(payload),
       );
-      return res.statusCode == 200;
+      if (res.statusCode == 200) {
+        invalidateUsersCache();
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('ApiService.updateUser error: $e');
       return false;
@@ -677,8 +784,12 @@ class ApiService {
   static Future<bool> deleteUser(String id) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/users/$id');
-      final res = await http.delete(url, headers: _headers);
-      return res.statusCode == 200;
+      final res = await _client.delete(url, headers: _headers);
+      if (res.statusCode == 200) {
+        invalidateUsersCache();
+        return true;
+      }
+      return false;
     } catch (e) {
       debugPrint('ApiService.deleteUser error: $e');
       return false;
@@ -699,7 +810,7 @@ class ApiService {
         'profile_image_url': profile.profileImageUrl,
       };
 
-      final res = await http.put(
+      final res = await _client.put(
         url,
         headers: _headers,
         body: jsonEncode(payload),
@@ -707,6 +818,8 @@ class ApiService {
 
       if (res.statusCode == 200) {
         ApiConfig.currentUserProfile = profile;
+        invalidateProfileCache();
+        invalidateUsersCache();
         return true;
       }
     } catch (e) {
@@ -715,11 +828,19 @@ class ApiService {
     return false;
   }
 
-  static Future<UserProfile?> fetchCurrentProfile() async {
+  static Future<UserProfile?> fetchCurrentProfile({bool forceRefresh = false}) async {
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        _cachedProfile != null &&
+        _cachedProfileTime != null &&
+        now.difference(_cachedProfileTime!) < _profileTtl) {
+      return _cachedProfile;
+    }
+
     try {
       final id = ApiConfig.currentUserId ?? '1';
       final url = Uri.parse('${ApiConfig.baseUrl}/users/$id');
-      final res = await http.get(url, headers: _headers);
+      final res = await _client.get(url, headers: _headers);
 
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
@@ -735,13 +856,15 @@ class ApiService {
             profileImageUrl: u['profile_image_url'],
           );
           ApiConfig.currentUserProfile = profile;
+          _cachedProfile = profile;
+          _cachedProfileTime = now;
           return profile;
         }
       }
     } catch (e) {
       debugPrint('ApiService.fetchCurrentProfile error: $e');
     }
-    return null;
+    return _cachedProfile;
   }
 
   static Future<bool> updateFcmToken(String fcmToken) async {
@@ -752,7 +875,7 @@ class ApiService {
       if (userId != null) {
         payload['user_id'] = userId;
       }
-      final res = await http.post(
+      final res = await _client.post(
         url,
         headers: _headers,
         body: jsonEncode(payload),
@@ -769,7 +892,7 @@ class ApiService {
   static Future<List<Map<String, String>>?> fetchNews() async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/news');
-      final res = await http.get(url, headers: _headers);
+      final res = await _client.get(url, headers: _headers);
 
       if (res.statusCode == 200) {
         String cleanBody = res.body;

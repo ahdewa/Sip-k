@@ -49,7 +49,9 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen>
       initialIndex: widget.initialTabIndex.clamp(0, 5),
     );
     _fetchLoansFromApi();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+    // Polling setiap 30 detik untuk meringankan beban server saat banyak user online.
+    // Update instan tetap ditangani otomatis lewat FCM push notification & pull to refresh.
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) _fetchLoansFromApi();
     });
     FcmService.onMessageReceived = (message) {

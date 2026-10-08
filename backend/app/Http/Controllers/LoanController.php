@@ -8,6 +8,7 @@ use App\Models\AppNotification;
 use App\Models\User;
 use App\Services\FirebaseService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class LoanController extends Controller
@@ -193,6 +194,7 @@ class LoanController extends Controller
         $vehicle = Vehicle::find($loan->vehicle_id);
         if ($vehicle) {
             $vehicle->update(['status' => 'digunakan']);
+            Cache::forget('vehicles_list_all');
         }
 
         // Cari user pemohon jika user_id kosong
@@ -331,6 +333,7 @@ class LoanController extends Controller
         $vehicle = Vehicle::find($loan->vehicle_id);
         if ($vehicle) {
             $vehicle->update(['status' => 'digunakan']);
+            Cache::forget('vehicles_list_all');
         }
 
         return response()->json([
@@ -361,6 +364,7 @@ class LoanController extends Controller
         $vehicle = Vehicle::find($loan->vehicle_id);
         if ($vehicle) {
             $vehicle->update(['status' => 'tersedia']);
+            Cache::forget('vehicles_list_all');
         }
 
         // Cari user pemohon jika user_id kosong
@@ -424,6 +428,7 @@ class LoanController extends Controller
         $vehicle = Vehicle::find($loan->vehicle_id);
         if ($vehicle && $vehicle->status === 'digunakan') {
             $vehicle->update(['status' => 'tersedia']);
+            Cache::forget('vehicles_list_all');
         }
 
         return response()->json([

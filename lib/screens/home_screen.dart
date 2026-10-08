@@ -36,7 +36,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isLoadingDashboard = true;
   int _currentIndex = 0;
   Vehicle? _selectedUnitForForm;
@@ -51,18 +51,15 @@ class _HomeScreenState extends State<HomeScreen> {
   );
 
   Timer? _pollTimer;
+  bool _isPollingActiveData = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loans.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
     _loadDataFromApi();
-    // Polling berkala setiap 8 detik agar status persetujuan / penolakan admin langsung muncul real-time
-    _pollTimer = Timer.periodic(const Duration(seconds: 8), (_) {
-      if (mounted) {
-        _loadDataFromApi();
-      }
-    });
+    _startPeriodicPolling();
 
     if (widget.showLoading) {
       Future.delayed(const Duration(milliseconds: 700), () {
@@ -77,17 +74,46 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _startPeriodicPolling() {
+    _pollTimer?.cancel();
+    // Interval 25 detik untuk data dinamis (loans & notifikasi).
+    // Mengurangi 70%+ beban request server saat banyak user online.
+    _pollTimer = Timer.periodic(const Duration(seconds: 25), (_) {
+      if (mounted) {
+        _pollActiveData();
+      }
+    });
+  }
+
+  void _stopPeriodicPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // Hentikan polling sepenuhnya saat aplikasi di background / HP terkunci
+      _stopPeriodicPolling();
+    } else if (state == AppLifecycleState.resumed) {
+      // Segera sinkronkan data aktif saat user kembali ke aplikasi di foreground
+      _pollActiveData();
+      _startPeriodicPolling();
+    }
+  }
+
   @override
   void dispose() {
-    _pollTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _stopPeriodicPolling();
     super.dispose();
   }
 
   void _onTabChanged(int index) {
     setState(() => _currentIndex = index);
     if (index == 3) {
-      // Refresh data seketika saat user membuka tab Notifikasi
-      _loadDataFromApi();
+      // Refresh notifikasi seketika saat user membuka tab Notifikasi
+      _pollActiveData();
     }
   }
 
@@ -105,23 +131,29 @@ class _HomeScreenState extends State<HomeScreen> {
     return true;
   }
 
-  Future<void> _loadDataFromApi() async {
+  /// Polling berkala yang HANYA mengambil data yang dinamis (loans & notifikasi).
+  /// Mencegah request kendaraan, users, dan profil berulang-ulang yang membebani server MySQL.
+  Future<void> _pollActiveData() async {
+    if (_isPollingActiveData || !mounted) return;
+    _isPollingActiveData = true;
     try {
-      final vList = await ApiService.fetchVehicles();
-      if (vList != null && vList.isNotEmpty && mounted) {
-        if (!_areVehiclesEqual(_vehicles, vList)) {
-          setState(() => _vehicles = vList);
-        }
-      }
-      final lList = await ApiService.fetchLoans();
-      if (lList != null && lList.isNotEmpty && mounted) {
+      final uid = ApiConfig.currentUserId ?? (widget.role == 'user' ? '4' : null);
+      final results = await Future.wait([
+        ApiService.fetchLoans(),
+        ApiService.fetchNotifications(userId: uid, role: widget.role),
+      ]);
+
+      if (!mounted) return;
+
+      final lList = results[0] as List<LoanRequest>?;
+      if (lList != null && lList.isNotEmpty) {
         lList.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
         setState(() => _loans = lList);
       }
       _autoCompleteExpiredLoans();
-      final uid = ApiConfig.currentUserId ?? (widget.role == 'user' ? '4' : null);
-      final nList = await ApiService.fetchNotifications(userId: uid, role: widget.role);
-      if (nList != null && mounted) {
+
+      final nList = results[1] as List<AppNotification>?;
+      if (nList != null) {
         setState(() {
           if (widget.role == 'admin' || widget.role == 'superadmin') {
             _adminNotifications = nList.where((n) => n.isForAdmin).toList();
@@ -130,23 +162,74 @@ class _HomeScreenState extends State<HomeScreen> {
             _syncUserLoanStatusNotifications();
           }
         });
-      } else if (mounted) {
+      } else if (widget.role == 'user') {
         setState(() {
-          if (widget.role == 'user') {
+          _syncUserLoanStatusNotifications();
+        });
+      }
+    } catch (_) {
+    } finally {
+      _isPollingActiveData = false;
+    }
+  }
+
+  /// Memuat semua data awal secara PARALEL dengan Future.wait.
+  Future<void> _loadDataFromApi({bool forceRefresh = false}) async {
+    try {
+      final uid = ApiConfig.currentUserId ?? (widget.role == 'user' ? '4' : null);
+      final results = await Future.wait([
+        ApiService.fetchVehicles(forceRefresh: forceRefresh),
+        ApiService.fetchLoans(),
+        ApiService.fetchNotifications(userId: uid, role: widget.role),
+        ApiService.fetchUsers(forceRefresh: forceRefresh),
+        ApiService.fetchCurrentProfile(forceRefresh: forceRefresh),
+      ]);
+
+      if (!mounted) return;
+
+      final vList = results[0] as List<Vehicle>?;
+      if (vList != null && vList.isNotEmpty) {
+        if (!_areVehiclesEqual(_vehicles, vList)) {
+          setState(() => _vehicles = vList);
+        }
+      }
+
+      final lList = results[1] as List<LoanRequest>?;
+      if (lList != null && lList.isNotEmpty) {
+        lList.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+        setState(() => _loans = lList);
+      }
+      _autoCompleteExpiredLoans();
+
+      final nList = results[2] as List<AppNotification>?;
+      if (nList != null) {
+        setState(() {
+          if (widget.role == 'admin' || widget.role == 'superadmin') {
+            _adminNotifications = nList.where((n) => n.isForAdmin).toList();
+          } else {
+            _notifications = nList.where((n) => n.isForPegawai).toList();
             _syncUserLoanStatusNotifications();
           }
         });
+      } else if (widget.role == 'user') {
+        setState(() {
+          _syncUserLoanStatusNotifications();
+        });
       }
-      final uList = await ApiService.fetchUsers();
-      if (uList != null && uList.isNotEmpty && mounted) {
+
+      final uList = results[3] as List<AppUser>?;
+      if (uList != null && uList.isNotEmpty) {
         setState(() => _appUsers = uList);
       }
-      final prof = await ApiService.fetchCurrentProfile();
-      if (prof != null && mounted) {
+
+      final prof = results[4] as UserProfile?;
+      if (prof != null) {
         setState(() => _currentUserProfile = prof);
       }
     } catch (_) {}
   }
+
+  Future<void> _handleRefresh() => _loadDataFromApi(forceRefresh: true);
 
   /// Fitur Otomatis Selesai 23:59:
   /// Jika waktu saat ini sudah melewati pukul 23:59 WIB pada tanggal akhir penugasan,
@@ -1029,7 +1112,7 @@ class _HomeScreenState extends State<HomeScreen> {
       UserDashboardScreen(
         userName: _currentUserProfile.name,
         vehicles: _vehicles,
-        onRefresh: _loadDataFromApi,
+        onRefresh: _handleRefresh,
         onNavigateTab: _onTabChanged,
         onSelectVehicle: (v) {
           setState(() {
@@ -1040,7 +1123,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       CatalogScreen(
         vehicles: _vehicles,
-        onRefresh: _loadDataFromApi,
+        onRefresh: _handleRefresh,
         onSelectVehicle: (v) {
           setState(() {
             _selectedUnitForForm = v;
@@ -1058,7 +1141,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       NotificationScreen(
         notifications: _notifications,
-        onRefresh: () => _loadDataFromApi(),
+        onRefresh: () => _handleRefresh(),
         onClearAll: () async {
           setState(() {
             for (var n in _notifications) {
@@ -1184,7 +1267,7 @@ class _HomeScreenState extends State<HomeScreen> {
           await ApiService.deleteVehicle(id);
         },
         notifications: _adminNotifications,
-        onRefresh: _loadDataFromApi,
+        onRefresh: _handleRefresh,
         onLogout: () {
           HomeScreen.resetPermissionSession();
           Navigator.pushReplacement(

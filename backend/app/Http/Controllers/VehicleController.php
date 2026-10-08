@@ -4,11 +4,25 @@ namespace App\Http\Controllers;
 
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class VehicleController extends Controller
 {
     public function index(Request $request)
     {
+        $hasFilters = $request->filled('type') || $request->filled('status') || $request->filled('search');
+
+        if (!$hasFilters) {
+            $vehicles = Cache::remember('vehicles_list_all', 60, function () {
+                return Vehicle::orderBy('name')->get();
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $vehicles,
+            ]);
+        }
+
         $query = Vehicle::query();
 
         if ($request->filled('type')) {
@@ -66,6 +80,7 @@ class VehicleController extends Controller
         ]);
 
         $vehicle = Vehicle::create($validated);
+        Cache::forget('vehicles_list_all');
 
         return response()->json([
             'status' => 'success',
@@ -96,6 +111,7 @@ class VehicleController extends Controller
         ]);
 
         $vehicle->update($validated);
+        Cache::forget('vehicles_list_all');
 
         return response()->json([
             'status' => 'success',
@@ -108,6 +124,7 @@ class VehicleController extends Controller
     {
         $vehicle = Vehicle::findOrFail($id);
         $vehicle->delete();
+        Cache::forget('vehicles_list_all');
 
         return response()->json([
             'status' => 'success',
