@@ -504,11 +504,39 @@ class PdfViewerDialog extends StatefulWidget {
   /// Resolve raw bytes PDF jika user mengunggah PDF asli
   static Future<Uint8List?> tryResolveUploadedPdfBytes(String docSource) async {
     try {
-      if (docSource.startsWith('data:application/pdf')) {
+      if (docSource.contains('base64,')) {
+        final commaIdx = docSource.indexOf('base64,');
+        final rawData = docSource.substring(commaIdx + 7).trim();
+        final bytes = base64Decode(rawData);
+        if (bytes.length > 4 &&
+            bytes[0] == 0x25 &&
+            bytes[1] == 0x50 &&
+            bytes[2] == 0x44 &&
+            bytes[3] == 0x46) {
+          return bytes;
+        }
+      } else if (docSource.startsWith('data:') && docSource.contains(',')) {
         final commaIdx = docSource.indexOf(',');
-        if (commaIdx != -1) {
-          final rawData = docSource.substring(commaIdx + 1);
-          final bytes = base64Decode(rawData);
+        final rawData = docSource.substring(commaIdx + 1).trim();
+        final bytes = base64Decode(rawData);
+        if (bytes.length > 4 &&
+            bytes[0] == 0x25 &&
+            bytes[1] == 0x50 &&
+            bytes[2] == 0x44 &&
+            bytes[3] == 0x46) {
+          return bytes;
+        }
+      } else if (docSource.startsWith('http://') || docSource.startsWith('https://')) {
+        final res = await http.get(Uri.parse(docSource));
+        if (res.statusCode == 200 &&
+            res.bodyBytes.length > 4 &&
+            res.bodyBytes[0] == 0x25 &&
+            res.bodyBytes[1] == 0x50) {
+          return res.bodyBytes;
+        }
+      } else if (docSource.length > 100 && !docSource.startsWith('assets/')) {
+        try {
+          final bytes = base64Decode(docSource.trim());
           if (bytes.length > 4 &&
               bytes[0] == 0x25 &&
               bytes[1] == 0x50 &&
@@ -516,17 +544,7 @@ class PdfViewerDialog extends StatefulWidget {
               bytes[3] == 0x46) {
             return bytes;
           }
-        }
-      } else if (docSource.startsWith('http://') || docSource.startsWith('https://')) {
-        if (docSource.toLowerCase().endsWith('.pdf')) {
-          final res = await http.get(Uri.parse(docSource));
-          if (res.statusCode == 200 &&
-              res.bodyBytes.length > 4 &&
-              res.bodyBytes[0] == 0x25 &&
-              res.bodyBytes[1] == 0x50) {
-            return res.bodyBytes;
-          }
-        }
+        } catch (_) {}
       }
     } catch (_) {}
     return null;
@@ -549,8 +567,12 @@ class _PdfViewerDialogState extends State<PdfViewerDialog> {
   void _checkUploadedPdf() {
     final src = widget.docSource;
     if (src.startsWith('data:application/pdf') ||
-        (src.startsWith('http') && src.toLowerCase().endsWith('.pdf'))) {
+        src.startsWith('data:application/x-pdf') ||
+        src.contains('application/pdf') ||
+        (src.startsWith('http') && src.toLowerCase().endsWith('.pdf')) ||
+        (src.startsWith('http') && src.contains('/loan_documents/'))) {
       _hasRawUploadedPdf = true;
+      _showRawUploadedPdf = true; // Default langsung tampilkan PDF asli yang diunggah pemohon
     }
   }
 

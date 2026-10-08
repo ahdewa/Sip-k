@@ -105,31 +105,53 @@ class LoanController extends Controller
         $validated['submitted_at'] = Carbon::now();
         $validated['status'] = 'menunggu';
 
-        // Simpan foto SIM jika dikirim dalam format base64 data URI
+        // Simpan dokumen lampiran (Gambar maupun PDF) jika dikirim dalam format base64 data URI
         if (!empty($validated['sim_photo_path'])) {
             try {
-                if (preg_match('/^data:image\/(\w+);base64,/', $validated['sim_photo_path'], $type)) {
-                    $data = substr($validated['sim_photo_path'], strpos($validated['sim_photo_path'], ',') + 1);
-                    $ext = strtolower($type[1]);
+                $rawDoc = $validated['sim_photo_path'];
+                if (preg_match('/^data:(image\/(\w+)|application\/(pdf|x-pdf));base64,/', $rawDoc, $matches)) {
+                    $mime = $matches[1];
+                    $ext = 'jpg';
+                    if (str_contains($mime, 'pdf')) {
+                        $ext = 'pdf';
+                    } elseif (!empty($matches[2])) {
+                        $ext = strtolower($matches[2]);
+                        if ($ext === 'jpeg') $ext = 'jpg';
+                    }
+
+                    $data = substr($rawDoc, strpos($rawDoc, ',') + 1);
                     $decoded = base64_decode($data);
                     if ($decoded !== false) {
-                        $fileName = 'sim_' . time() . '_' . uniqid() . '.' . $ext;
-                        $dir = public_path('storage/sim_photos');
+                        $fileName = ($ext === 'pdf' ? 'doc_' : 'sim_') . time() . '_' . uniqid() . '.' . $ext;
+                        $dir = public_path('storage/loan_documents');
                         if (!file_exists($dir)) {
                             @mkdir($dir, 0777, true);
                         }
-                        if (file_exists($dir) && is_writable($dir)) {
-                            file_put_contents($dir . '/' . $fileName, $decoded);
-                            $validated['sim_photo_path'] = asset('storage/sim_photos/' . $fileName);
+                        $saved = false;
+                        if (file_exists($dir)) {
+                            $saved = @file_put_contents($dir . '/' . $fileName, $decoded);
                         }
+                        if ($saved === false) {
+                            \Illuminate\Support\Facades\Storage::disk('public')->put('loan_documents/' . $fileName, $decoded);
+                        }
+                        $validated['sim_photo_path'] = asset('storage/loan_documents/' . $fileName);
                     }
                 }
             } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning("Gagal menyimpan file foto SIM: " . $e->getMessage());
+                \Illuminate\Support\Facades\Log::warning("Gagal menyimpan file lampiran: " . $e->getMessage());
             }
         }
 
-        $loan = Loan::create($validated);
+        try {
+            $loan = Loan::create($validated);
+            Cache::forget('vehicles_list_all');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Loan::create error: " . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menyimpan peminjaman: ' . $e->getMessage(),
+            ], 500);
+        }
 
         // 1. Notifikasi untuk pemohon di DB
         if (!empty($loan->user_id)) {

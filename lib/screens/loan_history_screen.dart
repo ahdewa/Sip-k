@@ -83,7 +83,17 @@ class _LoanHistoryScreenState extends State<LoanHistoryScreen>
       final fresh = await ApiService.fetchLoans();
       if (fresh != null && mounted) {
         setState(() {
-          _loans = fresh;
+          // Gabungkan data server dengan permohonan baru di lokal agar tidak hilang tiba-tiba
+          final merged = List<LoanRequest>.from(fresh);
+          for (final local in _loans) {
+            if (!merged.any((m) => m.id == local.id)) {
+              if (DateTime.now().difference(local.submittedAt).inMinutes < 15) {
+                merged.add(local);
+              }
+            }
+          }
+          merged.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+          _loans = merged;
         });
       }
     } catch (_) {

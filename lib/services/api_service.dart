@@ -417,6 +417,8 @@ class ApiService {
       if (res.statusCode == 200 || res.statusCode == 201) {
         invalidateVehiclesCache();
         return true;
+      } else {
+        debugPrint('ApiService.createLoan failed [${res.statusCode}]: ${res.body}');
       }
       return false;
     } catch (e) {

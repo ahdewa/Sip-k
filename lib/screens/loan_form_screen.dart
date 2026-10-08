@@ -498,6 +498,18 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
 
       if (file != null) {
         final bytes = await file.xFile.readAsBytes();
+        if (bytes.length > 8 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Ukuran file melebihi 8 MB. Silakan gunakan berkas PDF/Foto dengan ukuran maksimal 8 MB.'),
+                backgroundColor: Color(0xFFDC2626),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+          return;
+        }
         final isPdf = file.name.toLowerCase().endsWith('.pdf');
         setState(() {
           _notaDinasName = file.name;

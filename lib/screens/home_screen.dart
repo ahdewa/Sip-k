@@ -907,10 +907,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ),
   ];
 
-  void _handleCreateLoan(LoanRequest request) {
-    ApiService.createLoan(request);
-
+  Future<void> _handleCreateLoan(LoanRequest request) async {
     setState(() {
+      _loans.removeWhere((l) => l.id == request.id);
       _loans.insert(0, request);
       _loans.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
 
@@ -939,12 +938,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           message:
               'Permohonan armada ${request.vehicleName} tujuan ${request.destination} sedang diproses oleh Kasubag Umum.',
           time: 'Baru saja',
-          fullDate: '01 September 2026, 14:15 WIB',
+          fullDate:
+              '${DateTime.now().day.toString().padLeft(2, '0')}/${DateTime.now().month.toString().padLeft(2, '0')}/${DateTime.now().year}, ${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')} WIB',
           createdAt: DateTime.now(),
           detailContent:
               'Pengajuan armada ${request.vehicleName} dengan Nota Dinas ${request.officialNoteNumber} telah dikirim ke Kasubag Umum untuk proses verifikasi persetujuan SPK.',
-          referenceNumber:
-              'REQ-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+          referenceNumber: request.id,
           type: NotificationType.submitted,
           targetRole: 'pegawai',
         ),
@@ -952,42 +951,56 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _currentIndex = 0;
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => LoanHistoryScreen(
-            loans: _loans,
-            onLoanCancelled: (loan) {
-              final idx = _loans.indexWhere((l) => l.id == loan.id);
-              if (idx != -1) {
-                _loans[idx].status = LoanStatus.dibatalkan;
-              }
-              ApiService.cancelLoan(loan.id);
-              setState(() {});
-            },
-            onLoanCompleted: (loan) {
-              final vehicle = _vehicles.firstWhere((v) => v.id == loan.vehicleId);
+    // Kirim data ke backend dan tunggu hasilnya
+    final isSaved = await ApiService.createLoan(request);
+    if (isSaved) {
+      final fresh = await ApiService.fetchLoans();
+      if (fresh != null && mounted) {
+        setState(() {
+          _loans = fresh;
+        });
+      }
+    }
+
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LoanHistoryScreen(
+          loans: _loans,
+          initialTabIndex: 0,
+          onLoanCancelled: (loan) {
+            final idx = _loans.indexWhere((l) => l.id == loan.id);
+            if (idx != -1) {
+              _loans[idx].status = LoanStatus.dibatalkan;
+            }
+            ApiService.cancelLoan(loan.id);
+            setState(() {});
+          },
+          onLoanCompleted: (loan) {
+            final vehicle = _vehicles.where((v) => v.id == loan.vehicleId).firstOrNull;
+            if (vehicle != null) {
               vehicle.status = VehicleStatus.tersedia;
-              ApiService.completeLoan(
-                loan.id,
-                returnOdometer: loan.returnOdometer as int?,
-                returnFuel: loan.returnFuel?.toString(),
-                returnNotes: loan.returnNotes,
-              );
-              setState(() {});
-            },
-            onLoanStarted: (loan) {
-              final vehicle = _vehicles.firstWhere((v) => v.id == loan.vehicleId);
+            }
+            ApiService.completeLoan(
+              loan.id,
+              returnOdometer: loan.returnOdometer as int?,
+              returnFuel: loan.returnFuel?.toString(),
+              returnNotes: loan.returnNotes,
+            );
+            setState(() {});
+          },
+          onLoanStarted: (loan) {
+            final vehicle = _vehicles.where((v) => v.id == loan.vehicleId).firstOrNull;
+            if (vehicle != null) {
               vehicle.status = VehicleStatus.digunakan;
-              ApiService.startLoan(loan.id);
-              setState(() {});
-            },
-          ),
+            }
+            ApiService.startLoan(loan.id);
+            setState(() {});
+          },
         ),
-      );
-    });
+      ),
+    );
   }
 
   void _handleVerification(LoanRequest loan, bool approved) async {
