@@ -21,6 +21,7 @@
   <a href="#-fitur-utama">Fitur Utama</a> •
   <a href="#%EF%B8%8F-arsitektur--optimasi-performa-tinggi">Arsitektur & Kinerja</a> •
   <a href="#-diagram-kasus-penggunaan-use-case-diagram">Use Case</a> •
+  <a href="#-diagram-aktivitas-activity-diagram">Activity Diagram</a> •
   <a href="#-diagram-alur-sistem-flowchart-operasional">Flowchart</a> •
   <a href="#%EF%B8%8F-struktur-basis-data-erd">ERD</a> •
   <a href="#-panduan-instalasi--deployment">Instalasi & Deployment</a> •
@@ -219,6 +220,151 @@ flowchart LR
 | 13 | **Manajemen Master Data Armada (CRUD Kendaraan)** | ❌ | ❌ | ✅ |
 | 14 | **Manajemen Berita & Informasi Kedinasan** | ❌ | ❌ | ✅ |
 | 15 | **Dashboard Analitik & Ekspor Laporan Bulanan** | ❌ | ❌ | ✅ |
+
+---
+
+## ⚡ Diagram Aktivitas (Activity Diagram)
+
+Diagram Aktivitas berikut memodelkan alur kerja (*business workflow*) dan koordinasi lintas entitas menggunakan pembagian jalur kerja (*swimlanes*) antara **Pegawai (Pemohon)**, **Sistem SIP-K / REST API Backend**, dan **Kasubag Umum / Admin TU (Verifikator)**.
+
+### 1. Siklus Pengajuan & Verifikasi Pinjaman Kendaraan Dinas
+
+```mermaid
+flowchart TD
+    subgraph LANE_PEGAWAI["👤 Swimlane: Pegawai (Pemohon)"]
+        node_start1((●))
+        act_p1["Pilih Armada dari Katalog"]
+        act_p2["Isi Formulir Rincian & Jadwal Dinas"]
+        act_p3["Unggah Berkas SIM & Dokumen Usulan (PDF)"]
+        act_p4["Kirim Usulan Peminjaman"]
+        act_p5["Terima Push Notification Status Usulan"]
+        dec_p1{Status Usulan?}
+        act_p6["Buka & Unduh Lembar Nota Dinas / SPK"]
+        act_p7["Ambil Kunci Kontak & STNK di Pool"]
+        act_p8["Pelaksanaan Perjalanan Dinas Operasional"]
+        node_end_reject(((◉)))
+    end
+
+    subgraph LANE_SISTEM["💻 Swimlane: Sistem SIP-K / REST API"]
+        act_s1["Validasi Ketersediaan Armada & Benturan Jadwal"]
+        dec_s1{Validasi Berhasil?}
+        act_s2["Tolak Input & Tampilkan Pesan Benturan"]
+        act_s3["Simpan Usulan (Status: Menunggu) & Decode Dokumen"]
+        act_s4["Kirim Push Notification FCM ke Kasubag Umum"]
+        act_s5["Simpan Alasan Penolakan (Status: Ditolak)"]
+        act_s6["Generate Nomor SPK Otomatis & Kunci Status Armada"]
+        act_s7["Kirim Notifikasi Real-time ke Ponsel Pemohon"]
+    end
+
+    subgraph LANE_ADMIN["🛡️ Swimlane: Kasubag Umum / Admin TU"]
+        act_a1["Buka Antrean Verifikasi Usulan Baru"]
+        act_a2["Pemeriksaan Berkas: Foto SIM, Pratinjau PDF, & Urgensi"]
+        dec_a1{Keputusan Verifikasi?}
+        act_a3["Input Catatan Resmi Alasan Penolakan"]
+        act_a4["Konfirmasi Persetujuan Usulan"]
+        act_a5["Serah Terima Fisik Kunci Kontak & STNK"]
+    end
+
+    %% Hubungan Alur Pengajuan
+    node_start1 --> act_p1
+    act_p1 --> act_p2
+    act_p2 --> act_p3
+    act_p3 --> act_p4
+    act_p4 --> act_s1
+
+    act_s1 --> dec_s1
+    dec_s1 -- "Jadwal Bentrok" --> act_s2
+    act_s2 --> act_p2
+    dec_s1 -- "Valid" --> act_s3
+
+    act_s3 --> act_s4
+    act_s4 --> act_a1
+    act_a1 --> act_a2
+    act_a2 --> dec_a1
+
+    %% Keputusan Kasubag
+    dec_a1 -- "Tolak" --> act_a3
+    act_a3 --> act_s5
+    act_s5 --> act_s7
+
+    dec_a1 -- "Setujui" --> act_a4
+    act_a4 --> act_s6
+    act_s6 --> act_s7
+
+    act_s7 --> act_p5
+    act_p5 --> dec_p1
+
+    dec_p1 -- "Ditolak" --> node_end_reject
+    dec_p1 -- "Disetujui" --> act_p6
+
+    act_p6 --> act_a5
+    act_a5 --> act_p7
+    act_p7 --> act_p8
+
+    classDef startNode fill:#0284C7,stroke:#0369A1,stroke-width:2px,color:#fff;
+    classDef endNode fill:#475569,stroke:#0F172A,stroke-width:2px,color:#fff;
+    classDef activity fill:#1E293B,stroke:#3B82F6,stroke-width:1.5px,color:#fff;
+    classDef decision fill:#78350F,stroke:#F59E0B,stroke-width:1.5px,color:#fff;
+    classDef system fill:#064E3B,stroke:#10B981,stroke-width:1.5px,color:#fff;
+
+    class node_start1 startNode;
+    class node_end_reject endNode;
+    class act_p1,act_p2,act_p3,act_p4,act_p5,act_p6,act_p7,act_p8,act_a1,act_a2,act_a3,act_a4,act_a5 activity;
+    class dec_p1,dec_s1,dec_a1 decision;
+    class act_s1,act_s2,act_s3,act_s4,act_s5,act_s6,act_s7 system;
+```
+
+---
+
+### 2. Siklus Pengembalian Kendaraan & Pelaporan BAST
+
+```mermaid
+flowchart TD
+    subgraph LANE_P2["👤 Swimlane: Pegawai (Peminjam)"]
+        node_start2((●))
+        act_ret_p1["Tiba Kembali di Pool Kendaraan Dinas"]
+        act_ret_p2["Buka Riwayat Peminjaman & Menu Lapor Pengembalian"]
+        act_ret_p3["Input Kilometer Akhir, Sisa BBM (%), & Catatan Fisik"]
+        act_ret_p4["Kirim Laporan Pengembalian (BAST)"]
+        node_end_ret(((◉)))
+    end
+
+    subgraph LANE_S2["💻 Swimlane: Sistem SIP-K / Backend"]
+        act_ret_s1["Validasi Catatan Odometer & Bahan Bakar"]
+        act_ret_s2["Perbarui Status Pinjaman: Selesai & Terbitkan BAST"]
+        act_ret_s3["Perbarui Status Armada: Tersedia Kembali di Katalog"]
+        act_ret_s4["Kirim Push Notification Serah Terima ke Kasubag"]
+    end
+
+    subgraph LANE_A2["🛡️ Swimlane: Kasubag TU / Petugas Pool"]
+        act_ret_a1["Pemeriksaan Fisik Akhir Kendaraan di Pool"]
+        act_ret_a2["Penerimaan Kunci Kontak, STNK, & Konfirmasi BAST"]
+    end
+
+    node_start2 --> act_ret_p1
+    act_ret_p1 --> act_ret_p2
+    act_ret_p2 --> act_ret_p3
+    act_ret_p3 --> act_ret_p4
+    act_ret_p4 --> act_ret_s1
+
+    act_ret_s1 --> act_ret_s2
+    act_ret_s2 --> act_ret_s3
+    act_ret_s3 --> act_ret_s4
+
+    act_ret_s4 --> act_ret_a1
+    act_ret_a1 --> act_ret_a2
+    act_ret_a2 --> node_end_ret
+
+    classDef startNode fill:#0284C7,stroke:#0369A1,stroke-width:2px,color:#fff;
+    classDef endNode fill:#475569,stroke:#0F172A,stroke-width:2px,color:#fff;
+    classDef activity fill:#1E293B,stroke:#3B82F6,stroke-width:1.5px,color:#fff;
+    classDef system fill:#064E3B,stroke:#10B981,stroke-width:1.5px,color:#fff;
+
+    class node_start2 startNode;
+    class node_end_ret endNode;
+    class act_ret_p1,act_ret_p2,act_ret_p3,act_ret_p4,act_ret_a1,act_ret_a2 activity;
+    class act_ret_s1,act_ret_s2,act_ret_s3,act_ret_s4 system;
+```
 
 ---
 
