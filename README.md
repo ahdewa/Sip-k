@@ -2,8 +2,8 @@
   <img src="assets/images/logo_sipk.png" alt="Logo SIP-K Jatim" width="130" />
 </p>
 
-<h1 align="center">🚗 SIP-K JATIM</h1>
-<h3 align="center">Sistem Informasi Pengelolaan Kendaraan Dinas Operasional</h3>
+<h1 align="center">🚗 SIP-K JATIM / OVBS</h1>
+<h3 align="center">Sistem Informasi Pengelolaan Kendaraan Dinas Operasional<br/><i>(Online Vehicle Booking System)</i></h3>
 <p align="center"><strong>Pemerintah Provinsi Jawa Timur — Dinas Sosial</strong></p>
 
 <p align="center">
@@ -12,17 +12,19 @@
   <img src="https://img.shields.io/badge/Laravel-11.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel" />
   <img src="https://img.shields.io/badge/MySQL-8.4-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL" />
   <img src="https://img.shields.io/badge/Firebase-FCM-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="Firebase" />
+  <img src="https://img.shields.io/badge/Azure-Cloud%20VM-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white" alt="Azure VM" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Web%20%7C%20Windows-brightgreen?style=for-the-badge" alt="Platform" />
 </p>
 
 <p align="center">
   <a href="#-tentang-proyek">Tentang</a> •
   <a href="#-fitur-utama">Fitur Utama</a> •
-  <a href="#%EF%B8%8F-arsitektur-teknologi">Arsitektur</a> •
+  <a href="#%EF%B8%8F-arsitektur--optimasi-performa-tinggi">Arsitektur & Kinerja</a> •
   <a href="#-diagram-kasus-penggunaan-use-case-diagram">Use Case</a> •
   <a href="#-diagram-alur-sistem-flowchart-operasional">Flowchart</a> •
   <a href="#%EF%B8%8F-struktur-basis-data-erd">ERD</a> •
-  <a href="#-panduan-instalasi--menjalankan">Instalasi</a> •
+  <a href="#-panduan-instalasi--deployment">Instalasi & Deployment</a> •
+  <a href="#-akun-uji-coba-bawaan-sistem">Akun Default</a> •
   <a href="#-support-by-">Support By</a>
 </p>
 
@@ -30,59 +32,97 @@
 
 ## 📌 Tentang Proyek
 
-**SIP-K Jatim** (*Sistem Informasi Pengelolaan Kendaraan Dinas*) adalah platform modern terpadu berbasis **Aplikasi Mobile (Flutter)** dan **RESTful API (Laravel)** yang dikembangkan untuk memfasilitasi tata kelola peminjaman dan operasional kendaraan dinas di lingkungan **Dinas Sosial Provinsi Jawa Timur**.
+**SIP-K Jatim** (*Sistem Informasi Pengelolaan Kendaraan Dinas Operasional*), juga dikenal sebagai **OVBS** (*Online Vehicle Booking System*), adalah platform modern terpadu multi-platform (**Aplikasi Mobile Flutter**, **Web Portal**, dan **Windows Desktop**) yang didukung oleh **RESTful API Laravel 11** berkinerja tinggi. Sistem ini dirancang secara khusus untuk memfasilitasi tata kelola peminjaman, perizinan, dan pemeliharaan kendaraan dinas di lingkungan **Dinas Sosial Provinsi Jawa Timur**.
 
-Sistem ini mentransformasi alur birokrasi peminjaman manual menjadi serba digital, transparan, akuntabel, dan *real-time*. Dilengkapi verifikasi berjenjang:
-1. **Pengajuan Kedinasan Mandiri** oleh pegawai beserta unggah dokumen foto SIM.
-2. **Verifikasi & Persetujuan** oleh Kasubag Umum / Tata Usaha dengan penerbitan nomor Surat Perintah Kerja (SPK) otomatis.
-3. **Pencetakan Lembar Nota Dinas** resmi kedinasan.
-4. **Pelaporan Berita Acara Serah Terima (BAST)** saat armada kembali ke pool.
+Sistem ini mentransformasi birokrasi manual berbasis formulir fisik menjadi alur kerja serba digital, transparan, akuntabel, dan *real-time*:
+1. **Pengajuan Kedinasan Mandiri**: Pegawai mengajukan unit kendaraan secara langsung, memilih jadwal, melampirkan berkas foto SIM, serta mengunggah surat usulan dinas (PDF/Gambar).
+2. **Verifikasi & Persetujuan Kasubag Umum / TU**: Pemeriksaan keabsahan dokumen, pengecekan jadwal bebas-benturan secara otomatis, penerbitan nomor Surat Perintah Kerja (SPK) otomatis, atau penolakan dengan catatan resmi.
+3. **Dual Pratinjau & Pengunduhan Dokumen**: Dukungan pratinjau langsung berkas PDF asli yang diunggah pemohon serta opsi format lembar Nota Dinas standar Pemprov Jatim, dilengkapi penyimpanan otomatis ke folder *Download/OVBS*.
+4. **Pelaporan Berita Acara Serah Terima (BAST)**: Pencatatan kilometer akhir (odometer), level sisa BBM, dan catatan fisik saat kendaraan kembali ke pool.
 
 ---
 
 ## ✨ Fitur Utama
 
 ### 👤 1. Portal Pegawai (Pemohon)
-* 🚘 **Katalog & Ketersediaan Armada**: Pantau unit mobil dan motor dinas lengkap dengan foto, kapasitas kursi, transmisi, sisa BBM, dan odometer (KM).
-* 📝 **Formulir Pengajuan Digital**: Pengisian kota tujuan, tanggal dinas, urgensi tugas, dan unggah foto SIM (dengan fitur pratinjau & perbesar).
-* 🔔 **Pusat Notifikasi Real-Time**: Pembaruan status permohonan (*Disetujui*, *Ditolak*, atau *Menunggu*) langsung ke perangkat.
-* 📜 **Arsip Riwayat & Cetak Nota Dinas**: Cetak lembar bukti peminjaman resmi dan lapor mandiri kondisi armada saat pengembalian.
+* 🚘 **Katalog & Ketersediaan Armada Real-time**: Menampilkan unit mobil dan motor dinas lengkap dengan foto resolusi tinggi, jenis transmisi, kapasitas penumpang, sisa bahan bakar, dan status kesiapan.
+* 📝 **Formulir Pengajuan Terpadu**: Input tujuan dinas, alamat, tanggal pinjam, urgensi tugas, unggah foto SIM, serta berkas surat tugas / nota dinas (PDF / Gambar).
+* 📄 **In-App Dual PDF Viewer**:
+  * Menampilkan dokumen asli yang diunggah oleh pemohon secara instan.
+  * Opsi berganti ke format Lembar Nota Dinas resmi kedinasan.
+  * Fitur perbesar (*zoom*), navigasi halaman, pencarian, dan unduh otomatis ke penyimpanan perangkat (`Download/OVBS/`).
+* 🔔 **Notifikasi Real-time Terpersonalisasi**: Pegawai hanya menerima notifikasi khusus yang berkaitan dengan pengajuannya (*Diajukan*, *Disetujui*, *Ditolak*, atau *Pemberitahuan Umum*).
+* 📰 **Berita & Pengumuman Kedinasan**: Menampilkan informasi, kegiatan, dan surat edaran resmi dari pimpinan Dinas Sosial Jatim.
+* 📜 **Riwayat Pengajuan & BAST Mandiri**: Pemantauan status permohonan dinas serta input mandiri laporan pengembalian unit saat armada kembali.
 
 ### 🛡️ 2. Portal Kasubag Tata Usaha & Super Administrator
-* 📋 **Verifikasi Berkas & Kelayakan**: Verifikasi data pemohon, keabsahan foto SIM, dan deteksi otomatis jadwal armada agar tidak terjadi benturan.
-* ✅ **Penerbitan SPK Otomatis**: Generate nomor Surat Perintah Kerja (SPK) kedinasan secara otomatis.
-* ❌ **Penolakan Transparan**: Input catatan alasan penolakan yang otomatis terkirim ke notifikasi pemohon.
-* 📅 **Kalender Jadwal Operasional**: Tampilan visual interaktif jadwal keberangkatan seluruh unit armada dinas.
-* 📊 **Dashboard Analitik**: Grafik statistik frekuensi armada terpakai, rata-rata konsumsi BBM, dan rekapitulasi dinas bulanan.
-* 👥 **Manajemen Master Data**: Penambahan armada baru, pembaruan status servis/pemeliharaan, serta manajemen pengguna.
+* 📋 **Verifikasi Berkas & Pengecekan Tabrakan Jadwal**: Pemeriksaan foto SIM dan pratinjau dokumen usulan pemohon dengan sistem deteksi benturan jadwal antar peminjam.
+* ✅ **Penerbitan SPK Otomatis**: Menghasilkan nomor Surat Perintah Kerja (SPK) unik kedinasan saat permohonan disetujui.
+* ❌ **Penolakan Transparan**: Mengirimkan catatan alasan penolakan secara terstruktur yang langsung diterima pemohon.
+* 📅 **Kalender Jadwal Operasional Seluruh Armada**: Visualisasi jadwal agenda perjalanan seluruh armada dinas secara interaktif harian dan bulanan.
+* 📥 **Import Pengguna Massal via Excel (`.xlsx`)**:
+  * Mengunggah daftar pegawai dan admin sekaligus menggunakan berkas template Excel.
+  * Deteksi peran otomatis (*Pegawai*, *Admin TU / Kasubag*, *Super Administrator*).
+  * Sanitasi nomor WhatsApp/telepon dan pembuatan kata sandi awal secara otomatis.
+* 📊 **Dashboard Analitik & Statistik**: Statistik unit paling sering digunakan, rata-rata konsumsi BBM, grafik tren dinas bulanan, dan ekspor data laporan.
+* 🔧 **Manajemen Master Data Kendaraan**: Tambah, ubah data unit, kelola status perbaikan/servis rutin di bengkel, dan kelola dokumen unit.
+* 🔔 **Segregasi Notifikasi Verifikator**: Administrator menerima notifikasi khusus mengenai usulan baru yang masuk serta pengembalian armada oleh pemohon.
+* 💬 **Helpdesk WhatsApp Terintegrasi**: Akses cepat satu klik ke WhatsApp Admin Helpdesk untuk bantuan teknis dan reset kata sandi.
 
 ---
 
-## 🏗️ Arsitektur Teknologi
+## ⚡ Arsitektur & Optimasi Performa Tinggi
+
+Sistem dirancang tangguh (*high-concurrency ready*) untuk melayani ratusan pegawai dan admin secara bersamaan tanpa lonjakan beban (*resource spike*):
 
 ```text
-┌─────────────────────────────────┐           ┌─────────────────────────────────┐
-│     APLIKASI KLIEN (FLUTTER)    │           │      SERVER BACKEND (LARAVEL)   │
-│  - Aplikasi Android (APK)       │   HTTP/S  │  - RESTful API Controller       │
-│  - Portal Web (Dashboard Admin) │ <───────> │  - Autentikasi Token Sanctum    │
-│  - Aplikasi Desktop Windows     │    JSON   │  - Firebase Cloud Messaging     │
-└─────────────────────────────────┘           └─────────────────────────────────┘
-                                                               │
-                                                               ▼
-                                              ┌─────────────────────────────────┐
-                                              │      DATABASE (MYSQL 8.4)       │
-                                              │  - Master Data Pengguna         │
-                                              │  - Master Data Armada Kendaraan │
-                                              │  - Riwayat Peminjaman & SPK     │
-                                              │  - Log Notifikasi & Aktivitas   │
-                                              └─────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│               APLIKASI KLIEN (FLUTTER)                 │
+│  - Android APK (Mobile)                                │
+│  - Web Portal (Chrome / Edge / Firefox)                │
+│  - Windows Desktop Native                              │
+│                                                        │
+│  [Fitur Kinerja]:                                      │
+│  * Persistent Connection Pool (HTTP Keep-Alive)        │
+│  * In-Memory TTL Cache (Kendaraan, User, Profil)       │
+│  * Lifecycle-Aware Polling (Jeda saat background)      │
+│  * In-App PDF Streamer & Auto-Download ke Storage      │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            │ HTTPS / REST API JSON
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│            AZURE CLOUD VM (UBUNTU / NGINX)             │
+│  IP Server: 20.244.48.18 | PHP 8.2+ FPM                │
+│                                                        │
+│  [Laravel 11 REST API Backend]:                        │
+│  * Laravel Sanctum Token Authentication                │
+│  * Cache::remember Layer untuk Katalog Armada          │
+│  * Base64 to Storage Pipeline (public/storage/)        │
+│  * Push Notifications via Firebase Cloud Messaging     │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                 DATABASE (MYSQL 8.4)                   │
+│  * Composite Indexes pada Kolom Query Kritis           │
+│    (user_id + status, vehicle_id + start/end_date)     │
+│  * Efficient Foreign Keys & Relational Integrity       │
+└────────────────────────────────────────────────────────┘
 ```
+
+### 🚀 Keunggulan Optimasi Kinerja
+1. **Persistent HTTP Client (Keep-Alive Pooling)**: Menggunakan satu instance `http.Client` berumur panjang pada aplikasi Flutter untuk menghilangkan jeda *TCP 3-way handshake* dan *TLS negotiation* berulang, mencegah *socket exhaustion* saat banyak pengguna aktif.
+2. **Multi-tier Caching**:
+   * *Client-side*: Caching data armada dan pengguna di memori dengan durasi kadaluwarsa (TTL 60 detik) dan pembatalan otomatis (*auto-invalidation*) seketika setelah operasi buat/ubah/hapus usulan.
+   * *Server-side*: Query katalog kendaraan dilindungi oleh `Cache::remember` dengan pembersihan otomatis via `Cache::forget` saat terjadi pembaruan armada.
+3. **Lifecycle-Aware Polling**: Pemantauan data berkala secara cerdas dijeda ketika aplikasi diminimalkan ke latar belakang (*paused/inactive*) dan langsung disegarkan saat aplikasi kembali aktif (*resumed*), menghemat kuota dan baterai pengguna.
+4. **Base64 to Storage Streaming**: Lampiran PDF dan gambar berukuran besar tidak lagi disimpan langsung ke kolom database melainkan didecode dan disimpan ke `public/storage/loan_documents/`, menjaga database tetap ramping dan mencegah kegagalan paket data MySQL.
+5. **Database Indexing**: Indeks gabungan (*composite index*) pada tabel `loans`, `vehicles`, dan `app_notifications` untuk mempercepat pemfilteran riwayat dan pengecekan tabrakan jadwal hingga < 10ms.
 
 ---
 
 ## 👥 Diagram Kasus Penggunaan (Use Case Diagram)
-
-Diagram berikut memodelkan interaksi antara tiga aktor utama (**Pegawai / Pemohon**, **Kasubag Umum / Admin TU**, dan **Super Administrator**) dengan fungsionalitas sistem SIP-K:
 
 ```mermaid
 flowchart LR
@@ -92,55 +132,61 @@ flowchart LR
         SuperAdmin(("👑 Super Admin<br/>(Pusat)"))
     end
 
-    subgraph SISTEM["💻 Sistem Informasi Pengelolaan Kendaraan (SIP-K)"]
+    subgraph SISTEM["💻 Sistem Informasi Pengelolaan Kendaraan (SIP-K / OVBS)"]
         UC_Auth(["🔐 Masuk Akun (Email / NIP)"])
-        UC_Catalog(["🚗 Lihat Katalog & Status Armada"])
-        UC_Loan(["📝 Ajukan Peminjaman Kendaraan"])
-        UC_UploadSIM(["📸 Unggah Foto SIM & Surat Tugas"])
-        UC_Notif(["🔔 Terima Notifikasi Real-time"])
-        UC_PrintND(["🖨️ Cetak Lembar Nota Dinas / SPK"])
-        UC_Return(["📋 Lapor Pengembalian & BAST"])
-        UC_Profile(["👤 Kelola Profil Akun"])
+        UC_Catalog(["🚗 Lihat Katalog & Ketersediaan Armada"])
+        UC_News(["📰 Baca Berita & Pengumuman Dinas"])
+        UC_Loan(["📝 Ajukan Permohonan Peminjaman"])
+        UC_UploadDoc(["📎 Unggah Foto SIM & Surat Usulan PDF"])
+        UC_Notif(["🔔 Terima Notifikasi Real-time (Sesuai Role)"])
+        UC_PrintND(["📄 Pratinjau & Cetak Dokumen / Nota Dinas"])
+        UC_Return(["📋 Lapor Pengembalian Armada (BAST)"])
+        UC_Profile(["👤 Kelola Profil & Hubungi Helpdesk WA"])
 
-        UC_Verify(["📋 Verifikasi Berkas & Foto SIM"])
+        UC_Verify(["📋 Verifikasi Dokumen & Pengecekan Jadwal"])
         UC_Approve(["✅ Setujui & Terbitkan SPK Otomatis"])
-        UC_Reject(["❌ Tolak Permohonan dengan Alasan"])
-        UC_Calendar(["📅 Pantau Kalender Jadwal Armada"])
-        UC_AssetStatus(["🔧 Perbarui Status Kesiapan Armada"])
+        UC_Reject(["❌ Tolak Usulan dengan Catatan Alasan"])
+        UC_Calendar(["📅 Pantau Kalender Jadwal Operasional"])
+        UC_AssetStatus(["🔧 Kelola Status Kesiapan Armada"])
 
-        UC_ManageUser(["👥 Kelola Data Pengguna & Akses"])
+        UC_ImportUser(["📥 Import Pengguna Massal via File Excel"])
+        UC_ManageUser(["👥 Kelola Data Akun Pengguna"])
         UC_ManageVehicle(["🚘 Kelola Data Master Armada"])
-        UC_Analytics(["📊 Dashboard Statistik & Laporan"])
+        UC_ManageNews(["📰 Kelola Informasi Berita Kedinasan"])
+        UC_Analytics(["📊 Dashboard Statistik & Ekspor Laporan"])
     end
 
     %% Hubungan Pegawai (Pemohon)
     Pegawai --- UC_Auth
     Pegawai --- UC_Catalog
+    Pegawai --- UC_News
     Pegawai --- UC_Loan
     Pegawai --- UC_Notif
     Pegawai --- UC_PrintND
     Pegawai --- UC_Return
     Pegawai --- UC_Profile
 
-    %% Relasi include peminjaman
-    UC_Loan -.->|"<<meliputi>>"| UC_UploadSIM
+    UC_Loan -.->|"<<meliputi>>"| UC_UploadDoc
 
     %% Hubungan Kasubag Umum (Admin TU)
     Kasubag --- UC_Auth
     Kasubag --- UC_Catalog
+    Kasubag --- UC_News
     Kasubag --- UC_Verify
     Kasubag --- UC_Calendar
     Kasubag --- UC_AssetStatus
     Kasubag --- UC_Notif
+    Kasubag --- UC_PrintND
 
-    %% Relasi include verifikasi
     UC_Verify -.->|"<<meliputi>>"| UC_Approve
     UC_Verify -.->|"<<meliputi>>"| UC_Reject
 
-    %% Hubungan Super Administrator (Pusat)
+    %% Hubungan Super Administrator
     SuperAdmin --- UC_Auth
+    SuperAdmin --- UC_ImportUser
     SuperAdmin --- UC_ManageUser
     SuperAdmin --- UC_ManageVehicle
+    SuperAdmin --- UC_ManageNews
     SuperAdmin --- UC_Analytics
     SuperAdmin --- UC_Verify
     SuperAdmin --- UC_Calendar
@@ -150,68 +196,69 @@ flowchart LR
     classDef includeUC fill:#0F766E,stroke:#14B8A6,stroke-width:1.5px,color:#fff;
 
     class Pegawai,Kasubag,SuperAdmin actor;
-    class UC_Auth,UC_Catalog,UC_Loan,UC_Notif,UC_PrintND,UC_Return,UC_Profile,UC_Verify,UC_Calendar,UC_AssetStatus,UC_ManageUser,UC_ManageVehicle,UC_Analytics usecase;
-    class UC_UploadSIM,UC_Approve,UC_Reject includeUC;
+    class UC_Auth,UC_Catalog,UC_News,UC_Loan,UC_Notif,UC_PrintND,UC_Return,UC_Profile,UC_Verify,UC_Calendar,UC_AssetStatus,UC_ImportUser,UC_ManageUser,UC_ManageVehicle,UC_ManageNews,UC_Analytics usecase;
+    class UC_UploadDoc,UC_Approve,UC_Reject includeUC;
 ```
 
 ### 📊 Matriks Hak Akses Pengguna
 
-| No | Modul & Kasus Penggunaan (*Use Case*) | Pegawai (Pemohon) | Kasubag Umum (Admin TU) | Super Administrator |
+| No | Modul & Fungsionalitas (*Feature*) | Pegawai (Pemohon) | Kasubag Umum (Admin TU) | Super Administrator |
 |:---:|---|:---:|:---:|:---:|
-| 1 | **Masuk Sistem (Email / NIP)** | ✅ | ✅ | ✅ |
-| 2 | **Lihat Katalog & Status Armada** | ✅ | ✅ | ✅ |
-| 3 | **Pengajuan Peminjaman & Unggah SIM** | ✅ | ❌ | ❌ |
-| 4 | **Pusat Notifikasi Status Pengajuan** | ✅ | ✅ | ✅ |
-| 5 | **Cetak Nota Dinas / SPK Resmi** | ✅ | ✅ | ✅ |
-| 6 | **Pelaporan Pengembalian Armada & BAST** | ✅ | ✅ | ✅ |
-| 7 | **Verifikasi Usulan & Persetujuan/Penolakan SPK** | ❌ | ✅ | ✅ |
-| 8 | **Pemantauan Kalender Jadwal Armada** | ❌ | ✅ | ✅ |
-| 9 | **Ubah Status Armada (Tersedia / Servis / Digunakan)** | ❌ | ✅ | ✅ |
-| 10 | **Manajemen Data Akun Pengguna** | ❌ | ❌ | ✅ |
-| 11 | **Manajemen Master Data Armada (Tambah/Ubah/Hapus)** | ❌ | ❌ | ✅ |
-| 12 | **Dashboard Statistik & Ekspor Laporan Bulanan** | ❌ | ❌ | ✅ |
+| 1 | **Autentikasi Akun (Email / NIP)** | ✅ | ✅ | ✅ |
+| 2 | **Katalog Armada & Ketersediaan** | ✅ | ✅ | ✅ |
+| 3 | **Baca Berita & Pengumuman Dinas** | ✅ | ✅ | ✅ |
+| 4 | **Pengajuan Peminjaman & Unggah SIM/PDF** | ✅ | ❌ | ❌ |
+| 5 | **Notifikasi Real-time Terpersonalisasi** | ✅ *(Permohonan Sendiri)* | ✅ *(Semua Usulan Masuk)* | ✅ *(Semua Aktivitas)* |
+| 6 | **Pratinjau PDF Asli & Cetak Nota Dinas** | ✅ | ✅ | ✅ |
+| 7 | **Pelaporan Pengembalian Armada & BAST** | ✅ | ✅ | ✅ |
+| 8 | **Verifikasi Usulan & Persetujuan/Penolakan SPK** | ❌ | ✅ | ✅ |
+| 9 | **Kalender Jadwal Operasional Seluruh Armada** | ❌ | ✅ | ✅ |
+| 10 | **Pembaruan Status Kendaraan (Tersedia/Servis)** | ❌ | ✅ | ✅ |
+| 11 | **Import Pengguna Massal via File Excel (.xlsx)** | ❌ | ❌ | ✅ |
+| 12 | **Manajemen Data Pengguna (CRUD Akun)** | ❌ | ❌ | ✅ |
+| 13 | **Manajemen Master Data Armada (CRUD Kendaraan)** | ❌ | ❌ | ✅ |
+| 14 | **Manajemen Berita & Informasi Kedinasan** | ❌ | ❌ | ✅ |
+| 15 | **Dashboard Analitik & Ekspor Laporan Bulanan** | ❌ | ❌ | ✅ |
 
 ---
 
 ## 🔄 Diagram Alur Sistem (Flowchart Operasional)
 
-Alur lengkap siklus operasional peminjaman armada dari pengajuan, verifikasi, hingga penerbitan BAST pengembalian:
-
 ```mermaid
 flowchart TD
     subgraph PEMOHON["👤 1. Tahap Pegawai (Pemohon)"]
-        A([Mulai]) --> B[Masuk Akun Pegawai]
-        B --> C[Pilih Kendaraan di Katalog]
-        C --> D{Cek Status Armada}
+        A([Mulai]) --> B[Masuk Akun SIP-K]
+        B --> C[Pilih Armada pada Katalog]
+        C --> D{Ketersediaan Armada?}
         D -- "Sedang Digunakan / Servis" --> C
-        D -- "Tersedia" --> E[Isi Formulir Peminjaman]
-        E --> F[Unggah Foto SIM & Surat Usulan]
-        F --> G[Kirim Permohonan Dinas]
+        D -- "Tersedia" --> E[Isi Formulir Peminjaman & Tujuan Dinas]
+        E --> F[Unggah Berkas SIM & Dokumen Usulan PDF]
+        F --> G[Kirim Permohonan]
         G --> H[(Database: Status Menunggu)]
     end
 
-    subgraph ADMIN["🛡️ 2. Tahap Kasubag Umum (Verifikasi Admin)"]
-        H --> I[Notifikasi Permohonan Masuk]
-        I --> J[Pemeriksaan Berkas, Foto SIM & Jadwal Armada]
+    subgraph ADMIN["🛡️ 2. Tahap Verifikasi Kasubag Umum"]
+        H --> I[Terima Notifikasi Usulan Baru]
+        I --> J[Periksa Foto SIM, Pratinjau Dokumen PDF & Cek Jadwal]
         J --> K{Keputusan Kasubag?}
         K -- "Tolak Permohonan" --> L[Input Catatan Alasan Penolakan]
         L --> M[(Database: Status Ditolak)]
-        K -- "Setujui Permohonan" --> N[Sistem Terbitkan Nomor Nota Dinas / SPK]
+        K -- "Setujui Permohonan" --> N[Generate Nomor SPK Otomatis]
         N --> O[(Database: Status Disetujui)]
-        O --> P[Kunci Armada: Status Digunakan]
+        O --> P[Kunci Status Armada: Digunakan]
     end
 
     subgraph PROSES["🚗 3. Tahap Pelaksanaan & Pengembalian Armada"]
-        M --> Q[Kirim Notifikasi Penolakan ke Ponsel Pemohon]
-        Q --> Z1([Selesai / Ajukan Armada Pengganti])
-        O --> R[Kirim Notifikasi Persetujuan ke Ponsel Pemohon]
-        R --> S[Cetak Lembar Nota Dinas Resmi]
-        S --> T[Ambil Kunci Kontak & STNK di Loket Kasubag TU]
-        T --> U[Pelaksanaan Perjalanan Dinas Operasional]
-        U --> V[Kembali ke Pool & Input Laporan Pengembalian]
-        V --> W[Catat Kilometer Akhir, Sisa BBM & Kondisi Fisik]
+        M --> Q[Notifikasi Penolakan Masuk ke Akun Pemohon]
+        Q --> Z1([Selesai / Ajukan Alternatif])
+        O --> R[Notifikasi Persetujuan Masuk ke Akun Pemohon]
+        R --> S[Buka / Unduh Lembar Nota Dinas & SPK]
+        S --> T[Serah Terima Kunci Kontak & STNK di Pool]
+        T --> U[Pelaksanaan Perjalanan Dinas Kedinasan]
+        U --> V[Kembali ke Pool & Buka Menu Lapor Pengembalian]
+        V --> W[Input KM Akhir, Sisa BBM, dan Catatan Fisik]
         W --> X[(Database: Status Selesai / Terbit BAST)]
-        X --> Y[Perbarui Status Armada: Tersedia Kembali]
+        X --> Y[Kembalikan Status Armada: Tersedia]
         Y --> Z2([Selesai])
     end
 
@@ -240,24 +287,36 @@ erDiagram
     VEHICLES ||--o{ LOANS : "dialokasikan_ke"
     USERS ||--o{ APP_NOTIFICATIONS : "menerima_notifikasi"
     USERS ||--o{ PERSONAL_ACCESS_TOKENS : "memiliki_sesi"
+    NEWS {
+        bigint id PK "Nomor Identifikasi Berita"
+        string tag "Kategori Tag (PENGUMUMAN, dsb)"
+        string title "Judul Berita Kedinasan"
+        text desc "Uraian Isi Berita"
+        string date "Tanggal Publikasi Berita"
+        string image "Tautan Berkas Gambar Berita"
+        string author "Nama Penulis / Administrator"
+        boolean is_active "Status Keaktifan Publikasi"
+        timestamp created_at "Waktu Terbit"
+        timestamp updated_at "Waktu Pembaruan"
+    }
 
     USERS {
-        bigint id PK "Nomor Identifikasi Pengguna (ID)"
+        bigint id PK "Nomor Identifikasi Pengguna"
         string name "Nama Lengkap Pegawai"
         string nip UK "Nomor Induk Pegawai (NIP)"
         string email UK "Alamat Email Kedinasan"
-        string password "Kata Sandi Terenkripsi"
+        string password "Kata Sandi Terenkripsi (Bcrypt)"
         string role "Peran: pegawai | admin | superadmin"
         string position "Jabatan Kedinasan"
         string department "Sub Bagian / Bidang Dinas"
         string phone "Nomor Telepon / WhatsApp"
-        text fcm_token "Token Notifikasi Perangkat"
+        text fcm_token "Token Firebase Cloud Messaging"
         timestamp created_at "Waktu Akun Dibuat"
         timestamp updated_at "Waktu Akun Diperbarui"
     }
 
     VEHICLES {
-        bigint id PK "Nomor Identifikasi Kendaraan (ID)"
+        bigint id PK "Nomor Identifikasi Kendaraan"
         string name "Nama Unit Kendaraan"
         string brand "Merk / Pabrikan Kendaraan"
         string plate_number UK "Nomor Polisi Kendaraan Dinas"
@@ -266,7 +325,7 @@ erDiagram
         string transmission "Transmisi: Manual | Matic"
         int odometer "Catatan Kilometer Terakhir (KM)"
         int fuel_percent "Kapasitas Sisa Bahan Bakar (%)"
-        string fuel_type "Jenis Bahan Bakar Armada"
+        string fuel_type "Jenis Bahan Bakar"
         string status "Status: tersedia | digunakan | perbaikan"
         text condition_notes "Catatan Kondisi Fisik & Mesin"
         string image_url "Tautan Berkas Foto Kendaraan"
@@ -276,24 +335,24 @@ erDiagram
 
     LOANS {
         string id PK "Nomor Registrasi Usulan (REQ-...)"
-        bigint user_id FK "ID Pegawai Pemohon"
+        bigint user_id FK "ID Pegawai Pemohon (Indexed)"
         string borrower_name "Nama Lengkap Peminjam"
         string department "Bidang Dinas Pemohon"
-        string vehicle_id FK "ID Kendaraan yang Dipinjam"
+        string vehicle_id FK "ID Kendaraan yang Dipinjam (Indexed)"
         string vehicle_name "Nama Unit Kendaraan"
         string destination "Kota / Wilayah Tujuan Dinas"
         text destination_address "Alamat Lengkap Tujuan Dinas"
         text purpose_description "Urgensi dan Keperluan Tugas"
-        date start_date "Tanggal Mulai Peminjaman"
-        date end_date "Tanggal Selesai Peminjaman"
-        string official_note_number "Nomor Surat Usulan / Nota Dinas"
-        longtext sim_photo_path "Berkas Foto SIM Pemohon"
-        string status "Status: menunggu | disetujui | digunakan | selesai | ditolak | dibatalkan"
+        date start_date "Tanggal Mulai Peminjaman (Indexed)"
+        date end_date "Tanggal Selesai Peminjaman (Indexed)"
+        string official_note_number "Nomor Surat Usulan / Dokumen"
+        longtext sim_photo_path "Path URL / Dokumen SIM & Berkas"
+        string status "Status: menunggu | disetujui | digunakan | selesai | ditolak (Indexed)"
         string spk_number "Nomor Surat Perintah Kerja (SPK)"
-        text rejection_reason "Catatan Alasan Penolakan dari Kasubag"
+        text rejection_reason "Catatan Alasan Penolakan Kasubag"
         int return_odometer "Catatan Kilometer Akhir Pengembalian"
         string return_fuel "Sisa Bahan Bakar Saat Kembali"
-        text return_notes "Catatan Kondisi Fisik Setelah Digunakan"
+        text return_notes "Catatan Fisik Pengembalian"
         datetime returned_at "Waktu Pengembalian Resmi (BAST)"
         datetime submitted_at "Waktu Pengajuan Usulan Dikirim"
         timestamp created_at "Waktu Catatan Dibuat"
@@ -301,36 +360,30 @@ erDiagram
     }
 
     APP_NOTIFICATIONS {
-        bigint id PK "Nomor Identifikasi Notifikasi (ID)"
-        bigint user_id FK "ID Pengguna Penerima (Kosong = Kasubag)"
+        bigint id PK "Nomor Identifikasi Notifikasi"
+        bigint user_id FK "ID Pengguna Penerima (NULL = Kasubag) (Indexed)"
         string title "Judul Pemberitahuan Notifikasi"
         text message "Rincian Isi Pesan Notifikasi"
         string type "Kategori: pengajuan | persetujuan | penolakan | info"
-        string reference_number "Nomor Registrasi Referensi (REQ / SPK)"
-        boolean is_read "Status Keterbacaan Pesan"
+        string reference_number "Nomor Referensi (REQ / SPK)"
+        boolean is_read "Status Keterbacaan Pesan (Indexed)"
         timestamp created_at "Waktu Notifikasi Terbit"
         timestamp updated_at "Waktu Notifikasi Diperbarui"
     }
 
     PERSONAL_ACCESS_TOKENS {
-        bigint id PK "Nomor Identifikasi Token (ID)"
+        bigint id PK "Nomor Identifikasi Token"
         string tokenable_type "Tipe Entitas Model Terkait"
         bigint tokenable_id FK "ID Pengguna Pemilik Token"
         string name "Nama Perangkat / Sesi Pengguna"
-        string token UK "Kode Kunci Akses Rahasia"
-        text abilities "Hak Akses & Wewenang Token"
+        string token UK "Kunci Akses Rahasia Token"
+        text abilities "Hak Akses Token"
         timestamp last_used_at "Waktu Terakhir Digunakan"
-        timestamp expires_at "Batas Waktu Kedaluwarsa Sesi"
+        timestamp expires_at "Batas Kedaluwarsa Sesi"
         timestamp created_at "Waktu Token Diterbitkan"
         timestamp updated_at "Waktu Token Diperbarui"
     }
 ```
-
-### 🔗 Integritas Data & Relasi
-1. **`users` ➔ `loans` (Satu-ke-Banyak)**: Satu akun pegawai dapat memiliki banyak riwayat pengajuan permohonan dinas (`loans.user_id` merujuk ke `users.id`).
-2. **`vehicles` ➔ `loans` (Satu-ke-Banyak)**: Satu armada kendaraan dapat dijadwalkan dalam banyak agenda dinas (`loans.vehicle_id` merujuk ke `vehicles.id`).
-3. **`users` ➔ `app_notifications` (Satu-ke-Banyak)**: Notifikasi status persetujuan, penolakan, atau pesan personal terikat langsung ke akun pemohon (`app_notifications.user_id`). Notifikasi dengan `user_id = NULL` berlaku sebagai notifikasi umum verifikasi untuk Kasubag/Admin.
-4. **`users` ➔ `personal_access_tokens` (Satu-ke-Banyak)**: Mengelola sesi login multi-perangkat melalui token Sanctum untuk keamanan API.
 
 ---
 
@@ -338,63 +391,111 @@ erDiagram
 
 ```bash
 SIP-K/
-├── android/                 # Konfigurasi native sistem Android & Gradle
-├── assets/                  # Logo SIP-K, foto armada dinas, dan ikon
-├── backend/                 # Kode sumber REST API Laravel 11
-│   ├── app/Http/Controllers # Controller Otentikasi, Pinjaman, Armada, Notifikasi, Pengguna
-│   ├── app/Models/          # Model Eloquent (User, Loan, Vehicle, AppNotification)
-│   ├── database/migrations/ # Skema struktur tabel database MySQL
-│   ├── database/seeders/    # Data awal armada dan akun default
-│   └── routes/api.php       # Endpoint REST API
-├── lib/                     # Kode sumber aplikasi Flutter
-│   ├── models/              # Model data Dart (Kendaraan, Pinjaman, Notifikasi, Pengguna)
-│   ├── screens/             # Tampilan UI (Dashboard, Formulir, Admin, Notifikasi)
-│   ├── services/            # Layanan API, Firebase FCM, dan Manajemen Tema
-│   └── widgets/             # Komponen UI khusus (Kartu armada, dialog perbesar SIM)
-├── sip-k-database.sql       # Berkas cadangan database MySQL siap pakai
-└── pubspec.yaml             # Manajemen paket dan dependensi Flutter
+├── android/                 # Konfigurasi native Android (Gradle, Manifest, Permissions)
+├── assets/                  # Logo SIP-K, gambar kendaraan dinas, & aset ikon
+├── backend/                 # Backend RESTful API berbasis Laravel 11
+│   ├── app/Http/Controllers # Controller: Auth, Loan, Vehicle, Notification, User, News
+│   ├── app/Models/          # Model Eloquent: User, Loan, Vehicle, AppNotification, News
+│   ├── database/migrations/ # Skema migrasi tabel & indeks performa MySQL
+│   ├── database/seeders/    # Seeder data pengguna, kendaraan, & berita awal
+│   ├── public/storage/      # Direktori publik penyimpanan berkas SIM & PDF
+│   └── routes/api.php       # Definisi endpoint REST API
+├── lib/                     # Aplikasi Flutter Multiplatform
+│   ├── models/              # Model data Dart (Kendaraan, Pinjaman, Notifikasi, Pengguna, Berita)
+│   ├── screens/             # Layanan layar tampilan UI:
+│   │   ├── home_screen.dart          # Dashboard utama, kalender, berita, & navigasi
+│   │   ├── loan_form_screen.dart     # Formulir pengajuan permohonan dinas
+│   │   ├── loan_history_screen.dart  # Riwayat peminjaman & pelaporan BAST
+│   │   ├── admin_screen.dart         # Panel verifikasi usulan & manajemen armada
+│   │   ├── user_management_screen.dart # Manajemen pengguna & import file Excel
+│   │   ├── notification_screen.dart  # Pusat notifikasi terpersonalisasi
+│   │   └── profile_screen.dart       # Profil akun & helpdesk WhatsApp
+│   ├── services/            # Logika bisnis & integrasi:
+│   │   ├── api_service.dart          # Klien HTTP persistent, caching, & pemanggilan API
+│   │   ├── api_config.dart           # Konfigurasi endpoint URL & kontak helpdesk
+│   │   ├── excel_import_service.dart # Parser berkas Excel .xlsx dengan deteksi peran
+│   │   ├── firebase_service.dart     # Pengelola notifikasi push Firebase FCM
+│   │   └── theme_service.dart        # Pengelola mode tema tampilan
+│   └── widgets/             # Komponen UI interaktif (PDF Viewer Dialog, Zoom SIM, dsb)
+├── sip-k-database.sql       # Cadangan skema basis data MySQL siap pakai
+└── pubspec.yaml             # Konfigurasi dependensi dan pustaka Flutter
 ```
 
 ---
 
-## 🚀 Panduan Instalasi & Menjalankan
+## 🚀 Panduan Instalasi & Deployment
 
-### 1. Menjalankan Backend Laravel
-Pastikan PHP (>= 8.2) dan MySQL sudah terpasang dan berjalan (Laragon / XAMPP):
+### A. Pengujian & Pengembangan Lokal (Local Development)
+
+#### 1. Menjalankan Backend Laravel
+Pastikan PHP (>= 8.2) dan MySQL telah terpasang (Laragon / XAMPP):
 ```bash
 cd backend
 composer install
 cp .env.example .env
 php artisan key:generate
 
-# Konfigurasi database pada berkas .env:
+# Konfigurasi berkas .env untuk database:
 # DB_DATABASE=sip-k
 # DB_USERNAME=root
 # DB_PASSWORD=
 
+# Jalankan migrasi dan penghubung storage:
+php artisan storage:link
 php artisan migrate --seed
-php artisan serve
+php artisan serve --host=0.0.0.0 --port=8000
 ```
 
-### 2. Menjalankan Aplikasi Flutter
+#### 2. Menjalankan Aplikasi Flutter
 ```bash
-# Unduh paket dan dependensi
+# Unduh seluruh paket dependensi
 flutter pub get
 
-# Menjalankan di browser Chrome / Web
+# Jalankan di Google Chrome (Web)
 flutter run -d chrome
 
-# Menjalankan di perangkat fisik Android / Emulator
+# Jalankan di Perangkat Android Fisik / Emulator
 flutter run
 ```
 
-### 3. Konfigurasi Endpoint API
-Untuk menghubungkan aplikasi ke server, perbarui URL pada `lib/services/api_config.dart`:
-```dart
-class ApiConfig {
-  static String get baseUrl => 'http://<IP_KOMPUTER_ATAU_DOMAIN>/sip-k-backend/public/api';
-}
+---
+
+### B. Deployment Server Produksi (Azure Cloud Virtual Machine)
+
+Sistem telah berjalan pada server **Azure Cloud Virtual Machine (Ubuntu 22.04 LTS)** dengan alamat IP: `20.244.48.18`.
+
+Langkah-langkah pembaruan (*deploy update*) di server produksi:
+
+```bash
+# 1. Masuk ke server melalui SSH
+ssh dewa@20.244.48.18
+
+# 2. Masuk ke direktori backend proyek
+cd /var/www/Sip-k/backend
+
+# 3. Ambil pembaruan kode terbaru dari GitHub
+git pull origin main
+
+# 4. Pasang/perbarui pustaka dependensi PHP
+composer install --no-dev --optimize-autoloader
+
+# 5. Jalankan migrasi basis data (termasuk indeks performa baru)
+php artisan migrate --force
+
+# 6. Pastikan symbolic link storage sudah aktif
+php artisan storage:link
+
+# 7. Bersihkan dan optimalkan cache produksi
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# 8. Pastikan izin akses folder storage dan cache telah sesuai
+sudo chown -R www-data:www-data storage bootstrap/cache
+sudo chmod -R 775 storage bootstrap/cache
 ```
+
+> **Catatan:** Jika perintah `php artisan storage:link` menampilkan pesan `ERROR The [public/storage] link already exists`, artinya tautan simbolik sudah terpasang dan berfungsi dengan baik.
 
 ---
 
@@ -402,15 +503,17 @@ class ApiConfig {
 
 | Peran / Hak Akses | Nama Pengguna | Akun Masuk (Email / NIP) | Kata Sandi | Wewenang Utama |
 |---|---|---|---|---|
-| **Pegawai (Pemohon)** | Alamsyah | `199503152020121002` | `password` | Pengajuan dinas, pantau SPK, cetak Nota Dinas |
-| **Kasubag Umum (Admin TU)** | Ahmad Dewantara, S.STP | `admin@dinsos.jatimprov.go.id` | `admin123` | Verifikasi berkas, setujui / tolak usulan SPK |
-| **Super Administrator** | Super Admin SIP-K | `superadmin@dinsos.jatimprov.go.id` | `superadmin123` | Hak akses penuh, kelola armada & pengguna |
+| **Pegawai (Pemohon)** | Alamsyah | `199503152020121002` | `password` | Pengajuan dinas, pantau status, pratinjau & cetak dokumen |
+| **Kasubag Umum (Admin TU)** | Ahmad Dewantara, S.STP | `admin@dinsos.jatimprov.go.id` | `admin123` | Verifikasi berkas usulan, setujui / tolak permohonan SPK |
+| **Super Administrator** | Super Admin SIP-K | `superadmin@dinsos.jatimprov.go.id` | `superadmin123` | Akses penuh, import Excel massal, manajemen armada & pengguna |
+
+*Layanan Bantuan Akun:* **Helpdesk WhatsApp Admin SIP-K: [0856-0783-2173](https://wa.me/6285607832173)**
 
 ---
 
 ## 📄 Lisensi
 Hak Cipta © 2026 **Pemerintah Provinsi Jawa Timur — Dinas Sosial**.  
-Dikembangkan untuk mendukung digitalisasi dan transparansi tata kelola aset daerah.
+Dikembangkan untuk mendukung digitalisasi, transparansi, dan efisiensi tata kelola aset kendaraan dinas operasional daerah.
 
 ---
 
@@ -421,5 +524,5 @@ Dikembangkan untuk mendukung digitalisasi dan transparansi tata kelola aset daer
 
 ---
 <p align="center">
-  <sub>Sistem Informasi Pengelolaan Kendaraan (SIP-K) • Dinas Sosial Provinsi Jawa Timur</sub>
+  <sub>Sistem Informasi Pengelolaan Kendaraan Dinas Operasional (SIP-K / OVBS)<br/>Dinas Sosial Provinsi Jawa Timur</sub>
 </p>
