@@ -22,6 +22,7 @@
   <a href="#%EF%B8%8F-arsitektur--optimasi-performa-tinggi">Arsitektur & Kinerja</a> •
   <a href="#-diagram-kasus-penggunaan-use-case-diagram">Use Case</a> •
   <a href="#-diagram-aktivitas-activity-diagram">Activity Diagram</a> •
+  <a href="#-data-flow-diagram-dfd">DFD</a> •
   <a href="#-diagram-alur-sistem-flowchart-operasional">Flowchart</a> •
   <a href="#%EF%B8%8F-struktur-basis-data-erd">ERD</a> •
   <a href="#-panduan-instalasi--deployment">Instalasi & Deployment</a> •
@@ -365,6 +366,258 @@ flowchart TD
     class act_ret_p1,act_ret_p2,act_ret_p3,act_ret_p4,act_ret_a1,act_ret_a2 activity;
     class act_ret_s1,act_ret_s2,act_ret_s3,act_ret_s4 system;
 ```
+
+---
+
+## 📊 Data Flow Diagram (DFD)
+
+Data Flow Diagram (DFD) memodelkan aliran informasi, transformasi masukan (*input*) menjadi keluaran (*output*), dan interaksi proses dengan penyimpanan data (*data store*) secara berjenjang mulai dari tingkat makro hingga mikro.
+
+```text
+┌─────────────────────────┐     ┌─────────────────────────┐     ┌─────────────────────────┐
+│       DFD LEVEL 0       │ ──> │       DFD LEVEL 1       │ ──> │       DFD LEVEL 2       │
+│    (Diagram Konteks)    │     │    (Diagram Ikhtisar)   │     │    (Diagram Rinci)      │
+│  Sistem secara global   │     │  6 Proses Utama Sistem  │     │ Dekomposisi Proses 3 & 4│
+└─────────────────────────┘     └─────────────────────────┘     └─────────────────────────┘
+```
+
+---
+
+### 1. DFD Level 0 (Context Diagram / Diagram Konteks)
+
+Diagram Konteks memodelkan seluruh sistem **SIP-K / OVBS** sebagai satu proses tunggal yang berinteraksi langsung dengan tiga entitas eksternal: **Pegawai (Pemohon)**, **Kasubag Umum / Admin TU**, dan **Super Administrator**.
+
+```mermaid
+flowchart TD
+    %% Entitas Eksternal
+    ENT_PEGAWAI["👤 PEGAWAI<br/>(Pemohon)"]
+    ENT_KASUBAG["🛡️ KASUBAG UMUM<br/>(Admin TU / Verifikator)"]
+    ENT_SUPERADMIN["👑 SUPER ADMINISTRATOR<br/>(Pengelola Pusat)"]
+
+    %% Proses Tunggal Level 0
+    PROC_MAIN(("0.0<br/>SISTEM INFORMASI<br/>PENGELOLAAN KENDARAAN<br/>(SIP-K / OVBS)"))
+
+    %% Aliran Data: Pegawai <-> Sistem
+    ENT_PEGAWAI -->|"1. Kredensial Login (Email/NIP, Password)<br/>2. Formulir Usulan & Jadwal Dinas<br/>3. Berkas Foto SIM & Surat Usulan (PDF)<br/>4. Laporan Pengembalian (KM, BBM, Catatan)"| PROC_MAIN
+    PROC_MAIN -->|"1. Token Sesi & Profil Akun<br/>2. Katalog Armada & Ketersediaan Unit<br/>3. Status Verifikasi (Disetujui/Ditolak)<br/>4. Dokumen Lembar Nota Dinas & SPK<br/>5. Notifikasi Personal & Berita Kedinasan"| ENT_PEGAWAI
+
+    %% Aliran Data: Kasubag Umum <-> Sistem
+    ENT_KASUBAG -->|"1. Kredensial Login Kasubag<br/>2. Keputusan Verifikasi (Setuju/Tolak + Catatan)<br/>3. Pembaruan Status Unit (Servis/Tersedia)"| PROC_MAIN
+    PROC_MAIN -->|"1. Daftar Pengajuan Usulan Menunggu Verifikasi<br/>2. Pratinjau Dokumen Pemohon (SIM & PDF Asli)<br/>3. Jadwal Kalender Operasional Seluruh Armada<br/>4. Notifikasi Usulan Baru & Berita Acara BAST"| ENT_KASUBAG
+
+    %% Aliran Data: Super Admin <-> Sistem
+    ENT_SUPERADMIN -->|"1. Kredensial Login Super Admin<br/>2. Berkas Import Pengguna Excel (.xlsx)<br/>3. Manajemen CRUD Pengguna & Armada<br/>4. Konten Berita & Pengumuman Kedinasan"| PROC_MAIN
+    PROC_MAIN -->|"1. Dashboard Statistik & Analitik Penggunaan<br/>2. Laporan Rekapitulasi Dinas & BBM (Ekspor)<br/>3. Log Sesi Autentikasi & Log Notifikasi Sistem"| ENT_SUPERADMIN
+
+    classDef entity fill:#1E293B,stroke:#3B82F6,stroke-width:2px,color:#fff;
+    classDef process fill:#0F766E,stroke:#14B8A6,stroke-width:2.5px,color:#fff;
+
+    class ENT_PEGAWAI,ENT_KASUBAG,ENT_SUPERADMIN entity;
+    class PROC_MAIN process;
+```
+
+---
+
+### 2. DFD Level 1 (Diagram Ikhtisar / Overview Diagram)
+
+Mendekomposisi sistem menjadi 6 sub-proses utama serta memetakan interaksinya dengan 6 tabel basis data (*data store*).
+
+```mermaid
+flowchart TD
+    %% Entitas Eksternal
+    E_PEG["👤 Pegawai"]
+    E_KAS["🛡️ Kasubag TU"]
+    E_ADM["👑 Super Admin"]
+
+    %% Proses Level 1
+    P1(("1.0<br/>Autentikasi &<br/>Kelola Akun"))
+    P2(("2.0<br/>Manajemen Master<br/>Armada Dinas"))
+    P3(("3.0<br/>Peminjaman &<br/>Verifikasi SPK"))
+    P4(("4.0<br/>Pengembalian &<br/>Laporan BAST"))
+    P5(("5.0<br/>Publikasi Berita &<br/>Notifikasi FCM"))
+    P6(("6.0<br/>Analitik Eksekutif<br/>& Rekapitulasi"))
+
+    %% Data Stores
+    D1[("D1: USERS")]
+    D2[("D2: VEHICLES")]
+    D3[("D3: LOANS")]
+    D4[("D4: APP_NOTIFICATIONS")]
+    D5[("D5: NEWS")]
+    D6[("D6: PERSONAL_ACCESS_TOKENS")]
+
+    %% Alur Proses 1.0 (Autentikasi & Akun)
+    E_PEG & E_KAS & E_ADM -->|"Input Login"| P1
+    E_ADM -->|"Data Import Excel / Tambah Akun"| P1
+    P1 <-->|"Cek Akun & Simpan Profil"| D1
+    P1 <-->|"Terbitkan / Validasi Token Sesi"| D6
+    P1 -->|"Sesi Aktif & Profil"| E_PEG & E_KAS & E_ADM
+
+    %% Alur Proses 2.0 (Armada)
+    E_ADM -->|"Input / Ubah Data Armada"| P2
+    E_KAS -->|"Ubah Status Operasional / Servis"| P2
+    P2 <-->|"Simpan / Perbarui Unit"| D2
+    P2 -->|"Informasi Katalog & Status Ketersediaan"| E_PEG & E_KAS
+
+    %% Alur Proses 3.0 (Peminjaman & Verifikasi)
+    E_PEG -->|"Formulir Usulan, Foto SIM & PDF"| P3
+    P3 <-->|"Cek Jadwal & Kunci Status Unit"| D2
+    P3 <-->|"Simpan Usulan, SPK, & Status"| D3
+    P3 -->|"Data Usulan & Berkas Lampiran"| E_KAS
+    E_KAS -->|"Persetujuan / Catatan Penolakan"| P3
+    P3 -->|"Lembar Nota Dinas & Nomor SPK"| E_PEG
+    P3 -->|"Trigger Notifikasi Usulan & SPK"| P5
+
+    %% Alur Proses 4.0 (Pengembalian & BAST)
+    E_PEG -->|"Input KM Akhir, Sisa BBM, Catatan"| P4
+    P4 <-->|"Ambil Data Pinjaman Aktif & Simpan BAST"| D3
+    P4 -->|"Kembalikan Status Armada: Tersedia"| D2
+    P4 -->|"Rekap Data BAST Selesai"| E_KAS
+    P4 -->|"Trigger Notifikasi BAST"| P5
+
+    %% Alur Proses 5.0 (Berita & Notifikasi)
+    E_ADM -->|"Input Konten Berita Dinas"| P5
+    P5 <-->|"Kelola Publikasi Berita"| D5
+    P5 <-->|"Simpan Riwayat Pesan Notifikasi"| D4
+    P5 -->|"Feed Berita & Push Notification"| E_PEG & E_KAS
+
+    %% Alur Proses 6.0 (Analitik & Laporan)
+    D1 & D2 & D3 -->|"Agregasi Data Riwayat, Armada, & Akun"| P6
+    P6 -->|"Dashboard Analitik & Rekap Laporan Bulanan"| E_ADM
+
+    classDef entity fill:#1E293B,stroke:#3B82F6,stroke-width:2px,color:#fff;
+    classDef process fill:#0F766E,stroke:#14B8A6,stroke-width:1.8px,color:#fff;
+    classDef datastore fill:#1E1E38,stroke:#F59E0B,stroke-width:2px,color:#fff;
+
+    class E_PEG,E_KAS,E_ADM entity;
+    class P1,P2,P3,P4,P5,P6 process;
+    class D1,D2,D3,D4,D5,D6 datastore;
+```
+
+---
+
+### 3. DFD Level 2 (Diagram Rinci / Detailed Decomposition)
+
+Dekomposisi dua proses inti yang menjadi pilar operasional sistem:
+
+#### A. DFD Level 2 — Proses 3.0: Pengelolaan Peminjaman & Verifikasi SPK
+
+```mermaid
+flowchart TD
+    %% Entitas
+    PEG["👤 Pegawai (Pemohon)"]
+    KAS["🛡️ Kasubag TU (Verifikator)"]
+
+    %% Sub-Proses 3.0
+    P3_1(("3.1<br/>Validasi Ketersediaan<br/>& Jadwal Bebas-Benturan"))
+    P3_2(("3.2<br/>Penerimaan Berkas SIM &<br/>Dokumen PDF ke Storage"))
+    P3_3(("3.3<br/>Verifikasi Berkas &<br/>Pratinjau Multi-Format"))
+    P3_4(("3.4<br/>Pemrosesan Persetujuan<br/>& Penolakan Usulan"))
+    P3_5(("3.5<br/>Penerbitan Nomor SPK &<br/>Lembar Nota Dinas"))
+
+    %% Data Stores
+    D2[("D2: VEHICLES")]
+    D3[("D3: LOANS")]
+    D4[("D4: APP_NOTIFICATIONS")]
+    STORE[("Storage Disk:<br/>loan_documents/")]
+
+    %% Alur Data
+    PEG -->|"Pilih Unit & Tanggal Pinjam"| P3_1
+    P3_1 <-->|"Cek Riwayat Jadwal Armada"| D3
+    P3_1 <-->|"Cek Status Kesiapan Fisik"| D2
+
+    P3_1 -->|"Jadwal Valid"| P3_2
+    PEG -->|"Upload Foto SIM & Dokumen PDF"| P3_2
+    P3_2 -->|"Decode Base64 & Simpan Berkas"| STORE
+    P3_2 -->|"Simpan Rekor Usulan (Status: Menunggu)"| D3
+    P3_2 -->|"Kirim Notif Usulan Masuk"| D4
+
+    D3 -->|"Muat Data Usulan Baru"| P3_3
+    STORE -->|"Streaming File SIM & PDF Asli"| P3_3
+    P3_3 -->|"Tampilkan Pratinjau Berkas & Jadwal"| KAS
+
+    KAS -->|"Input Keputusan (Setuju / Tolak + Alasan)"| P3_4
+    P3_4 -->|"Update Status: Ditolak + Catatan Alasan"| D3
+    P3_4 -->|"Kirim Notifikasi Penolakan ke Pemohon"| D4
+
+    P3_4 -->|"Jika Disetujui: Teruskan ke Generator SPK"| P3_5
+    P3_5 -->|"Generate No. SPK Unik & Kunci Armada (Digunakan)"| D2
+    P3_5 -->|"Update Status: Disetujui + No. SPK"| D3
+    P3_5 -->|"Kirim Notifikasi Persetujuan"| D4
+    P3_5 -->|"Lembar Nota Dinas Resmi & Nomor SPK"| PEG
+
+    classDef entity fill:#1E293B,stroke:#3B82F6,stroke-width:2px,color:#fff;
+    classDef process fill:#0F766E,stroke:#14B8A6,stroke-width:1.8px,color:#fff;
+    classDef datastore fill:#1E1E38,stroke:#F59E0B,stroke-width:2px,color:#fff;
+
+    class PEG,KAS entity;
+    class P3_1,P3_2,P3_3,P3_4,P3_5 process;
+    class D2,D3,D4,STORE datastore;
+```
+
+---
+
+#### B. DFD Level 2 — Proses 4.0: Pengembalian Armada & Pelaporan BAST
+
+```mermaid
+flowchart TD
+    %% Entitas
+    PEG["👤 Pegawai (Peminjam)"]
+    KAS["🛡️ Kasubag TU / Petugas Pool"]
+
+    %% Sub-Proses 4.0
+    P4_1(("4.1<br/>Penerimaan Data Laporan<br/>Fisik (KM & BBM)"))
+    P4_2(("4.2<br/>Validasi Selisih Odometer<br/>& Terbitkan BAST"))
+    P4_3(("4.3<br/>Pemulihan Status Kesiapan<br/>Armada ke Pool"))
+    P4_4(("4.4<br/>Pengiriman Notifikasi<br/>Serah Terima Fisik"))
+
+    %% Data Stores
+    D2[("D2: VEHICLES")]
+    D3[("D3: LOANS")]
+    D4[("D4: APP_NOTIFICATIONS")]
+
+    %% Alur Data
+    PEG -->|"Input KM Akhir, Sisa BBM (%), & Catatan Fisik"| P4_1
+    P4_1 <-->|"Ambil Rekor Pinjaman Aktif"| D3
+
+    P4_1 -->|"Data Laporan Terverifikasi"| P4_2
+    P4_2 -->|"Update Status Pinjaman: Selesai, Waktu Kembali (BAST)"| D3
+
+    P4_2 -->|"Picu Pemulihan Armada"| P4_3
+    P4_3 -->|"Perbarui Odometer Terakhir, BBM, & Status: Tersedia"| D2
+
+    P4_2 -->|"Picu Notifikasi Serah Terima"| P4_4
+    P4_4 -->|"Catat Notifikasi Pengembalian Unit"| D4
+    P4_4 -->|"Kirim Notifikasi Pengembalian ke Kasubag"| KAS
+    P4_2 -->|"Tanda Bukti Berita Acara (BAST)"| PEG & KAS
+
+    classDef entity fill:#1E293B,stroke:#3B82F6,stroke-width:2px,color:#fff;
+    classDef process fill:#0F766E,stroke:#14B8A6,stroke-width:1.8px,color:#fff;
+    classDef datastore fill:#1E1E38,stroke:#F59E0B,stroke-width:2px,color:#fff;
+
+    class PEG,KAS entity;
+    class P4_1,P4_2,P4_3,P4_4 process;
+    class D2,D3,D4 datastore;
+```
+
+---
+
+### 📖 Kamus Data Ringkas (*Data Dictionary*)
+
+| Elemen DFD | Nama / Kode | Tipe | Deskripsi Aliran & Komposisi Data |
+|---|---|:---:|---|
+| **Entitas Luar** | `Pegawai` | External Entity | Pegawai aparatur sipil pemohon kendaraan operasional dinas. |
+| **Entitas Luar** | `Kasubag Umum` | External Entity | Pejabat tata usaha yang berwenang memverifikasi berkas & menerbitkan SPK. |
+| **Entitas Luar** | `Super Administrator` | External Entity | Pengelola sistem pusat yang mengelola master data armada, pengguna, & analitik. |
+| **Data Store** | `D1: USERS` | Database Table | `id, name, nip, email, password, role, position, department, phone, fcm_token` |
+| **Data Store** | `D2: VEHICLES` | Database Table | `id, name, brand, plate_number, type, capacity, transmission, odometer, fuel_percent, status` |
+| **Data Store** | `D3: LOANS` | Database Table | `id, user_id, vehicle_id, destination, start_date, end_date, official_note_number, sim_photo_path, status, spk_number, return_odometer, returned_at` |
+| **Data Store** | `D4: APP_NOTIFICATIONS`| Database Table | `id, user_id, title, message, type, reference_number, is_read, created_at` |
+| **Data Store** | `D5: NEWS` | Database Table | `id, tag, title, desc, date, image, author, is_active, created_at` |
+| **Data Store** | `D6: PERSONAL_ACCESS_TOKENS` | Database Table | `id, tokenable_type, tokenable_id, name, token, abilities, last_used_at` |
+| **Data Flow** | `Formulir Usulan` | Data Flow | `{user_id, vehicle_id, destination, destination_address, purpose_description, start_date, end_date}` |
+| **Data Flow** | `Lampiran Dokumen` | Data Flow | `{sim_photo_raw (Base64/JPEG), official_note_doc (PDF/Image)}` |
+| **Data Flow** | `Penerbitan SPK` | Data Flow | `{loan_id, spk_number, approval_timestamp, status='disetujui'}` |
+| **Data Flow** | `Laporan BAST` | Data Flow | `{loan_id, return_odometer, return_fuel, return_notes, returned_at}` |
 
 ---
 
