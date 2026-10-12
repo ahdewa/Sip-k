@@ -390,28 +390,28 @@ flowchart TD
     SYS(["🌐 0.0 SISTEM INFORMASI PENGELOLAAN KENDARAAN (SIP-K / OVBS)"])
 
     %% Aliran Data Pegawai
-    E1 -->|1. Data Kredensial Login & NIP| SYS
-    E1 -->|2. Form Usulan, Foto SIM & PDF Surat Tugas| SYS
-    E1 -->|3. Laporan BAST Pengembalian (KM, BBM & Fisik)| SYS
-    SYS -->|4. Profil Akun & Token Sanctum| E1
-    SYS -->|5. Katalog Armada, Status Ketersediaan & Berita| E1
-    SYS -->|6. Lembar Nota Dinas, Dokumen SPK & Push Notifikasi| E1
+    E1 -->|1. Data Kredensial Login dan NIP| SYS
+    E1 -->|2. Form Usulan Foto SIM dan PDF Tugas| SYS
+    E1 -->|3. Laporan BAST Pengembalian KM BBM Fisik| SYS
+    SYS -->|4. Profil Akun dan Token Sanctum| E1
+    SYS -->|5. Katalog Armada Ketersediaan dan Berita| E1
+    SYS -->|6. Lembar Nota Dinas SPK dan Push Notifikasi| E1
 
     %% Aliran Data Kasubag Umum
     E2 -->|7. Kredensial Login Admin TU| SYS
-    E2 -->|8. Status Verifikasi, Penerbitan SPK / Catatan Penolakan| SYS
-    E2 -->|9. Pembaruan Kondisi & Status Armada Dinas| SYS
-    SYS -->|10. Notifikasi Usulan Masuk & Laporan Pengembalian| E2
-    SYS -->|11. Berkas Pengajuan (SIM, PDF Usulan & Profil Pemohon)| E2
-    SYS -->|12. Jadwal Kalender Operasional Seluruh Armada| E2
+    E2 -->|8. Status Verifikasi SPK atau Catatan Penolakan| SYS
+    E2 -->|9. Pembaruan Kondisi dan Status Armada| SYS
+    SYS -->|10. Notifikasi Usulan Masuk dan Pengembalian| E2
+    SYS -->|11. Berkas Pengajuan SIM PDF dan Profil Pemohon| E2
+    SYS -->|12. Jadwal Kalender Operasional Armada| E2
 
     %% Aliran Data Super Admin
     E3 -->|13. Kredensial Login Super Admin| SYS
-    E3 -->|14. Data Master Armada Kendaraan (CRUD)| SYS
-    E3 -->|15. Data Master Pengguna & File Template Excel .xlsx| SYS
-    E3 -->|16. Data Artikel & Pengumuman Berita Dinas| SYS
-    SYS -->|17. Rekap Master Data Pengguna, Armada & Log Sesi| E3
-    SYS -->|18. Dashboard Analitik, Statistik BBM & Laporan Dinas| E3
+    E3 -->|14. Data Master Armada Kendaraan CRUD| SYS
+    E3 -->|15. Data Master Pengguna dan File Excel| SYS
+    E3 -->|16. Data Artikel dan Berita Kedinasan| SYS
+    SYS -->|17. Rekap Master Data Pengguna dan Armada| E3
+    SYS -->|18. Dashboard Analitik Statistik BBM dan Laporan| E3
 
     classDef entity fill:#1E293B,stroke:#64748B,stroke-width:2px,color:#fff;
     classDef systemProcess fill:#1E3A8A,stroke:#3B82F6,stroke-width:3px,color:#fff;
@@ -455,38 +455,42 @@ flowchart TD
     %% 1.0 Otentikasi
     E_Pegawai -->|Kredensial Login| P1
     E_Kasubag -->|Kredensial Login| P1
-    E_SuperAdmin -->|Kredensial Login & File Excel .xlsx| P1
-    P1 <-->|Validasi & Catat Data Pengguna| D1
-    P1 -->|Token Akses & Sesi Akun| E_Pegawai
-    P1 -->|Token Akses & Sesi Akun| E_Kasubag
-    P1 -->|Token Akses & Sesi Akun| E_SuperAdmin
+    E_SuperAdmin -->|Kredensial Login dan File Excel| P1
+    P1 -->|Validasi dan Catat Data| D1
+    D1 -.->|Ambil Data Akun| P1
+    P1 -->|Token Akses dan Sesi Akun| E_Pegawai
+    P1 -->|Token Akses dan Sesi Akun| E_Kasubag
+    P1 -->|Token Akses dan Sesi Akun| E_SuperAdmin
 
     %% 2.0 Master Data
-    E_SuperAdmin -->|Kelola Data Unit & Publikasi Berita| P2
-    P2 <-->|CRUD Master Data Armada| D2
-    P2 <-->|CRUD Artikel Pengumuman| D5
-    P2 -->|Katalog Armada & Informasi Berita| E_Pegawai
-    P2 -->|Katalog Armada & Informasi Berita| E_Kasubag
+    E_SuperAdmin -->|Kelola Unit dan Publikasi Berita| P2
+    P2 -->|Simpan Data Armada| D2
+    D2 -.->|Baca Master Armada| P2
+    P2 -->|Simpan Artikel Pengumuman| D5
+    D5 -.->|Baca Data Berita| P2
+    P2 -->|Katalog Armada dan Info Berita| E_Pegawai
+    P2 -->|Katalog Armada dan Info Berita| E_Kasubag
 
     %% 3.0 Pengajuan Pinjaman
-    E_Pegawai -->|Formulir Usulan, Foto SIM & PDF| P3
+    E_Pegawai -->|Formulir Usulan Foto SIM dan PDF| P3
     D2 -.->|Pengecekan Ketersediaan Unit| P3
-    P3 -->|Simpan Usulan (Status: Menunggu)| D3
-    P3 -->|Simpan Berkas Dokumen (Path)| D6
+    P3 -->|Simpan Usulan Status Menunggu| D3
+    P3 -->|Simpan File Dokumen Storage| D6
     P3 -->|Trigger Notif Usulan Masuk| P6
 
     %% 4.0 Verifikasi
-    E_Kasubag -->|Persetujuan / Penolakan & Nomor SPK| P4
-    D3 <-->|Ambil Usulan & Update Status Disetujui/Ditolak| P4
-    D6 -.->|Baca Dokumen SIM & Berkas PDF Pemohon| P4
-    P4 -->|Update Status Armada: Digunakan| D2
+    E_Kasubag -->|Persetujuan Penolakan dan Nomor SPK| P4
+    D3 -.->|Ambil Data Usulan Menunggu| P4
+    P4 -->|Update Status Usulan Disetujui Ditolak| D3
+    D6 -.->|Baca Berkas SIM dan PDF Pemohon| P4
+    P4 -->|Update Status Armada Digunakan| D2
     P4 -->|Trigger Notif Hasil Verifikasi| P6
-    P4 -->|Lembar Nota Dinas & SPK Sah| E_Pegawai
+    P4 -->|Lembar Nota Dinas dan SPK Sah| E_Pegawai
 
     %% 5.0 Pengembalian
-    E_Pegawai -->|Data Odometer, Sisa BBM & Fisik| P5
-    P5 -->|Update Status: Selesai & BAST| D3
-    P5 -->|Pulihkan Status Armada: Tersedia| D2
+    E_Pegawai -->|Data Odometer Sisa BBM dan Fisik| P5
+    P5 -->|Update Status Selesai dan BAST| D3
+    P5 -->|Pulihkan Status Armada Tersedia| D2
     P5 -->|Trigger Notif Serah Terima Unit| P6
     P5 -->|Laporan Konfirmasi BAST Selesai| E_Kasubag
 
@@ -499,7 +503,7 @@ flowchart TD
     %% 7.0 Analitik
     D2 -.->|Statistik Unit Armada| P7
     D3 -.->|Rekapitulasi Dinas Bulanan| P7
-    P7 -->|Visualisasi Tren BBM & Ekspor Laporan| E_SuperAdmin
+    P7 -->|Visualisasi Tren BBM dan Ekspor Laporan| E_SuperAdmin
     P7 -->|Kalender Jadwal Operasional Seluruh Unit| E_Kasubag
 
     classDef entity fill:#1E293B,stroke:#64748B,stroke-width:2px,color:#fff;
@@ -535,18 +539,18 @@ flowchart TD
     D4[("D4: Data Notifikasi (app_notifications)")]
     D6[("D6: Berkas Storage (loan_documents)")]
 
-    E_Pegawai -->|Pilih Kendaraan & Rentang Tanggal| P3_1
+    E_Pegawai -->|Pilih Kendaraan dan Rentang Tanggal| P3_1
     D2 -.->|Status Operasional Kendaraan| P3_1
     D3 -.->|Jadwal Peminjaman yang Sedang Berjalan| P3_1
-    P3_1 -->|Konfirmasi Unit Siap & Bebas Benturan| P3_2
+    P3_1 -->|Konfirmasi Unit Siap dan Bebas Benturan| P3_2
 
-    E_Pegawai -->|Upload Foto SIM & Dokumen PDF Dinas| P3_2
-    P3_2 -->|Decode & Simpan File Fisik| D6
+    E_Pegawai -->|Upload Foto SIM dan Dokumen PDF Dinas| P3_2
+    P3_2 -->|Decode dan Simpan File Fisik| D6
     P3_2 -->|Path URL Berkas Dokumen| P3_3
 
-    E_Pegawai -->|Rincian Tujuan Dinas & Urgensi Tugas| P3_3
-    P3_3 -->|Simpan Record Usulan Baru (Status: Menunggu)| D3
-    P3_3 -->|ID Permohonan (REQ-...) & Data Ringkas| P3_4
+    E_Pegawai -->|Rincian Tujuan Dinas dan Urgensi Tugas| P3_3
+    P3_3 -->|Simpan Record Usulan Baru Status Menunggu| D3
+    P3_3 -->|ID Permohonan REQ dan Data Ringkas| P3_4
 
     P3_4 -->|Tulis Notifikasi Pengajuan Masuk ke Admin| D4
     P3_3 -->|Konfirmasi Usulan Berhasil Diajukan| E_Pegawai
@@ -581,24 +585,23 @@ flowchart TD
     D6[("D6: Berkas Storage (loan_documents)")]
 
     D3 -.->|Daftar Usulan Menunggu Verifikasi| P4_1
-    D6 -.->|Pratinjau Foto SIM & Berkas PDF Asli| P4_1
-    P4_1 -->|Tampilan Berkas & Profil Pemohon| E_Kasubag
+    D6 -.->|Pratinjau Foto SIM dan Berkas PDF Asli| P4_1
+    P4_1 -->|Tampilan Berkas dan Profil Pemohon| E_Kasubag
 
     %% Alur Tolak
-    E_Kasubag -->|Keputusan Tolak & Catatan Alasan| P4_2
-    P4_2 -->|Update Status: Ditolak & Catat Alasan| D3
+    E_Kasubag -->|Keputusan Tolak dan Catatan Alasan| P4_2
+    P4_2 -->|Update Status Ditolak dan Catat Alasan| D3
     P4_2 -->|Trigger Notifikasi Penolakan ke Pemohon| D4
 
     %% Alur Setuju
     E_Kasubag -->|Keputusan Setujui Usulan| P4_3
-    P4_3 -->|Generate Format Nomor SPK Otomatis| P4_3
-    P4_3 -->|Update Status: Disetujui & Catat Nomor SPK| D3
+    P4_3 -->|Update Status Disetujui dan Catat Nomor SPK| D3
     P4_3 -->|ID Kendaraan Terpilih| P4_4
-    P4_4 -->|Kunci Status Armada: Digunakan| D2
+    P4_4 -->|Kunci Status Armada Digunakan| D2
     P4_3 -->|Trigger Notifikasi Persetujuan ke Pemohon| D4
     P4_3 -->|Data Pengesahan Usulan| P4_5
 
-    P4_5 -->|Streaming / Unduh Lembar Nota Dinas & SPK| E_Pegawai
+    P4_5 -->|Streaming dan Unduh Lembar Nota Dinas| E_Pegawai
 
     classDef entity fill:#1E293B,stroke:#64748B,stroke-width:2px,color:#fff;
     classDef process fill:#1E3A8A,stroke:#3B82F6,stroke-width:2px,color:#fff;
@@ -627,16 +630,16 @@ flowchart TD
     D3[("D3: Data Peminjaman (loans)")]
     D4[("D4: Data Notifikasi (app_notifications)")]
 
-    E_Pegawai -->|Input KM Akhir, Sisa BBM (%) & Catatan Fisik| P5_1
-    D2 -.->|KM Terakhir & Kapasitas Tangki| P5_1
+    E_Pegawai -->|Input KM Akhir Sisa BBM dan Catatan Fisik| P5_1
+    D2 -.->|KM Terakhir dan Kapasitas Tangki| P5_1
     P5_1 -->|Data Pengembalian Valid| P5_2
 
-    P5_2 -->|Update returned_at, KM, BBM & Status: Selesai| D3
-    P5_2 -->|ID Armada & KM Terkini| P5_3
-    P5_3 -->|Update Odometer, BBM & Status: Tersedia| D2
+    P5_2 -->|Update Waktu Kembali KM BBM dan Status Selesai| D3
+    P5_2 -->|ID Armada dan KM Terkini| P5_3
+    P5_3 -->|Update Odometer BBM dan Status Tersedia| D2
     P5_2 -->|Ringkasan Pengembalian Unit| P5_4
 
-    P5_4 -->|Kirim Notifikasi Serah Terima Unit ke Admin| D4
+    P5_4 -->|Kirim Notifikasi Serah Terima ke Admin| D4
     P5_4 -->|Informasi Pengembalian Siap Diinspeksi Fisik| E_Kasubag
     P5_2 -->|Tanda Terima BAST Digital| E_Pegawai
 
