@@ -22,7 +22,7 @@
   <a href="#%EF%B8%8F-arsitektur--optimasi-performa-tinggi">Arsitektur & Kinerja</a> •
   <a href="#-diagram-kasus-penggunaan-use-case-diagram">Use Case</a> •
   <a href="#-diagram-aktivitas-activity-diagram">Activity Diagram</a> •
-  <a href="#-diagram-alir-data-data-flow-diagram---dfd">DFD</a> •
+  <a href="#-diagram-aliran-data-data-flow-diagram---dfd">DFD (0, 1, 2)</a> •
   <a href="#-diagram-alur-sistem-flowchart-operasional">Flowchart</a> •
   <a href="#%EF%B8%8F-struktur-basis-data-erd">ERD</a> •
   <a href="#-panduan-instalasi--deployment">Instalasi & Deployment</a> •
@@ -369,287 +369,253 @@ flowchart TD
 
 ---
 
-## 🔀 Diagram Alir Data (Data Flow Diagram - DFD)
+## 📊 Diagram Aliran Data (Data Flow Diagram - DFD)
 
-Diagram Alir Data (*Data Flow Diagram* / DFD) memodelkan transformasi dan perpindahan data di dalam sistem **SIP-K / OVBS** secara hierarkis: mulai dari gambaran interaksi global dengan entitas luar (**Level 0**), pembagian modul fungsional utama (**Level 1**), hingga rincian proses operasional kritis (**Level 2**).
+Diagram Aliran Data (*Data Flow Diagram*) berikut memodelkan bagaimana informasi dan berkas mengalir masuk, diproses oleh fungsi-fungsi sistem, disimpan ke dalam penyimpanan data (*data store*), dan didistribusikan ke entitas eksternal di lingkungan **SIP-K Jatim / OVBS**.
 
 ---
 
 ### 1. DFD Level 0 (Diagram Konteks / Context Diagram)
 
-Diagram Konteks memodelkan batasan sistem (*system boundary*) dan interaksi pertukaran data antara satu proses tunggal **SIP-K Jatim** dengan tiga entitas eksternal (**Pegawai**, **Kasubag Umum**, dan **Super Administrator**):
+Diagram Konteks memodelkan keseluruhan sistem **SIP-K** sebagai satu proses tunggal (*Proses 0*) serta memetakan batasan sistem dengan seluruh entitas eksternal (*external entities / terminators*) yang berinteraksi dengannya:
 
 ```mermaid
 flowchart TD
-    subgraph ENTITAS["👥 Entitas Luar (External Entities)"]
-        E1["👤 Pegawai (Pemohon)"]
-        E2["🛡️ Kasubag Umum (Admin TU)"]
-        E3["👑 Super Administrator"]
+    subgraph TERMINATORS["🎭 Entitas Eksternal (Terminators)"]
+        E1["👤 Pegawai<br/>(Pemohon Dinas)"]
+        E2["🛡️ Kasubag Umum<br/>(Admin TU / Verifikator)"]
+        E3["👑 Super Administrator<br/>(Pengelola Sistem)"]
+        E4["☁️ Firebase Cloud<br/>Messaging (FCM)"]
     end
 
-    SYS(["🌐 0.0 SISTEM INFORMASI PENGELOLAAN KENDARAAN (SIP-K / OVBS)"])
+    P0(("🚗 0.0<br/>SISTEM INFORMASI PENGELOLAAN<br/>KENDARAAN DINAS (SIP-K / OVBS)"))
 
-    %% Aliran Data Pegawai
-    E1 -->|1. Data Kredensial Login dan NIP| SYS
-    E1 -->|2. Form Usulan Foto SIM dan PDF Tugas| SYS
-    E1 -->|3. Laporan BAST Pengembalian KM BBM Fisik| SYS
-    SYS -->|4. Profil Akun dan Token Sanctum| E1
-    SYS -->|5. Katalog Armada Ketersediaan dan Berita| E1
-    SYS -->|6. Lembar Nota Dinas SPK dan Push Notifikasi| E1
+    %% Aliran Pegawai -> Sistem
+    E1 -->|"1. Kredensial Login (NIP/Email & Sandi)<br/>2. Formulir Usulan (Tujuan, Tanggal, Urgensi)<br/>3. Berkas Lampiran (Foto SIM & Dokumen PDF)<br/>4. Laporan Pengembalian (KM Akhir, BBM, Fisik)"| P0
 
-    %% Aliran Data Kasubag Umum
-    E2 -->|7. Kredensial Login Admin TU| SYS
-    E2 -->|8. Status Verifikasi SPK atau Catatan Penolakan| SYS
-    E2 -->|9. Pembaruan Kondisi dan Status Armada| SYS
-    SYS -->|10. Notifikasi Usulan Masuk dan Pengembalian| E2
-    SYS -->|11. Berkas Pengajuan SIM PDF dan Profil Pemohon| E2
-    SYS -->|12. Jadwal Kalender Operasional Armada| E2
+    %% Aliran Sistem -> Pegawai
+    P0 -->|"1. Token Sesi Login & Profil Pengguna<br/>2. Data Katalog & Ketersediaan Armada<br/>3. Berita & Pengumuman Dinas Terkini<br/>4. Notifikasi Status Usulan (Approved/Rejected)<br/>5. Dokumen Lembar Nota Dinas & SPK (PDF)"| E1
 
-    %% Aliran Data Super Admin
-    E3 -->|13. Kredensial Login Super Admin| SYS
-    E3 -->|14. Data Master Armada Kendaraan CRUD| SYS
-    E3 -->|15. Data Master Pengguna dan File Excel| SYS
-    E3 -->|16. Data Artikel dan Berita Kedinasan| SYS
-    SYS -->|17. Rekap Master Data Pengguna dan Armada| E3
-    SYS -->|18. Dashboard Analitik Statistik BBM dan Laporan| E3
+    %% Aliran Kasubag Umum -> Sistem
+    E2 -->|"1. Kredensial Login Kasubag<br/>2. Keputusan Verifikasi (Setujui / Tolak + Alasan)<br/>3. Pembaruan Status Kesiapan Armada (Servis/Ready)<br/>4. Konfirmasi Serah Terima Fisik Kunci & STNK"| P0
+
+    %% Aliran Sistem -> Kasubag Umum
+    P0 -->|"1. Notifikasi Usulan Peminjaman Baru Masuk<br/>2. Berkas Usulan (Pratinjau SIM & Dokumen PDF Asli)<br/>3. Kalender Jadwal Operasional Armada Seluruh Unit<br/>4. Notifikasi Pelaporan Pengembalian Armada"| E2
+
+    %% Aliran Super Admin -> Sistem
+    E3 -->|"1. Kredensial Login Super Admin<br/>2. Berkas Excel (.xlsx) Import Pengguna Massal<br/>3. Master Data Kendaraan Baru & Perubahan Unit<br/>4. Konten Berita & Pengumuman Dinas Baru"| P0
+
+    %% Aliran Sistem -> Super Admin
+    P0 -->|"1. Laporan Rekapitulasi & Statistik Penggunaan<br/>2. Log Hasil Import Pengguna Excel<br/>3. Master Data Seluruh Pengguna & Kendaraan"| E3
+
+    %% Integrasi FCM
+    P0 -->|"Payload Notifikasi Push (Title, Body, Target FCM Token)"| E4
+    E4 -->|"Status Pengiriman Push Notification ke Perangkat"| P0
 
     classDef entity fill:#1E293B,stroke:#64748B,stroke-width:2px,color:#fff;
-    classDef systemProcess fill:#1E3A8A,stroke:#3B82F6,stroke-width:3px,color:#fff;
+    classDef process fill:#1E3A8A,stroke:#3B82F6,stroke-width:2.5px,color:#fff;
+    classDef external fill:#064E3B,stroke:#10B981,stroke-width:2px,color:#fff;
 
     class E1,E2,E3 entity;
-    class SYS systemProcess;
+    class E4 external;
+    class P0 process;
 ```
 
 ---
 
-### 2. DFD Level 1 (Diagram Dekomposisi Sistem)
+### 2. DFD Level 1 (Diagram Dekomposisi Proses Utama)
 
-DFD Level 1 menguraikan sistem menjadi 7 proses fungsional utama serta memetakan interaksinya dengan 6 penyimpanan data (*data stores*):
+DFD Level 1 mendekomposisi *Proses 0* menjadi 7 subsistem/proses utama serta memetakan interaksinya dengan 6 penyimpanan data (*data stores*):
 
 ```mermaid
 flowchart TD
-    %% Entitas Luar
-    E_Pegawai["👤 Pegawai (Pemohon)"]
-    E_Kasubag["🛡️ Kasubag Umum (Admin TU)"]
-    E_SuperAdmin["👑 Super Administrator"]
+    %% Entitas Eksternal
+    E1["👤 Pegawai (Pemohon)"]
+    E2["🛡️ Kasubag Umum (Admin TU)"]
+    E3["👑 Super Administrator"]
+    E4["☁️ Firebase FCM"]
 
     %% Data Stores
     subgraph DATA_STORES["🗄️ Penyimpanan Data (Data Stores)"]
-        D1[("D1: Data Pengguna (users)")]
-        D2[("D2: Data Armada (vehicles)")]
-        D3[("D3: Data Peminjaman & SPK (loans)")]
-        D4[("D4: Data Notifikasi (app_notifications)")]
-        D5[("D5: Data Berita (news)")]
-        D6[("D6: Berkas Storage (loan_documents)")]
+        D1[("D1: USERS")]
+        D2[("D2: VEHICLES")]
+        D3[("D3: LOANS")]
+        D4[("D4: APP_NOTIFICATIONS")]
+        D5[("D5: PERSONAL_ACCESS_TOKENS")]
+        D6[("D6: NEWS")]
     end
 
-    %% Sub-Proses Level 1
-    P1(["1.0 Manajemen Otentikasi & Akun"])
-    P2(["2.0 Pengelolaan Master Armada & Berita"])
-    P3(["3.0 Pengajuan Peminjaman Kendaraan"])
-    P4(["4.0 Verifikasi Usulan & Penerbitan SPK"])
-    P5(["5.0 Pengembalian Armada & Pelaporan BAST"])
-    P6(["6.0 Layanan Notifikasi & Broadcast FCM"])
-    P7(["7.0 Dashboard Analitik & Laporan"])
+    %% Proses-Proses Utama
+    P1(("1.0<br/>Manajemen Autentikasi<br/>& Pengguna"))
+    P2(("2.0<br/>Pengelolaan Master<br/>Armada Kendaraan"))
+    P3(("3.0<br/>Pengajuan Usulan<br/>Peminjaman Dinas"))
+    P4(("4.0<br/>Verifikasi Usulan &<br/>Penerbitan SPK"))
+    P5(("5.0<br/>Pelaporan Pengembalian<br/>& Terbit BAST"))
+    P6(("6.0<br/>Publikasi Berita &<br/>Pengumuman Dinas"))
+    P7(("7.0<br/>Layanan Notifikasi<br/>& Sinkronisasi Push"))
 
-    %% 1.0 Otentikasi
-    E_Pegawai -->|Kredensial Login| P1
-    E_Kasubag -->|Kredensial Login| P1
-    E_SuperAdmin -->|Kredensial Login dan File Excel| P1
-    P1 -->|Validasi dan Catat Data| D1
-    D1 -.->|Ambil Data Akun| P1
-    P1 -->|Token Akses dan Sesi Akun| E_Pegawai
-    P1 -->|Token Akses dan Sesi Akun| E_Kasubag
-    P1 -->|Token Akses dan Sesi Akun| E_SuperAdmin
+    %% Aliran Proses 1.0 (Autentikasi & Akun)
+    E1 -->|"Kredensial Login"| P1
+    E2 -->|"Kredensial Login"| P1
+    E3 -->|"Kredensial / File Excel Pegawai"| P1
+    P1 -->|"Validasi Data Akun"| D1
+    D1 -->|"Data Profil Pegawai"| P1
+    P1 -->|"Simpan Sesi Token"| D5
+    P1 -->|"Token Sesi & Data Profil"| E1
+    P1 -->|"Log Hasil Import Akun"| E3
 
-    %% 2.0 Master Data
-    E_SuperAdmin -->|Kelola Unit dan Publikasi Berita| P2
-    P2 -->|Simpan Data Armada| D2
-    D2 -.->|Baca Master Armada| P2
-    P2 -->|Simpan Artikel Pengumuman| D5
-    D5 -.->|Baca Data Berita| P2
-    P2 -->|Katalog Armada dan Info Berita| E_Pegawai
-    P2 -->|Katalog Armada dan Info Berita| E_Kasubag
+    %% Aliran Proses 2.0 (Master Armada)
+    E3 -->|"Input / Ubah Data Unit Kendaraan"| P2
+    E2 -->|"Ubah Status Servis / Perbaikan"| P2
+    P2 -->|"Simpan / Perbarui Master Armada"| D2
+    D2 -->|"Data Katalog Kendaraan"| P2
+    P2 -->|"Informasi Katalog & Status Armada"| E1
+    P2 -->|"Informasi Kesiapan Armada"| E2
 
-    %% 3.0 Pengajuan Pinjaman
-    E_Pegawai -->|Formulir Usulan Foto SIM dan PDF| P3
-    D2 -.->|Pengecekan Ketersediaan Unit| P3
-    P3 -->|Simpan Usulan Status Menunggu| D3
-    P3 -->|Simpan File Dokumen Storage| D6
-    P3 -->|Trigger Notif Usulan Masuk| P6
+    %% Aliran Proses 3.0 (Pengajuan Peminjaman)
+    E1 -->|"Formulir Usulan, Jadwal, SIM & Dokumen PDF"| P3
+    P3 -->|"Cek Jadwal Bebas-Benturan"| D3
+    P3 -->|"Cek Ketersediaan Unit"| D2
+    P3 -->|"Simpan Usulan Baru (Status: Menunggu)"| D3
+    P3 -->|"Pemicu Notifikasi Pengajuan Baru"| P7
 
-    %% 4.0 Verifikasi
-    E_Kasubag -->|Persetujuan Penolakan dan Nomor SPK| P4
-    D3 -.->|Ambil Data Usulan Menunggu| P4
-    P4 -->|Update Status Usulan Disetujui Ditolak| D3
-    D6 -.->|Baca Berkas SIM dan PDF Pemohon| P4
-    P4 -->|Update Status Armada Digunakan| D2
-    P4 -->|Trigger Notif Hasil Verifikasi| P6
-    P4 -->|Lembar Nota Dinas dan SPK Sah| E_Pegawai
+    %% Aliran Proses 4.0 (Verifikasi & SPK)
+    D3 -->|"Data Berkas Usulan & Pratinjau PDF"| P4
+    P4 -->|"Daftar Permohonan Menunggu Verifikasi"| E2
+    E2 -->|"Keputusan (Disetujui / Ditolak + Catatan)"| P4
+    P4 -->|"Update Status (Disetujui/Ditolak) & No. SPK"| D3
+    P4 -->|"Kunci Status Armada: Digunakan"| D2
+    P4 -->|"Pemicu Notifikasi Hasil Verifikasi"| P7
+    P4 -->|"Lembar Nota Dinas & SPK Cetak"| E1
 
-    %% 5.0 Pengembalian
-    E_Pegawai -->|Data Odometer Sisa BBM dan Fisik| P5
-    P5 -->|Update Status Selesai dan BAST| D3
-    P5 -->|Pulihkan Status Armada Tersedia| D2
-    P5 -->|Trigger Notif Serah Terima Unit| P6
-    P5 -->|Laporan Konfirmasi BAST Selesai| E_Kasubag
+    %% Aliran Proses 5.0 (Pengembalian & BAST)
+    E1 -->|"Laporan KM Akhir, BBM & Catatan Fisik"| P5
+    P5 -->|"Update Status Selesai & Data Pengembalian"| D3
+    P5 -->|"Kembalikan Status Armada: Tersedia"| D2
+    P5 -->|"Pemicu Notifikasi Pengembalian Unit"| P7
+    P5 -->|"Konfirmasi Serah Terima BAST Fisik"| E2
 
-    %% 6.0 Notifikasi
-    P6 -->|Catat Log Notifikasi Sistem| D4
-    D4 -.->|Baca Notifikasi Belum Dibaca| P6
-    P6 -->|Push Notification Pemohon| E_Pegawai
-    P6 -->|Push Notification Verifikator| E_Kasubag
+    %% Aliran Proses 6.0 (Berita Kedinasan)
+    E3 -->|"Konten Berita, Foto & Pengumuman"| P6
+    P6 -->|"Simpan Konten Berita"| D6
+    D6 -->|"Ambil Daftar Berita Aktif"| P6
+    P6 -->|"Informasi Berita & Pengumuman"| E1
 
-    %% 7.0 Analitik
-    D2 -.->|Statistik Unit Armada| P7
-    D3 -.->|Rekapitulasi Dinas Bulanan| P7
-    P7 -->|Visualisasi Tren BBM dan Ekspor Laporan| E_SuperAdmin
-    P7 -->|Kalender Jadwal Operasional Seluruh Unit| E_Kasubag
+    %% Aliran Proses 7.0 (Notifikasi & Push)
+    P7 -->|"Simpan Log Notifikasi In-App"| D4
+    D4 -->|"Daftar Notifikasi Pengguna"| E1
+    D4 -->|"Daftar Notifikasi Verifikator"| E2
+    P7 -->|"Dispatch Push Payload FCM"| E4
 
     classDef entity fill:#1E293B,stroke:#64748B,stroke-width:2px,color:#fff;
-    classDef process fill:#1E3A8A,stroke:#3B82F6,stroke-width:2px,color:#fff;
-    classDef dstore fill:#064E3B,stroke:#10B981,stroke-width:1.5px,color:#fff;
+    classDef process fill:#1E3A8A,stroke:#3B82F6,stroke-width:1.5px,color:#fff;
+    classDef store fill:#064E3B,stroke:#10B981,stroke-width:2px,color:#fff;
 
-    class E_Pegawai,E_Kasubag,E_SuperAdmin entity;
+    class E1,E2,E3,E4 entity;
     class P1,P2,P3,P4,P5,P6,P7 process;
-    class D1,D2,D3,D4,D5,D6 dstore;
+    class D1,D2,D3,D4,D5,D6 store;
 ```
 
 ---
 
-### 3. DFD Level 2 (Dekomposisi Proses Inti)
+### 3. DFD Level 2 (Dekomposisi Rinci Sub-Proses Kritis)
 
-DFD Level 2 merinci proses operasional paling kritikal dalam siklus hidup peminjaman kendaraan:
+Untuk menjamin kedalaman analisis teknis, sub-proses operasional inti (**Proses 3.0: Pengajuan Usulan** dan **Proses 4.0: Verifikasi & Penerbitan SPK**) didekomposisi lebih lanjut ke Level 2:
 
-#### 3.1 DFD Level 2 — Proses 3.0 (Pengajuan Peminjaman Kendaraan)
+#### A. DFD Level 2 — Proses 3.0 (Siklus Pengajuan Usulan Peminjaman)
 
 ```mermaid
 flowchart TD
-    E_Pegawai["👤 Pegawai (Pemohon)"]
+    E1["👤 Pegawai (Pemohon)"]
+    D2[("D2: VEHICLES")]
+    D3[("D3: LOANS")]
+    D4[("D4: APP_NOTIFICATIONS")]
 
-    subgraph PROSES_3["⚙️ Dekomposisi Proses 3.0 (Pengajuan Peminjaman)"]
-        P3_1(["3.1 Pengecekan Ketersediaan & Tabrakan Jadwal"])
-        P3_2(["3.2 Pengolahan Berkas Foto SIM & PDF Usulan"])
-        P3_3(["3.3 Pembentukan Usulan & Penerbitan Request ID"])
-        P3_4(["3.4 Pembuatan Notifikasi Usulan Baru"])
-    end
+    P31(("3.1<br/>Pengecekan Ketersediaan<br/>& Tabrakan Jadwal"))
+    P32(("3.2<br/>Validasi Input Rincian<br/>Tugas Kedinasan"))
+    P33(("3.3<br/>Pemrosesan & Penyimpanan<br/>Berkas SIM & Dokumen PDF"))
+    P34(("3.4<br/>Pencatatan Record Usulan<br/>(Status: Menunggu)"))
+    P35(("3.5<br/>Penerbitan Notifikasi<br/>Usulan Baru Masuk"))
 
-    D2[("D2: Data Armada (vehicles)")]
-    D3[("D3: Data Peminjaman (loans)")]
-    D4[("D4: Data Notifikasi (app_notifications)")]
-    D6[("D6: Berkas Storage (loan_documents)")]
+    %% Alur Kerja Rinci
+    E1 -->|"1. Pilih Unit & Rentang Tanggal Pinjam"| P31
+    P31 -->|"Query Jadwal Armada Terpakai"| D3
+    D3 -->|"Status Jadwal pada Rentang Tanggal"| P31
+    P31 -->|"Query Kondisi Armada"| D2
+    D2 -->|"Status Kesiapan Unit (Tersedia/Servis)"| P31
 
-    E_Pegawai -->|Pilih Kendaraan dan Rentang Tanggal| P3_1
-    D2 -.->|Status Operasional Kendaraan| P3_1
-    D3 -.->|Jadwal Peminjaman yang Sedang Berjalan| P3_1
-    P3_1 -->|Konfirmasi Unit Siap dan Bebas Benturan| P3_2
+    P31 -->|"Armada Lolos Validasi Jadwal"| P32
+    E1 -->|"2. Input Kota Tujuan, Alamat & Urgensi Tugas"| P32
 
-    E_Pegawai -->|Upload Foto SIM dan Dokumen PDF Dinas| P3_2
-    P3_2 -->|Decode dan Simpan File Fisik| D6
-    P3_2 -->|Path URL Berkas Dokumen| P3_3
+    P32 -->|"Data Rincian Terverifikasi"| P33
+    E1 -->|"3. Unggah Berkas Base64 (Foto SIM & Dokumen PDF)"| P33
+    P33 -->|"Simpan Berkas Fisik ke Storage: public/storage/loan_documents/"| P33
 
-    E_Pegawai -->|Rincian Tujuan Dinas dan Urgensi Tugas| P3_3
-    P3_3 -->|Simpan Record Usulan Baru Status Menunggu| D3
-    P3_3 -->|ID Permohonan REQ dan Data Ringkas| P3_4
+    P33 -->|"Path URL Dokumen Tersimpan"| P34
+    P34 -->|"Tulis Data Usulan Baru (REQ-...)"| D3
 
-    P3_4 -->|Tulis Notifikasi Pengajuan Masuk ke Admin| D4
-    P3_3 -->|Konfirmasi Usulan Berhasil Diajukan| E_Pegawai
+    P34 -->|"Pemicu Notifikasi Verifikator"| P35
+    P35 -->|"Tulis Notifikasi Pengajuan Baru (user_id = NULL)"| D4
+    P35 -->|"Pesan Konfirmasi Pengajuan Sukses Dikirim"| E1
 
     classDef entity fill:#1E293B,stroke:#64748B,stroke-width:2px,color:#fff;
-    classDef process fill:#1E3A8A,stroke:#3B82F6,stroke-width:2px,color:#fff;
-    classDef dstore fill:#064E3B,stroke:#10B981,stroke-width:1.5px,color:#fff;
+    classDef process fill:#1E3A8A,stroke:#3B82F6,stroke-width:1.5px,color:#fff;
+    classDef store fill:#064E3B,stroke:#10B981,stroke-width:2px,color:#fff;
 
-    class E_Pegawai entity;
-    class P3_1,P3_2,P3_3,P3_4 process;
-    class D2,D3,D4,D6 dstore;
+    class E1 entity;
+    class P31,P32,P33,P34,P35 process;
+    class D2,D3,D4 store;
 ```
 
-#### 3.2 DFD Level 2 — Proses 4.0 (Verifikasi & Penerbitan SPK)
+#### B. DFD Level 2 — Proses 4.0 (Siklus Verifikasi, Persetujuan & Penerbitan SPK)
 
 ```mermaid
 flowchart TD
-    E_Kasubag["🛡️ Kasubag Umum (Admin TU)"]
-    E_Pegawai["👤 Pegawai (Pemohon)"]
+    E1["👤 Pegawai (Pemohon)"]
+    E2["🛡️ Kasubag Umum (Admin TU)"]
+    D2[("D2: VEHICLES")]
+    D3[("D3: LOANS")]
+    D4[("D4: APP_NOTIFICATIONS")]
 
-    subgraph PROSES_4["⚙️ Dekomposisi Proses 4.0 (Verifikasi & Penerbitan SPK)"]
-        P4_1(["4.1 Pemeriksaan Dokumen & Jadwal Pemohon"])
-        P4_2(["4.2 Pemrosesan Penolakan Usulan Dinas"])
-        P4_3(["4.3 Pemrosesan Persetujuan & Penomoran SPK Otomatis"])
-        P4_4(["4.4 Pembaruan Kunci Status Armada"])
-        P4_5(["4.5 Penerbitan Lembar Nota Dinas & SPK"])
-    end
+    P41(("4.1<br/>Pemeriksaan Berkas &<br/>Pratinjau Dokumen PDF"))
+    P42(("4.2<br/>Pemrosesan Penolakan<br/>Usulan Dinas"))
+    P43(("4.3<br/>Pemrosesan Persetujuan &<br/>Penomoran SPK Otomatis"))
+    P44(("4.4<br/>Pembaruan Kunci Status<br/>Armada Kendaraan"))
+    P45(("4.5<br/>Penerbitan Lembar<br/>Nota Dinas & SPK Cetak"))
+    P46(("4.6<br/>Dispatch Notifikasi Hasil<br/>Verifikasi ke Pemohon"))
 
-    D2[("D2: Data Armada (vehicles)")]
-    D3[("D3: Data Peminjaman (loans)")]
-    D4[("D4: Data Notifikasi (app_notifications)")]
-    D6[("D6: Berkas Storage (loan_documents)")]
+    %% Alur Kerja Rinci
+    D3 -->|"Baca Usulan Berstatus 'Menunggu'"| P41
+    P41 -->|"Tampilkan Pratinjau SIM & Dokumen Asli PDF"| E2
 
-    D3 -.->|Daftar Usulan Menunggu Verifikasi| P4_1
-    D6 -.->|Pratinjau Foto SIM dan Berkas PDF Asli| P4_1
-    P4_1 -->|Tampilan Berkas dan Profil Pemohon| E_Kasubag
+    %% Jalur Penolakan
+    E2 -->|"Keputusan: Tolak + Catatan Alasan"| P42
+    P42 -->|"Update Status: 'ditolak' & Alasan Penolakan"| D3
+    P42 -->|"Pemicu Notifikasi Penolakan"| P46
 
-    %% Alur Tolak
-    E_Kasubag -->|Keputusan Tolak dan Catatan Alasan| P4_2
-    P4_2 -->|Update Status Ditolak dan Catat Alasan| D3
-    P4_2 -->|Trigger Notifikasi Penolakan ke Pemohon| D4
+    %% Jalur Persetujuan
+    E2 -->|"Keputusan: Setujui Usulan"| P43
+    P43 -->|"Generate Nomor SPK (SPK-YYYYMMDD-XXX)"| P43
+    P43 -->|"Update Status: 'disetujui' & Nomor SPK"| D3
 
-    %% Alur Setuju
-    E_Kasubag -->|Keputusan Setujui Usulan| P4_3
-    P4_3 -->|Update Status Disetujui dan Catat Nomor SPK| D3
-    P4_3 -->|ID Kendaraan Terpilih| P4_4
-    P4_4 -->|Kunci Status Armada Digunakan| D2
-    P4_3 -->|Trigger Notifikasi Persetujuan ke Pemohon| D4
-    P4_3 -->|Data Pengesahan Usulan| P4_5
+    P43 -->|"Sinyal Kunci Armada"| P44
+    P44 -->|"Ubah Status Unit: 'digunakan'"| D2
 
-    P4_5 -->|Streaming dan Unduh Lembar Nota Dinas| E_Pegawai
+    P43 -->|"Data Persetujuan Lengkap"| P45
+    P45 -->|"Generate Format Cetak Nota Dinas Standar Dinsos"| E1
+    P45 -->|"Arsip Lembar SPK Cetak"| E2
 
-    classDef entity fill:#1E293B,stroke:#64748B,stroke-width:2px,color:#fff;
-    classDef process fill:#1E3A8A,stroke:#3B82F6,stroke-width:2px,color:#fff;
-    classDef dstore fill:#064E3B,stroke:#10B981,stroke-width:1.5px,color:#fff;
-
-    class E_Kasubag,E_Pegawai entity;
-    class P4_1,P4_2,P4_3,P4_4,P4_5 process;
-    class D2,D3,D4,D6 dstore;
-```
-
-#### 3.3 DFD Level 2 — Proses 5.0 (Pengembalian Armada & Pelaporan BAST)
-
-```mermaid
-flowchart TD
-    E_Pegawai["👤 Pegawai (Peminjam)"]
-    E_Kasubag["🛡️ Kasubag / Petugas Pool"]
-
-    subgraph PROSES_5["⚙️ Dekomposisi Proses 5.0 (Pengembalian & BAST)"]
-        P5_1(["5.1 Validasi Catatan Odometer & Bahan Bakar"])
-        P5_2(["5.2 Pencatatan BAST & Penutupan Status Peminjaman"])
-        P5_3(["5.3 Pemulihan Status Kesiapan Armada"])
-        P5_4(["5.4 Distribusi Notifikasi Serah Terima Pool"])
-    end
-
-    D2[("D2: Data Armada (vehicles)")]
-    D3[("D3: Data Peminjaman (loans)")]
-    D4[("D4: Data Notifikasi (app_notifications)")]
-
-    E_Pegawai -->|Input KM Akhir Sisa BBM dan Catatan Fisik| P5_1
-    D2 -.->|KM Terakhir dan Kapasitas Tangki| P5_1
-    P5_1 -->|Data Pengembalian Valid| P5_2
-
-    P5_2 -->|Update Waktu Kembali KM BBM dan Status Selesai| D3
-    P5_2 -->|ID Armada dan KM Terkini| P5_3
-    P5_3 -->|Update Odometer BBM dan Status Tersedia| D2
-    P5_2 -->|Ringkasan Pengembalian Unit| P5_4
-
-    P5_4 -->|Kirim Notifikasi Serah Terima ke Admin| D4
-    P5_4 -->|Informasi Pengembalian Siap Diinspeksi Fisik| E_Kasubag
-    P5_2 -->|Tanda Terima BAST Digital| E_Pegawai
+    P43 -->|"Pemicu Notifikasi Persetujuan"| P46
+    P46 -->|"Tulis Notifikasi Personalisasi (user_id Pemohon)"| D4
+    P46 -->|"Kirim Notifikasi Push ke Smartphone Pegawai"| E1
 
     classDef entity fill:#1E293B,stroke:#64748B,stroke-width:2px,color:#fff;
-    classDef process fill:#1E3A8A,stroke:#3B82F6,stroke-width:2px,color:#fff;
-    classDef dstore fill:#064E3B,stroke:#10B981,stroke-width:1.5px,color:#fff;
+    classDef process fill:#1E3A8A,stroke:#3B82F6,stroke-width:1.5px,color:#fff;
+    classDef store fill:#064E3B,stroke:#10B981,stroke-width:2px,color:#fff;
 
-    class E_Pegawai,E_Kasubag entity;
-    class P5_1,P5_2,P5_3,P5_4 process;
-    class D2,D3,D4 dstore;
+    class E1,E2 entity;
+    class P41,P42,P43,P44,P45,P46 process;
+    class D2,D3,D4 store;
 ```
 
 ---
