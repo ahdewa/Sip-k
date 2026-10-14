@@ -389,6 +389,11 @@ class ApiService {
   }
 
   static Future<bool> createLoan(LoanRequest loan) async {
+    final res = await createLoanWithResult(loan);
+    return res.success;
+  }
+
+  static Future<({bool success, String? message})> createLoanWithResult(LoanRequest loan) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/loans');
       final res = await _client.post(
@@ -416,14 +421,26 @@ class ApiService {
       );
       if (res.statusCode == 200 || res.statusCode == 201) {
         invalidateVehiclesCache();
-        return true;
+        return (success: true, message: null);
+      } else if (res.statusCode == 413) {
+        debugPrint('ApiService.createLoan failed [413]: Payload too large');
+        return (
+          success: false,
+          message:
+              'Ukuran berkas lampiran (PDF/Foto) terlalu besar untuk server. Gunakan berkas di bawah 2 MB atau hubungi admin server untuk menaikkan client_max_body_size.',
+        );
       } else {
         debugPrint('ApiService.createLoan failed [${res.statusCode}]: ${res.body}');
+        String msg = 'Gagal menyimpan permohonan ke server (${res.statusCode})';
+        try {
+          final b = jsonDecode(res.body);
+          if (b['message'] != null) msg = b['message'].toString();
+        } catch (_) {}
+        return (success: false, message: msg);
       }
-      return false;
     } catch (e) {
       debugPrint('ApiService.createLoan error: $e');
-      return false;
+      return (success: false, message: 'Kendala jaringan saat mengirim ke server: $e');
     }
   }
 

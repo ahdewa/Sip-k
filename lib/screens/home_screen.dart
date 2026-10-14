@@ -952,14 +952,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
 
     // Kirim data ke backend dan tunggu hasilnya
-    final isSaved = await ApiService.createLoan(request);
-    if (isSaved) {
+    final result = await ApiService.createLoanWithResult(request);
+    if (result.success) {
       final fresh = await ApiService.fetchLoans();
       if (fresh != null && mounted) {
         setState(() {
           _loans = fresh;
         });
       }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message ?? 'Gagal menyimpan permohonan ke server.'),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+        ),
+      );
     }
 
     if (!mounted) return;
