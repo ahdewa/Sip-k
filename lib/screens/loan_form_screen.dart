@@ -58,6 +58,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
   String? _selectedDistrict;
   String? _selectedSubDistrict;
   String? _selectedPurpose;
+  final TextEditingController _customPurposeController = TextEditingController();
 
   List<WilayahItem> _regencyList = [];
   List<WilayahItem> _districtList = [];
@@ -112,6 +113,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
     'Layanan Antar-Jemput & Penjangkauan Disabilitas / Lansia',
     'Pengawasan Aset, Sarana Prasarana & Logistik Kedinasan',
     'Tugas Operasional Administrasi & Pelayanan Kedinasan Lainnya',
+    'Lainnya',
   ];
 
   @override
@@ -156,11 +158,16 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
   void dispose() {
     _nipController.dispose();
     _nameController.dispose();
+    _customPurposeController.dispose();
     super.dispose();
   }
 
   // Cek kelengkapan data step 1-4 untuk membuka pemilihan armada kendaraan
   bool get _isStepDetailsComplete {
+    final bool isPurposeValid = _selectedPurpose != null &&
+        (_selectedPurpose != 'Lainnya' ||
+            _customPurposeController.text.trim().isNotEmpty);
+
     return _nameController.text.trim().isNotEmpty &&
         _nipController.text.trim().isNotEmpty &&
         _selectedDepartment != null &&
@@ -168,7 +175,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
         _selectedCity != null &&
         _selectedDistrict != null &&
         _selectedSubDistrict != null &&
-        _selectedPurpose != null;
+        isPurposeValid;
   }
 
   Future<void> _loadRegencies() async {
@@ -625,6 +632,17 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
       return;
     }
 
+    if (_selectedPurpose == 'Lainnya' &&
+        _customPurposeController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan tuliskan rincian keperluan kedinasan secara manual.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     if (_selectedVehicle == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -704,7 +722,11 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
         ? 'Dengan Driver: $_selectedDriver'
         : 'Tanpa Driver (Lepas Kunci)';
     final timeText = '${_formatTime(_startTime)} s/d ${_formatTime(_endTime)} WIB';
-    final completePurpose = '$_selectedPurpose\n• Jam Operasional: $timeText\n• Layanan Pengemudi: $driverText';
+    final actualPurpose = (_selectedPurpose == 'Lainnya' &&
+            _customPurposeController.text.trim().isNotEmpty)
+        ? _customPurposeController.text.trim()
+        : (_selectedPurpose ?? '');
+    final completePurpose = '$actualPurpose\n• Jam Operasional: $timeText\n• Layanan Pengemudi: $driverText';
 
     final newLoan = LoanRequest(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -1234,20 +1256,35 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
 
                       const SizedBox(height: 14),
 
-                      // Dropdown Keperluan (Menggantikan input manual)
+                      // Dropdown Keperluan (Menggantikan input manual / opsi Lainnya)
                       _buildDropdownField<String>(
                         label: 'Keperluan',
                         hint: 'Pilih keperluan penugasan kedinasan',
                         icon: Icons.assignment_outlined,
                         value: _selectedPurpose,
                         items: _purposeOptions.map((purpose) {
+                          final isOther = purpose == 'Lainnya';
                           return DropdownMenuItem<String>(
                             value: purpose,
-                            child: Text(
-                              purpose,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 12),
+                            child: Row(
+                              children: [
+                                if (isOther) ...[
+                                  const Icon(Icons.edit_note_rounded, size: 16, color: Color(0xFF2563EB)),
+                                  const SizedBox(width: 6),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    isOther ? 'Lainnya (Isi Manual)' : purpose,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isOther ? FontWeight.bold : FontWeight.normal,
+                                      color: isOther ? const Color(0xFF2563EB) : null,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           );
                         }).toList(),
@@ -1257,6 +1294,88 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                           });
                         },
                       ),
+
+                      if (_selectedPurpose == 'Lainnya') ...[
+                        const SizedBox(height: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  'Tuliskan Keperluan Kedinasan',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Text(
+                                  '*',
+                                  style: TextStyle(
+                                    color: Color(0xFFDC2626),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            TextFormField(
+                              controller: _customPurposeController,
+                              maxLines: 3,
+                              minLines: 2,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? Colors.white : const Color(0xFF1E293B),
+                              ),
+                              onChanged: (_) {
+                                setState(() {});
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'Contoh: Rapat koordinasi teknis penyusunan rencana kerja operasional kedinasan...',
+                                hintStyle: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                                ),
+                                prefixIcon: Padding(
+                                  padding: const EdgeInsets.only(bottom: 24),
+                                  child: Icon(
+                                    Icons.edit_note_rounded,
+                                    size: 20,
+                                    color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF24487A),
+                                  ),
+                                ),
+                                filled: true,
+                                fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF24487A),
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
