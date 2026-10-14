@@ -749,7 +749,7 @@ class ApiService {
     }
   }
 
-  static Future<bool> updateUser(AppUser user) async {
+  static Future<bool> updateUser(AppUser user, {String? password}) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/users/${user.id}');
       String roleStr = 'pegawai';
@@ -766,6 +766,9 @@ class ApiService {
         'department': user.department,
         'role': roleStr,
       };
+      if (password != null && password.isNotEmpty) {
+        payload['password'] = password;
+      }
 
       final res = await _client.put(
         url,

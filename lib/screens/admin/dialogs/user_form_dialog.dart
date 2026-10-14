@@ -175,8 +175,10 @@ class UserFormDialog {
                         passwordCtrl,
                         isEdit
                             ? 'Ganti Password (Kosongkan jika tidak diubah)'
-                            : 'Password',
-                        '********',
+                            : 'Password Akun (Default: password123)',
+                        isEdit
+                            ? 'Kosongkan jika tidak diubah'
+                            : 'Ketik password atau kosongkan (default: password123)',
                         isPassword: true,
                         obscureText: obscurePassword,
                         onToggleObscure: () => setModalState(() {
@@ -184,9 +186,7 @@ class UserFormDialog {
                         }),
                         isDark: isDark,
                         validator: (val) {
-                          if (!isEdit && (val == null || val.isEmpty)) {
-                            return 'Password wajib diisi';
-                          }
+                          // Tidak wajib, jika kosong akan otomatis diisi password123
                           return null;
                         },
                       ),
@@ -204,8 +204,12 @@ class UserFormDialog {
                             userToEdit.nip = nipCtrl.text.trim();
                             userToEdit.department = deptCtrl.text.trim();
                             userToEdit.email = emailCtrl.text.trim();
+                            if (passwordCtrl.text.trim().isNotEmpty) {
+                              userToEdit.password = passwordCtrl.text.trim();
+                            }
                             onUpdateUser?.call(userToEdit);
                           } else {
+                            final customPwd = passwordCtrl.text.trim();
                             final newUser = AppUser(
                               id: 'USR-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
                               name: nameCtrl.text.trim(),
@@ -213,6 +217,7 @@ class UserFormDialog {
                               department: deptCtrl.text.trim(),
                               email: emailCtrl.text.trim(),
                               role: defaultRole,
+                              password: customPwd.isNotEmpty ? customPwd : 'password123',
                             );
                             onAddUser?.call(newUser);
                           }

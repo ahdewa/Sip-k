@@ -1236,7 +1236,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         users: _appUsers,
         onAddUser: (newUser) async {
           setState(() => _appUsers.add(newUser));
-          await ApiService.createUser(newUser);
+          await ApiService.createUser(newUser, password: newUser.password);
           final fresh = await ApiService.fetchUsers();
           if (fresh != null && mounted) setState(() => _appUsers = fresh);
         },
@@ -1247,7 +1247,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               _appUsers[index] = updatedUser;
             }
           });
-          await ApiService.updateUser(updatedUser);
+          await ApiService.updateUser(updatedUser, password: updatedUser.password);
           final fresh = await ApiService.fetchUsers();
           if (fresh != null && mounted) setState(() => _appUsers = fresh);
         },
