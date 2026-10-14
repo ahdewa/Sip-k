@@ -51,16 +51,44 @@ Route::post('/news', [NewsController::class, 'store']);
 Route::put('/news/{id}', [NewsController::class, 'update']);
 Route::delete('/news/{id}', [NewsController::class, 'destroy']);
 
-// Image Proxy (Bypass CORS untuk Flutter Web)
+// Image Proxy (Bypass CORS untuk Flutter Web & Serve Local Storage)
 Route::get('/image-proxy', function (\Illuminate\Http\Request $request) {
     $url = $request->query('url');
     if (!$url) {
         return response('Missing url parameter', 400);
     }
 
+    // 1. Jika URL merujuk ke file storage lokal (misal: /storage/loan_documents/...)
+    // Baca langsung dari disk server tanpa cURL loopback (mencegah Hairpin NAT timeout)
+    $parsedPath = parse_url($url, PHP_URL_PATH);
+    if ($parsedPath && str_contains($parsedPath, '/storage/')) {
+        $subPath = substr($parsedPath, strpos($parsedPath, '/storage/') + strlen('/storage/'));
+        $localFile = public_path('storage/' . $subPath);
+        if (!file_exists($localFile)) {
+            $localFile = storage_path('app/public/' . $subPath);
+        }
+
+        if (file_exists($localFile)) {
+            $mime = @mime_content_type($localFile) ?: 'image/jpeg';
+            return response()->file($localFile, [
+                'Content-Type' => $mime,
+                'Access-Control-Allow-Origin' => '*',
+                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+                'Cache-Control' => 'public, max-age=86400',
+            ]);
+        }
+    }
+
+    // 2. Jika remote URL, lakukan cURL dengan bypass SSL
     try {
+        $host = parse_url($url, PHP_URL_HOST);
+        $fetchUrl = $url;
+        if ($host === '20.244.48.18') {
+            $fetchUrl = str_replace('http://20.244.48.18', 'http://127.0.0.1', $url);
+        }
+
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_URL, $fetchUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -95,36 +123,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'me']);
     Route::post('/user/profile', [AuthController::class, 'updateProfile']);
     Route::post('/logout', [AuthController::class, 'logout']);
-});
-
-
-// Proxy Gambar Dinsos Jatim (Bypass CORS di Web/Chrome)
-Route::get('/image-proxy', function (\Illuminate\Http\Request $request) {
-    $url = $request->query('url');
-    if (!$url) {
-        return response('Missing url', 400);
-    }
-    try {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE) ?: '';
-        curl_close($ch);
-
-        if ($data && $httpCode >= 200 && $httpCode < 300 && stripos($contentType, 'image/') !== false) {
-            return response($data, 200)
-                ->header('Content-Type', $contentType)
-                ->header('Access-Control-Allow-Origin', '*')
-                ->header('Cache-Control', 'public, max-age=86400');
-        }
-    } catch (\Throwable $e) {}
-
-    return response('Failed to fetch image', 500);
 });
 
 // Proxy API Wilayah Jawa Timur (Bypass CORS di Web/Chrome)
