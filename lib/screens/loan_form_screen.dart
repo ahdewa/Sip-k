@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:simodis_jatim/models/vehicle_model.dart';
 import 'package:simodis_jatim/models/loan_model.dart';
@@ -39,10 +40,14 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
   String? _selectedDepartment;
 
   // 2. Berkas Nota Dinas (Gambar / PDF)
+  static const int _maxNotaDinasBytes = 1024 * 1024; // 1 MB (1,048,576 bytes)
   Uint8List? _notaDinasBytes;
   String? _notaDinasName;
   bool _isPdf = false;
   int _notaDinasSize = 0;
+  int _originalNotaDinasSize = 0;
+  bool _isCompressingNotaDinas = false;
+  bool _wasNotaDinasCompressed = false;
 
   // 3. Jadwal Peminjaman & Jam Operasional
   DateTimeRange? _selectedDateRange;
@@ -525,6 +530,197 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
     }
   }
 
+  /// Kompresi berkas gambar otomatis agar ukurannya berada di bawah 1 MB
+  Future<Uint8List?> _compressImageTo1Mb(Uint8List originalBytes) async {
+    // Beri jeda 1 frame agar animasi indikator kompresi (spinner) muncul di antarmuka
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    try {
+      final decoded = img.decodeImage(originalBytes);
+      if (decoded == null) return null;
+
+      // 1. Perbaiki orientasi EXIF (misal hasil jepretan kamera ponsel)
+      final oriented = img.bakeOrientation(decoded);
+
+      // 2. Batasi dimensi awal maksimal 1600 px pada sisi terpanjang
+      int targetWidth = oriented.width;
+      int targetHeight = oriented.height;
+      if (targetWidth > 1600 || targetHeight > 1600) {
+        if (targetWidth >= targetHeight) {
+          targetHeight = (targetHeight * (1600.0 / targetWidth)).round();
+          targetWidth = 1600;
+        } else {
+          targetWidth = (targetWidth * (1600.0 / targetHeight)).round();
+          targetHeight = 1600;
+        }
+      }
+
+      img.Image currentImg = (targetWidth != oriented.width)
+          ? img.copyResize(oriented, width: targetWidth, height: targetHeight)
+          : oriented;
+
+      // 3. Coba kompresi kualitas bertahap (85 -> 75 -> 60 -> 45 -> 30)
+      for (final q in [85, 75, 60, 45, 30]) {
+        final encoded = Uint8List.fromList(img.encodeJpg(currentImg, quality: q));
+        if (encoded.length <= _maxNotaDinasBytes) {
+          return encoded;
+        }
+      }
+
+      // 4. Jika masih > 1 MB, turunkan resolusi ke 1200 px
+      currentImg = img.copyResize(currentImg, width: 1200);
+      for (final q in [70, 50, 35]) {
+        final encoded = Uint8List.fromList(img.encodeJpg(currentImg, quality: q));
+        if (encoded.length <= _maxNotaDinasBytes) {
+          return encoded;
+        }
+      }
+
+      // 5. Jika masih > 1 MB, turunkan resolusi ke 900 px
+      currentImg = img.copyResize(currentImg, width: 900);
+      for (final q in [60, 40]) {
+        final encoded = Uint8List.fromList(img.encodeJpg(currentImg, quality: q));
+        if (encoded.length <= _maxNotaDinasBytes) {
+          return encoded;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('Error saat kompresi berkas gambar: $e');
+      return null;
+    }
+  }
+
+  /// Memproses berkas Nota Dinas yang dipilih dengan validasi 1 MB & kompresi otomatis untuk gambar
+  Future<void> _handleNotaDinasBytes(
+    Uint8List rawBytes,
+    String fileName,
+    bool isPdf,
+  ) async {
+    // 1. Jika ukuran berkas sudah <= 1 MB, langsung gunakan tanpa perlu kompresi
+    if (rawBytes.length <= _maxNotaDinasBytes) {
+      setState(() {
+        _notaDinasName = fileName;
+        _notaDinasBytes = rawBytes;
+        _notaDinasSize = rawBytes.length;
+        _originalNotaDinasSize = rawBytes.length;
+        _wasNotaDinasCompressed = false;
+        _isPdf = isPdf;
+        _isCompressingNotaDinas = false;
+      });
+      return;
+    }
+
+    // 2. Jika berkas adalah PDF dan > 1 MB:
+    // Tampilkan notifikasi penolakan karena PDF tidak dapat dikompres otomatis oleh sistem
+    if (isPdf) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(
+                  Icons.error_outline_rounded,
+                  color: Color(0xFFDC2626),
+                  size: 26,
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Ukuran PDF Melebihi 1 MB',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              'Ukuran berkas PDF yang Anda pilih adalah ${_formatFileSize(rawBytes.length)}. Batas maksimal yang diizinkan adalah 1 MB.\n\n'
+              'Solusi:\n'
+              '• Gunakan berkas PDF dengan ukuran di bawah 1 MB (kompres dokumen terlebih dahulu), atau\n'
+              '• Unggah lembar Nota Dinas dalam format Foto/Gambar (JPG/PNG) agar sistem dapat mengompres ukurannya secara otomatis.',
+              style: const TextStyle(fontSize: 13, height: 1.5),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Mengerti',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
+    // 3. Jika berkas adalah Gambar dan > 1 MB:
+    // Sistem otomatis mengompresi gambar hingga berada di bawah batas 1 MB
+    setState(() {
+      _isCompressingNotaDinas = true;
+    });
+
+    final compressed = await _compressImageTo1Mb(rawBytes);
+
+    if (!mounted) return;
+
+    if (compressed != null && compressed.length <= _maxNotaDinasBytes) {
+      setState(() {
+        _notaDinasName = fileName;
+        _notaDinasBytes = compressed;
+        _notaDinasSize = compressed.length;
+        _originalNotaDinasSize = rawBytes.length;
+        _wasNotaDinasCompressed = true;
+        _isPdf = false;
+        _isCompressingNotaDinas = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Berkas gambar berhasil dikompres otomatis dari ${_formatFileSize(rawBytes.length)} menjadi ${_formatFileSize(compressed.length)} (< 1 MB)',
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF16A34A),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } else {
+      setState(() {
+        _isCompressingNotaDinas = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Gagal mengompres gambar di bawah 1 MB (${_formatFileSize(rawBytes.length)}). Harap gunakan foto dengan resolusi lebih rendah.',
+          ),
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   // Pemilihan Dokumen Nota Dinas (PDF atau Gambar)
   Future<void> _pickNotaDinasFile() async {
     try {
@@ -535,27 +731,8 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
 
       if (file != null) {
         final bytes = await file.xFile.readAsBytes();
-        if (bytes.length > 8 * 1024 * 1024) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Ukuran file melebihi 8 MB. Silakan gunakan berkas PDF/Foto dengan ukuran maksimal 8 MB.',
-                ),
-                backgroundColor: Color(0xFFDC2626),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          }
-          return;
-        }
         final isPdf = file.name.toLowerCase().endsWith('.pdf');
-        setState(() {
-          _notaDinasName = file.name;
-          _notaDinasBytes = bytes;
-          _notaDinasSize = bytes.length;
-          _isPdf = isPdf;
-        });
+        await _handleNotaDinasBytes(bytes, file.name, isPdf);
       }
     } catch (e) {
       debugPrint('Error picking file: $e');
@@ -572,13 +749,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
 
       if (pickedPhoto == null) return;
       final bytes = await pickedPhoto.readAsBytes();
-
-      setState(() {
-        _notaDinasName = pickedPhoto.name;
-        _notaDinasBytes = bytes;
-        _notaDinasSize = bytes.length;
-        _isPdf = false;
-      });
+      await _handleNotaDinasBytes(bytes, pickedPhoto.name, false);
     } catch (e) {
       debugPrint('Error picking camera: $e');
     }
@@ -600,7 +771,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
               ),
               title: const Text('Upload Dokumen PDF atau Gambar (Berkas)'),
               subtitle: const Text(
-                'Pilih berkas dari memori perangkat (PDF, PNG, JPG)',
+                'Pilih berkas dari perangkat (Maks. 1 MB, gambar otomatis dikompres)',
               ),
               onTap: () {
                 Navigator.pop(sheetContext);
@@ -613,7 +784,7 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                 color: Color(0xFF2563EB),
               ),
               title: const Text('Foto Fisik Dokumen dengan Kamera'),
-              subtitle: const Text('Ambil foto langsung surat usulan fisik'),
+              subtitle: const Text('Ambil foto langsung surat usulan (Otomatis dikompres < 1 MB)'),
               onTap: () {
                 Navigator.pop(sheetContext);
                 _pickNotaDinasCamera();
@@ -766,6 +937,19 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
           content: Text(
             'Silakan upload berkas Nota Dinas terlebih dahulu (PDF atau Gambar).',
           ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (_notaDinasBytes!.length > _maxNotaDinasBytes) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Ukuran berkas Nota Dinas (${_formatFileSize(_notaDinasBytes!.length)}) melebihi batas maksimal 1 MB.',
+          ),
+          backgroundColor: const Color(0xFFDC2626),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -942,189 +1126,301 @@ class _LoanFormScreenState extends State<LoanFormScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: _cardBoxDecoration(),
-                  child: _notaDinasBytes == null
-                      ? InkWell(
-                          onTap: _showNotaDinasPickerSheet,
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 24,
-                              horizontal: 16,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? const Color(0xFF0F172A)
-                                  : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isDark
-                                    ? const Color(
-                                        0xFF3B82F6,
-                                      ).withValues(alpha: 0.5)
-                                    : const Color(0xFFBFDBFE),
-                                width: 1.2,
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? const Color(
-                                            0xFF1E3A8A,
-                                          ).withValues(alpha: 0.3)
-                                        : const Color(0xFFEFF6FF),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.upload_file_rounded,
-                                    size: 32,
-                                    color: isDark
-                                        ? const Color(0xFF60A5FA)
-                                        : const Color(0xFF24487A),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Upload Nota Dinas Resmi',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF24487A),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Mendukung format Dokumen PDF atau Berkas Gambar (PNG, JPG)',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark
-                                        ? const Color(0xFF94A3B8)
-                                        : const Color(0xFF64748B),
-                                  ),
-                                ),
-                              ],
-                            ),
+                  child: _isCompressingNotaDinas
+                      ? Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 32,
+                            horizontal: 16,
                           ),
-                        )
-                      : Container(
-                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: isDark
                                 ? const Color(0xFF0F172A)
                                 : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isDark
-                                  ? const Color(0xFF334155)
-                                  : const Color(0xFFE2E8F0),
+                              color: const Color(0xFF2563EB).withValues(alpha: 0.4),
+                              width: 1.2,
                             ),
                           ),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (!_isPdf) ...[
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Image.memory(
-                                    _notaDinasBytes!,
-                                    width: double.infinity,
-                                    height: 160,
-                                    fit: BoxFit.cover,
+                              const SizedBox(
+                                width: 32,
+                                height: 32,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF2563EB),
                                   ),
                                 ),
-                                const SizedBox(height: 12),
-                              ],
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: _isPdf
-                                          ? const Color(
-                                              0xFFDC2626,
-                                            ).withValues(alpha: 0.12)
-                                          : const Color(
-                                              0xFF2563EB,
-                                            ).withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      _isPdf
-                                          ? Icons.picture_as_pdf_rounded
-                                          : Icons.image_rounded,
-                                      size: 24,
-                                      color: _isPdf
-                                          ? const Color(0xFFDC2626)
-                                          : const Color(0xFF2563EB),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _notaDinasName ?? 'Nota_Dinas.pdf',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: isDark
-                                                ? Colors.white
-                                                : const Color(0xFF1E293B),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          '${_isPdf ? "Dokumen PDF" : "Berkas Gambar"} • ${_formatFileSize(_notaDinasSize)}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: isDark
-                                                ? const Color(0xFF94A3B8)
-                                                : const Color(0xFF64748B),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  TextButton.icon(
-                                    onPressed: _showNotaDinasPickerSheet,
-                                    icon: const Icon(
-                                      Icons.edit_outlined,
-                                      size: 15,
-                                    ),
-                                    label: const Text(
-                                      'Ganti',
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Hapus berkas',
-                                    onPressed: () => setState(() {
-                                      _notaDinasBytes = null;
-                                      _notaDinasName = null;
-                                      _notaDinasSize = 0;
-                                    }),
-                                    icon: const Icon(
-                                      Icons.delete_outline_rounded,
-                                      color: Color(0xFFDC2626),
-                                      size: 20,
-                                    ),
-                                  ),
-                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                'Mengompresi Berkas Nota Dinas...',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1E293B),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Menyesuaikan ukuran gambar otomatis agar tidak melebihi syarat 1 MB',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B),
+                                ),
+                                textAlign: TextAlign.center,
                               ),
                             ],
                           ),
-                        ),
+                        )
+                      : _notaDinasBytes == null
+                          ? InkWell(
+                              onTap: _showNotaDinasPickerSheet,
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 24,
+                                  horizontal: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF0F172A)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? const Color(
+                                            0xFF3B82F6,
+                                          ).withValues(alpha: 0.5)
+                                        : const Color(0xFFBFDBFE),
+                                    width: 1.2,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? const Color(
+                                                0xFF1E3A8A,
+                                              ).withValues(alpha: 0.3)
+                                            : const Color(0xFFEFF6FF),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.upload_file_rounded,
+                                        size: 32,
+                                        color: isDark
+                                            ? const Color(0xFF60A5FA)
+                                            : const Color(0xFF24487A),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'Upload Nota Dinas Resmi',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF24487A),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Mendukung format Dokumen PDF atau Foto/Gambar (PNG, JPG) • Maksimal 1 MB (Otomatis Kompres Gambar)',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isDark
+                                            ? const Color(0xFF94A3B8)
+                                            : const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? const Color(0xFF0F172A)
+                                    : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isDark
+                                      ? const Color(0xFF334155)
+                                      : const Color(0xFFE2E8F0),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (!_isPdf) ...[
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Image.memory(
+                                        _notaDinasBytes!,
+                                        width: double.infinity,
+                                        height: 160,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                  ],
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: _isPdf
+                                              ? const Color(
+                                                  0xFFDC2626,
+                                                ).withValues(alpha: 0.12)
+                                              : const Color(
+                                                  0xFF2563EB,
+                                                ).withValues(alpha: 0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          _isPdf
+                                              ? Icons.picture_as_pdf_rounded
+                                              : Icons.image_rounded,
+                                          size: 24,
+                                          color: _isPdf
+                                              ? const Color(0xFFDC2626)
+                                              : const Color(0xFF2563EB),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _notaDinasName ?? 'Nota_Dinas.pdf',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : const Color(0xFF1E293B),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 3),
+                                            Wrap(
+                                              crossAxisAlignment:
+                                                  WrapCrossAlignment.center,
+                                              spacing: 8,
+                                              runSpacing: 4,
+                                              children: [
+                                                Text(
+                                                  '${_isPdf ? "Dokumen PDF" : "Berkas Gambar"} • ${_formatFileSize(_notaDinasSize)}',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: isDark
+                                                        ? const Color(0xFF94A3B8)
+                                                        : const Color(0xFF64748B),
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                    horizontal: 7,
+                                                    vertical: 2,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                      0xFF16A34A,
+                                                    ).withValues(alpha: 0.12),
+                                                    borderRadius:
+                                                        BorderRadius.circular(6),
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                        0xFF16A34A,
+                                                      ).withValues(alpha: 0.35),
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      const Icon(
+                                                        Icons
+                                                            .check_circle_rounded,
+                                                        size: 11,
+                                                        color:
+                                                            Color(0xFF16A34A),
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        _wasNotaDinasCompressed
+                                                            ? 'Dikompres Otomatis (${_formatFileSize(_originalNotaDinasSize)} ➔ ${_formatFileSize(_notaDinasSize)})'
+                                                            : 'Ukuran Sesuai (≤ 1 MB)',
+                                                        style: const TextStyle(
+                                                          fontSize: 10,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color:
+                                                              Color(0xFF16A34A),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      TextButton.icon(
+                                        onPressed: _showNotaDinasPickerSheet,
+                                        icon: const Icon(
+                                          Icons.edit_outlined,
+                                          size: 15,
+                                        ),
+                                        label: const Text(
+                                          'Ganti',
+                                          style: TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        tooltip: 'Hapus berkas',
+                                        onPressed: () => setState(() {
+                                          _notaDinasBytes = null;
+                                          _notaDinasName = null;
+                                          _notaDinasSize = 0;
+                                          _originalNotaDinasSize = 0;
+                                          _wasNotaDinasCompressed = false;
+                                          _isCompressingNotaDinas = false;
+                                        }),
+                                        icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          color: Color(0xFFDC2626),
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                 ),
 
                 const SizedBox(height: 20),
