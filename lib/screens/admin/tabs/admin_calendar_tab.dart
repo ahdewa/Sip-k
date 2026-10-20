@@ -1033,7 +1033,7 @@ class _AdminCalendarTabState extends State<AdminCalendarTab> {
         badgeBg = isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE);
         badgeColor =
             isDark ? const Color(0xFF93C5FD) : const Color(0xFF2563EB);
-        statusLabel = 'Selesai (BAST)';
+        statusLabel = 'Selesai';
         break;
       case LoanStatus.ditolak:
       case LoanStatus.rejected:

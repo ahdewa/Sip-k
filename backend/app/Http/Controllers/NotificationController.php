@@ -33,11 +33,11 @@ class NotificationController extends Controller
 
         if ($role === 'admin' || $role === 'superadmin') {
             // Admin / Superadmin:
-            // Hanya melihat notifikasi operasional (verifikasi, servis, BAST, akun baru, rekapitulasi)
+            // Hanya melihat notifikasi operasional (verifikasi, servis, pengembalian, akun baru, rekapitulasi)
             $query->where(function ($q) use ($userId) {
                 $q->where('title', 'like', '%Perlu Verifikasi%')
                   ->orWhere('title', 'like', '%Servis%')
-                  ->orWhere('title', 'like', '%BAST%')
+                  ->orWhere('title', 'like', '%Pengembalian%')
                   ->orWhere('title', 'like', '%Bentrok%')
                   ->orWhere('title', 'like', '%Akun Baru%')
                   ->orWhere('title', 'like', '%Pendaftaran Akun%')
@@ -134,7 +134,7 @@ class NotificationController extends Controller
             $query->where(function ($q) use ($userId) {
                 $q->where('title', 'like', '%Perlu Verifikasi%')
                   ->orWhere('title', 'like', '%Servis%')
-                  ->orWhere('title', 'like', '%BAST%')
+                  ->orWhere('title', 'like', '%Pengembalian%')
                   ->orWhere('title', 'like', '%Bentrok%')
                   ->orWhere('title', 'like', '%Akun Baru%')
                   ->orWhere('title', 'like', '%Pendaftaran Akun%')

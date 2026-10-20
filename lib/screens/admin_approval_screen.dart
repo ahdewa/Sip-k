@@ -5,6 +5,7 @@ import 'package:simodis_jatim/models/user_model.dart';
 import 'package:simodis_jatim/models/vehicle_model.dart';
 import 'package:simodis_jatim/screens/admin/tabs/admin_calendar_tab.dart';
 import 'package:simodis_jatim/screens/admin/tabs/admin_dashboard_tab.dart';
+import 'package:simodis_jatim/screens/admin/tabs/admin_drivers_tab.dart';
 import 'package:simodis_jatim/screens/admin/tabs/admin_loans_tab.dart';
 import 'package:simodis_jatim/screens/admin/tabs/admin_performance_tab.dart';
 import 'package:simodis_jatim/screens/admin/tabs/admin_reports_tab.dart';
@@ -79,8 +80,9 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
   Widget _wrapWithRefresh(Widget child) {
     return RefreshIndicator(
       color: const Color(0xFF24487A),
-      backgroundColor:
-          ThemeService.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: ThemeService.isDarkMode
+          ? const Color(0xFF1E293B)
+          : Colors.white,
       onRefresh: () async {
         if (widget.onRefresh != null) {
           await widget.onRefresh!();
@@ -96,10 +98,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
   @override
   void initState() {
     super.initState();
-    _mainTabController = TabController(
-      length: 8,
-      vsync: this,
-    );
+    _mainTabController = TabController(length: 9, vsync: this);
     _mainTabController.addListener(() {
       if (_mainTabController.indexIsChanging) return;
       if (_selectedTabIndex != _mainTabController.index && mounted) {
@@ -122,8 +121,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
               detailContent:
                   'Permohonan dinas masuk ke antrean verifikasi Kasubag. Tanggal tugas 12-14 September 2026. Dokumen Nota Dinas dan formulir permohonan telah dilampirkan.',
               referenceNumber: 'REQ-2026-0910-01',
-              createdAt:
-                  DateTime.now().subtract(const Duration(minutes: 10)),
+              createdAt: DateTime.now().subtract(const Duration(minutes: 10)),
               type: NotificationType.submitted,
               isRead: false,
             ),
@@ -137,21 +135,20 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
               detailContent:
                   'Sistem telematika mendeteksi odometer armada mendekati ambang batas servis 50.000 KM. Hubungi bengkel rekanan Pemprov Jatim untuk perawatan berkala.',
               referenceNumber: 'SRV-2026-09-002',
-              createdAt:
-                  DateTime.now().subtract(const Duration(minutes: 45)),
+              createdAt: DateTime.now().subtract(const Duration(minutes: 45)),
               type: NotificationType.maintenance,
               isRead: false,
             ),
             AppNotification(
               id: 'ADM-003',
-              title: 'Pengembalian Unit & BAST Masuk',
+              title: 'Pengembalian Unit Masuk',
               message:
-                  'Bambang Triyono telah menyelesaikan perjalanan dinas dengan Isuzu Elf Minibus. Menunggu cek fisik & BAST.',
+                  'Bambang Triyono telah menyelesaikan perjalanan dinas dengan Isuzu Elf Minibus. Menunggu cek fisik di pool.',
               time: '2 jam lalu',
               fullDate: '10 September 2026, 09:15 WIB',
               detailContent:
-                  'Unit telah diparkir di Pool Dinsos Jatim. Pengemudi melaporkan BBM 3/4 tangki, odometer akhir 45.200 KM, dan melampirkan formulir BAST serah terima kunci.',
-              referenceNumber: 'BAST-2026-0902',
+                  'Unit telah diparkir di Pool Dinsos Jatim. Pengemudi melaporkan BBM 3/4 tangki, odometer akhir 45.200 KM, dan telah menyerahkan kunci kontak.',
+              referenceNumber: 'RET-2026-0902',
               createdAt: DateTime.now().subtract(const Duration(hours: 2)),
               type: NotificationType.approved,
               isRead: false,
@@ -208,9 +205,12 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
   void didUpdateWidget(covariant AdminApprovalScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.notifications != null && widget.notifications != oldWidget.notifications) {
+    if (widget.notifications != null &&
+        widget.notifications != oldWidget.notifications) {
       setState(() {
-        _notifications = widget.notifications!.where((n) => n.isForAdmin).toList();
+        _notifications = widget.notifications!
+            .where((n) => n.isForAdmin)
+            .toList();
       });
     }
     _syncPendingLoanNotifications();
@@ -218,13 +218,17 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
 
   void _syncPendingLoanNotifications() {
     // Pastikan setiap permohonan yang berstatus menunggu verifikasi memiliki notifikasi di antrean
-    final waitingRequests = widget.requests.where((r) =>
-        r.status == LoanStatus.menunggu || r.status == LoanStatus.pending);
+    final waitingRequests = widget.requests.where(
+      (r) => r.status == LoanStatus.menunggu || r.status == LoanStatus.pending,
+    );
 
     for (final req in waitingRequests) {
-      final exists = _notifications.any((n) =>
-          n.referenceNumber == req.id ||
-          (n.title.contains('Permohonan Masuk') && n.message.contains(req.borrowerName)));
+      final exists = _notifications.any(
+        (n) =>
+            n.referenceNumber == req.id ||
+            (n.title.contains('Permohonan Masuk') &&
+                n.message.contains(req.borrowerName)),
+      );
 
       if (!exists) {
         _notifications.insert(
@@ -377,11 +381,15 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                         decoration: BoxDecoration(
                           color: _isSuperAdmin
                               ? (isDark
-                                  ? const Color(0xFF78350F).withValues(alpha: 0.5)
-                                  : const Color(0xFFFEF3C7))
+                                    ? const Color(
+                                        0xFF78350F,
+                                      ).withValues(alpha: 0.5)
+                                    : const Color(0xFFFEF3C7))
                               : (isDark
-                                  ? const Color(0xFF1E3A8A).withValues(alpha: 0.5)
-                                  : const Color(0xFFEFF6FF)),
+                                    ? const Color(
+                                        0xFF1E3A8A,
+                                      ).withValues(alpha: 0.5)
+                                    : const Color(0xFFEFF6FF)),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -645,22 +653,19 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         color: !notif.isRead
             ? (_isSuperAdmin
-                ? (isDark
-                    ? const Color(0xFF78350F).withValues(alpha: 0.12)
-                    : const Color(0xFFFFFBEB))
-                : (isDark
-                    ? const Color(0xFF1E3A8A).withValues(alpha: 0.12)
-                    : const Color(0xFFF0F9FF)))
+                  ? (isDark
+                        ? const Color(0xFF78350F).withValues(alpha: 0.12)
+                        : const Color(0xFFFFFBEB))
+                  : (isDark
+                        ? const Color(0xFF1E3A8A).withValues(alpha: 0.12)
+                        : const Color(0xFFF0F9FF)))
             : Colors.transparent,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: iconBg,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
               child: Icon(iconData, size: 16, color: iconColor),
             ),
             const SizedBox(width: 10),
@@ -776,21 +781,19 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                 radius: 36,
                 backgroundColor: _isSuperAdmin
                     ? (isDark
-                        ? const Color(0xFF78350F)
-                        : const Color(0xFFFEF3C7))
+                          ? const Color(0xFF78350F)
+                          : const Color(0xFFFEF3C7))
                     : (isDark
-                        ? const Color(0xFF334155)
-                        : const Color(0xFFE2E8F0)),
+                          ? const Color(0xFF334155)
+                          : const Color(0xFFE2E8F0)),
                 child: Icon(
                   Icons.person,
                   size: 40,
                   color: _isSuperAdmin
                       ? (isDark
-                          ? const Color(0xFFFBBF24)
-                          : const Color(0xFFD97706))
-                      : (isDark
-                          ? Colors.white
-                          : const Color(0xFF1E293B)),
+                            ? const Color(0xFFFBBF24)
+                            : const Color(0xFFD97706))
+                      : (isDark ? Colors.white : const Color(0xFF1E293B)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -805,8 +808,10 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
               ),
               const SizedBox(height: 4),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: _isSuperAdmin
                       ? const Color(0xFFFEF3C7)
@@ -947,12 +952,14 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
         final allVehicles = widget.vehicles ?? [];
         final allUsers = widget.users ?? [];
         final adminList = allUsers.where((u) => u.isAdmin).toList();
-        final userList =
-            allUsers.where((u) => !u.isSuperAdmin && !u.isAdmin).toList();
+        final userList = allUsers
+            .where((u) => !u.isSuperAdmin && !u.isAdmin)
+            .toList();
 
         return Scaffold(
-          backgroundColor:
-              isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+          backgroundColor: isDark
+              ? const Color(0xFF0F172A)
+              : const Color(0xFFF8FAFC),
           drawer: isMobile
               ? Drawer(
                   child: AdminMobileDrawer(
@@ -996,8 +1003,12 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                     children: [
                       // Header Banner
                       Container(
-                        padding:
-                            EdgeInsets.fromLTRB(isMobile ? 8 : 20, 12, 14, 12),
+                        padding: EdgeInsets.fromLTRB(
+                          isMobile ? 8 : 20,
+                          12,
+                          14,
+                          12,
+                        ),
                         color: isDark ? const Color(0xFF1E293B) : Colors.white,
                         child: Row(
                           children: [
@@ -1048,11 +1059,11 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                                   Text(
                                     _isSuperAdmin
                                         ? (isMobile
-                                            ? 'OVBS SUPERADMIN'
-                                            : 'SISTEM INFORMASI KENDARAAN (SUPER)')
+                                              ? 'OVBS SUPERADMIN'
+                                              : 'SISTEM INFORMASI KENDARAAN (SUPER)')
                                         : (isMobile
-                                            ? 'OVBS ARMADA DINSOS'
-                                            : 'MANAJEMEN ARMADA DINSOS'),
+                                              ? 'OVBS ARMADA DINSOS'
+                                              : 'MANAJEMEN ARMADA'),
                                     style: TextStyle(
                                       fontSize: isMobile ? 12.5 : 13,
                                       fontWeight: FontWeight.w900,
@@ -1066,7 +1077,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                                   ),
                                   const SizedBox(height: 1),
                                   Text(
-                                    'UPT Dinas Sosial Provinsi Jawa Timur',
+                                    'Dinas Sosial Provinsi Jawa Timur',
                                     style: TextStyle(
                                       fontSize: isMobile ? 10 : 11,
                                       color: const Color(0xFF94A3B8),
@@ -1096,11 +1107,16 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                                           height: 16,
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
+                                                ),
                                           ),
                                         ),
                                         SizedBox(width: 12),
-                                        Text('Memperbarui data dari database...'),
+                                        Text(
+                                          'Memperbarui data dari database...',
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -1121,185 +1137,195 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                             ),
                             const SizedBox(width: 4),
 
-                          // 2. Notification Icon with Badge & Pop Up Dropdown
-                          CompositedTransformTarget(
-                            link: _notifLayerLink,
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              children: [
-                                IconButton(
-                                  tooltip:
-                                      'Notifikasi ($_unreadCount Belum Dibaca)',
-                                  onPressed: _toggleNotificationPopup,
-                                  icon: Icon(
-                                    _unreadCount > 0
-                                        ? Icons.notifications_active_rounded
-                                        : Icons.notifications_none_rounded,
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF1E293B),
-                                    size: 26,
+                            // 2. Notification Icon with Badge & Pop Up Dropdown
+                            CompositedTransformTarget(
+                              link: _notifLayerLink,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  IconButton(
+                                    tooltip:
+                                        'Notifikasi ($_unreadCount Belum Dibaca)',
+                                    onPressed: _toggleNotificationPopup,
+                                    icon: Icon(
+                                      _unreadCount > 0
+                                          ? Icons.notifications_active_rounded
+                                          : Icons.notifications_none_rounded,
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF1E293B),
+                                      size: 26,
+                                    ),
                                   ),
-                                ),
-                                Positioned(
-                                  top: 2,
-                                  right: 2,
-                                  child: GestureDetector(
-                                    onTap: _toggleNotificationPopup,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                        vertical: 2,
-                                      ),
-                                      constraints: const BoxConstraints(
-                                        minWidth: 18,
-                                        minHeight: 18,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _unreadCount > 0
-                                            ? const Color(0xFFDC2626)
-                                            : (isDark
-                                                ? const Color(0xFF334155)
-                                                : const Color(0xFFCBD5E1)),
-                                        borderRadius:
-                                            BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: isDark
-                                              ? const Color(0xFF1E293B)
-                                              : Colors.white,
-                                          width: 1.5,
+                                  Positioned(
+                                    top: 2,
+                                    right: 2,
+                                    child: GestureDetector(
+                                      onTap: _toggleNotificationPopup,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                          vertical: 2,
                                         ),
-                                        boxShadow: [
-                                          if (_unreadCount > 0)
-                                            BoxShadow(
-                                              color: const Color(0xFFDC2626)
-                                                  .withValues(alpha: 0.4),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 1),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 18,
+                                          minHeight: 18,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _unreadCount > 0
+                                              ? const Color(0xFFDC2626)
+                                              : (isDark
+                                                    ? const Color(0xFF334155)
+                                                    : const Color(0xFFCBD5E1)),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          border: Border.all(
+                                            color: isDark
+                                                ? const Color(0xFF1E293B)
+                                                : Colors.white,
+                                            width: 1.5,
+                                          ),
+                                          boxShadow: [
+                                            if (_unreadCount > 0)
+                                              BoxShadow(
+                                                color: const Color(
+                                                  0xFFDC2626,
+                                                ).withValues(alpha: 0.4),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 1),
+                                              ),
+                                          ],
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            '$_unreadCount',
+                                            style: TextStyle(
+                                              color: _unreadCount > 0
+                                                  ? Colors.white
+                                                  : (isDark
+                                                        ? Colors.white70
+                                                        : const Color(
+                                                            0xFF475569,
+                                                          )),
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.w900,
+                                              height: 1,
                                             ),
-                                        ],
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '$_unreadCount',
-                                          style: TextStyle(
-                                            color: _unreadCount > 0
-                                                ? Colors.white
-                                                : (isDark
-                                                    ? Colors.white70
-                                                    : const Color(0xFF475569)),
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.w900,
-                                            height: 1,
                                           ),
                                         ),
                                       ),
                                     ),
-                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Divider(
-                      height: 1,
-                      color: isDark
-                          ? const Color(0xFF334155)
-                          : const Color(0xFFE2E8F0),
-                    ),
-
-                    // Content Switcher
-                    Expanded(
-                      child: IndexedStack(
-                        index: _selectedTabIndex.clamp(
-                          0,
-                          _isSuperAdmin ? 7 : 4,
-                        ),
-                        children: [
-                          _wrapWithRefresh(
-                            AdminDashboardTab(
-                              pendingCount: pendingCount,
-                              activeCount: activeCount,
-                              completedCount: completedCount,
-                              totalVehicles: allVehicles.length,
-                              requests: widget.requests,
-                              vehicles: allVehicles,
-                              onVerify: widget.onVerify,
-                            ),
-                          ),
-                          _wrapWithRefresh(
-                            AdminLoansTab(
-                              requests: widget.requests,
-                              onVerify: widget.onVerify,
-                              onReturn: widget.onReturn,
-                            ),
-                          ),
-                          _wrapWithRefresh(
-                            AdminCalendarTab(
-                              requests: widget.requests,
-                              vehicles: allVehicles,
-                            ),
-                          ),
-                          if (_isSuperAdmin)
-                            _wrapWithRefresh(
-                              AdminVehiclesTab(
-                                vehicles: allVehicles,
-                                onAddVehicle: widget.onAddVehicle,
-                                onUpdateVehicle: widget.onUpdateVehicle,
-                                onDeleteVehicle: widget.onDeleteVehicle,
+                                  ),
+                                ],
                               ),
                             ),
-                          if (_isSuperAdmin)
+                          ],
+                        ),
+                      ),
+                      Divider(
+                        height: 1,
+                        color: isDark
+                            ? const Color(0xFF334155)
+                            : const Color(0xFFE2E8F0),
+                      ),
+
+                      // Content Switcher
+                      Expanded(
+                        child: IndexedStack(
+                          index: _selectedTabIndex.clamp(
+                            0,
+                            _isSuperAdmin ? 8 : 5,
+                          ),
+                          children: [
+                            _wrapWithRefresh(
+                              AdminDashboardTab(
+                                pendingCount: pendingCount,
+                                activeCount: activeCount,
+                                completedCount: completedCount,
+                                totalVehicles: allVehicles.length,
+                                requests: widget.requests,
+                                vehicles: allVehicles,
+                                onVerify: widget.onVerify,
+                              ),
+                            ),
+                            _wrapWithRefresh(
+                              AdminLoansTab(
+                                requests: widget.requests,
+                                onVerify: widget.onVerify,
+                                onReturn: widget.onReturn,
+                              ),
+                            ),
+                            _wrapWithRefresh(
+                              AdminCalendarTab(
+                                requests: widget.requests,
+                                vehicles: allVehicles,
+                              ),
+                            ),
+                            if (_isSuperAdmin)
+                              _wrapWithRefresh(
+                                AdminVehiclesTab(
+                                  vehicles: allVehicles,
+                                  onAddVehicle: widget.onAddVehicle,
+                                  onUpdateVehicle: widget.onUpdateVehicle,
+                                  onDeleteVehicle: widget.onDeleteVehicle,
+                                ),
+                              ),
+                            if (_isSuperAdmin)
+                              _wrapWithRefresh(
+                                AdminUsersTab(
+                                  targetRole: UserRole.admin,
+                                  title: 'Daftar Admin (Kasubag & Tim Aset)',
+                                  subtitle: 'Akun pengelola verifikasi armada.',
+                                  userList: adminList,
+                                  isSuperAdmin: _isSuperAdmin,
+                                  onAddUser: widget.onAddUser,
+                                  onUpdateUser: widget.onUpdateUser,
+                                  onDeleteUser: widget.onDeleteUser,
+                                ),
+                              ),
                             _wrapWithRefresh(
                               AdminUsersTab(
-                                targetRole: UserRole.admin,
-                                title: 'Daftar Admin (Kasubag & Tim Aset)',
-                                subtitle: 'Akun pengelola verifikasi armada.',
-                                userList: adminList,
+                                targetRole: UserRole.user,
+                                title: 'Daftar Pegawai (User Pemohon)',
+                                subtitle:
+                                    'Akun pegawai yang berhak mengajukan.',
+                                userList: userList,
                                 isSuperAdmin: _isSuperAdmin,
                                 onAddUser: widget.onAddUser,
                                 onUpdateUser: widget.onUpdateUser,
                                 onDeleteUser: widget.onDeleteUser,
                               ),
                             ),
-                          _wrapWithRefresh(
-                            AdminUsersTab(
-                              targetRole: UserRole.user,
-                              title: 'Daftar Pegawai (User Pemohon)',
-                              subtitle: 'Akun pegawai yang berhak mengajukan.',
-                              userList: userList,
-                              isSuperAdmin: _isSuperAdmin,
-                              onAddUser: widget.onAddUser,
-                              onUpdateUser: widget.onUpdateUser,
-                              onDeleteUser: widget.onDeleteUser,
-                            ),
-                          ),
-                          if (_isSuperAdmin)
                             _wrapWithRefresh(
-                              AdminReportsTab(
-                                requests: widget.requests,
-                                vehicles: allVehicles,
-                                users: allUsers,
+                              AdminDriversTab(
+                                isSuperAdmin: _isSuperAdmin,
                               ),
                             ),
-                          _wrapWithRefresh(
-                            AdminPerformanceTab(
-                              requests: widget.requests,
-                              vehicles: allVehicles,
+                            if (_isSuperAdmin)
+                              _wrapWithRefresh(
+                                AdminReportsTab(
+                                  requests: widget.requests,
+                                  vehicles: allVehicles,
+                                  users: allUsers,
+                                ),
+                              ),
+                            _wrapWithRefresh(
+                              AdminPerformanceTab(
+                                requests: widget.requests,
+                                vehicles: allVehicles,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      );
+        );
       },
     );
   }

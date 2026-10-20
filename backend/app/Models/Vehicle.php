@@ -13,6 +13,8 @@ class Vehicle extends Model
         'name',
         'brand',
         'plate_number',
+        'chassis_number',
+        'engine_number',
         'color',
         'type',
         'capacity',

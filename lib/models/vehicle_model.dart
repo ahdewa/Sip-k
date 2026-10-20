@@ -61,20 +61,19 @@ class Vehicle {
     return type == VehicleType.mobil ? '2KD-$p-$id' : 'JB51E-$p-$id';
   }
 
-  // Menjamin setiap detail kendaraan memiliki empat slot foto.
+  // Mengembalikan semua foto armada yang tersedia untuk digeser oleh user di katalog
   List<String> get allImages {
     final availableImages = <String>[
-      imageUrl,
-      ...galleryImages.where((image) => image.isNotEmpty && image != imageUrl),
+      if (imageUrl.trim().isNotEmpty) imageUrl.trim(),
+      ...galleryImages.where(
+        (image) => image.trim().isNotEmpty && image.trim() != imageUrl.trim(),
+      ),
     ];
 
     if (availableImages.isEmpty) {
-      return List<String>.filled(4, 'assets/images/logo_sipk.png');
+      return const ['assets/images/logo_sipk.png'];
     }
 
-    return List<String>.generate(
-      4,
-      (index) => availableImages[index % availableImages.length],
-    );
+    return availableImages;
   }
 }

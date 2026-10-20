@@ -54,51 +54,6 @@ class _CatalogScreenState extends State<CatalogScreen> {
     );
   }
 
-  // Chip Indikator Sisa BBM (Bahan Bakar)
-  Widget _buildFuelChip(Vehicle item, bool isDark) {
-    Color bg;
-    Color fg;
-    Color border;
-
-    if (item.fuelPercent >= 75) {
-      bg = isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7);
-      fg = isDark ? const Color(0xFF6EE7B7) : const Color(0xFF15803D);
-      border = isDark ? const Color(0xFF047857) : const Color(0xFF86EFAC);
-    } else if (item.fuelPercent >= 40) {
-      bg = isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7);
-      fg = isDark ? const Color(0xFFFDE68A) : const Color(0xFFB45309);
-      border = isDark ? const Color(0xFFB45309) : const Color(0xFFFCD34D);
-    } else {
-      bg = isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2);
-      fg = isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB91C1C);
-      border = isDark ? const Color(0xFFB91C1C) : const Color(0xFFFCA5A5);
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: border, width: 0.8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.local_gas_station_rounded, size: 12, color: fg),
-          const SizedBox(width: 4),
-          Text(
-            '${item.fuelDisplay} • ${item.fuelType}',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: fg,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // Chip Indikator Transmisi (Matic / Manual)
   Widget _buildTransmissionChip(String transmission, bool isDark) {
     final bg = isDark ? const Color(0xFF1E3A8A) : const Color(0xFFEFF6FF);
@@ -537,12 +492,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                         ),
                                         const SizedBox(height: 8),
 
-                                        // CHIP KECIL INDIKATOR: Sisa BBM, Transmisi, dan Odometer
+                                        // CHIP KECIL INDIKATOR: Transmisi dan Odometer
                                         Wrap(
                                           spacing: 6,
                                           runSpacing: 6,
                                           children: [
-                                            _buildFuelChip(item, isDark),
                                             _buildTransmissionChip(item.transmission, isDark),
                                             _buildOdometerChip(item.currentOdometer, isDark),
                                           ],

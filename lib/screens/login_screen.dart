@@ -527,16 +527,44 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 18),
 
                     const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
-                    const Text(
-                      'Dinas Sosial Provinsi Jawa Timur',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.copyright_rounded,
+                          size: 13,
+                          color: Color(0xFF94A3B8),
+                        ),
+                        const SizedBox(width: 4),
+                        RichText(
+                          textAlign: TextAlign.center,
+                          text: const TextSpan(
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: Color(0xFF64748B),
+                              letterSpacing: 0.25,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: '2026 ',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              TextSpan(text: '• Created by '),
+                              TextSpan(
+                                text: 'DDR',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF24487A),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -32,8 +32,9 @@ class AdminMobileDrawer extends StatelessWidget {
       visualDensity: VisualDensity.compact,
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 0),
       selected: isSelected,
-      selectedTileColor:
-          isDark ? const Color(0xFF334155) : const Color(0xFFEFF6FF),
+      selectedTileColor: isDark
+          ? const Color(0xFF334155)
+          : const Color(0xFFEFF6FF),
       leading: Icon(
         icon,
         size: 19,
@@ -64,13 +65,14 @@ class AdminMobileDrawer extends StatelessWidget {
     final isDark = ThemeService.isDarkMode;
     final items = <(int, IconData, String)>[
       (0, Icons.grid_view_rounded, 'Dashboard'),
-      (1, Icons.description_rounded, 'Berkas Loan'),
+      (1, Icons.description_rounded, 'Berkas'),
       (2, Icons.calendar_month_rounded, 'Jadwal Kalender'),
       if (isSuperAdmin) (3, Icons.directions_car_rounded, 'Katalog Armada'),
       if (isSuperAdmin) (4, Icons.manage_accounts_rounded, 'Kelola Admin'),
       (isSuperAdmin ? 5 : 3, Icons.people_alt_rounded, 'Kelola Pegawai'),
-      if (isSuperAdmin) (6, Icons.bar_chart_rounded, 'Laporan'),
-      (isSuperAdmin ? 7 : 4, Icons.insights_rounded, 'Performa'),
+      (isSuperAdmin ? 6 : 4, Icons.badge_rounded, 'Kelola Driver'),
+      if (isSuperAdmin) (7, Icons.bar_chart_rounded, 'Laporan'),
+      (isSuperAdmin ? 8 : 5, Icons.insights_rounded, 'Performa'),
     ];
 
     return SafeArea(
@@ -127,9 +129,15 @@ class AdminMobileDrawer extends StatelessWidget {
                   children: [
                     // Switch Mode Terang / Gelap
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 4,
+                      ),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: isDark
                               ? const Color(0xFF0F172A)
@@ -222,21 +230,21 @@ class AdminMobileDrawer extends StatelessWidget {
                           radius: 15,
                           backgroundColor: isSuperAdmin
                               ? (isDark
-                                  ? const Color(0xFF78350F)
-                                  : const Color(0xFFFEF3C7))
+                                    ? const Color(0xFF78350F)
+                                    : const Color(0xFFFEF3C7))
                               : (isDark
-                                  ? const Color(0xFF334155)
-                                  : const Color(0xFFE2E8F0)),
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFE2E8F0)),
                           child: Icon(
                             Icons.person,
                             size: 16,
                             color: isSuperAdmin
                                 ? (isDark
-                                    ? const Color(0xFFFBBF24)
-                                    : const Color(0xFFD97706))
+                                      ? const Color(0xFFFBBF24)
+                                      : const Color(0xFFD97706))
                                 : (isDark
-                                    ? Colors.white
-                                    : const Color(0xFF1E293B)),
+                                      ? Colors.white
+                                      : const Color(0xFF1E293B)),
                           ),
                         ),
                         const SizedBox(width: 10),

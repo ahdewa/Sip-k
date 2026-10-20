@@ -43,7 +43,7 @@ class VehicleReturnDialog {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Formulir BAST Pengembalian',
+                          'Formulir Pengembalian Armada',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -171,7 +171,7 @@ class VehicleReturnDialog {
                           loan,
                           0,
                           '-',
-                          'Peminjaman selesai diproses melalui BAST pengembalian unit.',
+                          'Peminjaman selesai diproses dan unit diterima di pool.',
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -184,7 +184,7 @@ class VehicleReturnDialog {
                         elevation: 0,
                       ),
                       child: const Text(
-                        'Simpan BAST & Terima Unit',
+                        'Konfirmasi & Terima Unit',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),

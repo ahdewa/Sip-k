@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:simodis_jatim/models/driver_model.dart';
 import 'package:simodis_jatim/models/loan_model.dart';
 import 'package:simodis_jatim/models/notification_model.dart';
 import 'package:simodis_jatim/models/user_model.dart';
@@ -18,6 +19,10 @@ class ApiService {
   static List<AppUser>? _cachedUsers;
   static DateTime? _cachedUsersTime;
   static const Duration _usersTtl = Duration(seconds: 60);
+
+  static List<Driver>? _cachedDrivers;
+  static DateTime? _cachedDriversTime;
+  static const Duration _driversTtl = Duration(seconds: 30);
 
   static UserProfile? _cachedProfile;
   static DateTime? _cachedProfileTime;
@@ -38,10 +43,16 @@ class ApiService {
     _cachedProfileTime = null;
   }
 
+  static void invalidateDriversCache() {
+    _cachedDrivers = null;
+    _cachedDriversTime = null;
+  }
+
   static void clearAllCache() {
     invalidateVehiclesCache();
     invalidateUsersCache();
     invalidateProfileCache();
+    invalidateDriversCache();
   }
 
   static Map<String, String> get _headers {
@@ -177,8 +188,9 @@ class ApiService {
               imageUrl: item['image_url'] ?? 'assets/images/logo_sipk.png',
               galleryImages: (item['gallery_images'] as List?)
                       ?.map((e) => e.toString())
+                      .where((e) => e.trim().isNotEmpty)
                       .toList() ??
-                  const ['assets/images/logo_sipk.png'],
+                  const [],
               status: vStatus,
               chassisNumber: item['chassis_number']?.toString() ?? item['nomor_rangka']?.toString(),
               engineNumber: item['engine_number']?.toString() ?? item['nomor_mesin']?.toString(),
@@ -210,6 +222,8 @@ class ApiService {
         'name': vehicle.name,
         'brand': vehicle.brand,
         'plate_number': vehicle.plateNumber,
+        'chassis_number': vehicle.chassisNumber,
+        'engine_number': vehicle.engineNumber,
         'color': vehicle.color,
         'type': vehicle.type == VehicleType.motor ? 'motor' : 'mobil',
         'capacity': vehicle.capacity,
@@ -220,6 +234,7 @@ class ApiService {
         'condition_note': vehicle.conditionNote,
         'status': statusStr,
         'image_url': vehicle.imageUrl,
+        'gallery_images': vehicle.galleryImages,
       };
 
       final res = await _client.post(
@@ -231,6 +246,7 @@ class ApiService {
         invalidateVehiclesCache();
         return true;
       }
+      debugPrint('ApiService.createVehicle failed: ${res.statusCode} ${res.body}');
       return false;
     } catch (e) {
       debugPrint('ApiService.createVehicle error: $e');
@@ -252,6 +268,8 @@ class ApiService {
         'name': vehicle.name,
         'brand': vehicle.brand,
         'plate_number': vehicle.plateNumber,
+        'chassis_number': vehicle.chassisNumber,
+        'engine_number': vehicle.engineNumber,
         'color': vehicle.color,
         'type': vehicle.type == VehicleType.motor ? 'motor' : 'mobil',
         'capacity': vehicle.capacity,
@@ -262,6 +280,7 @@ class ApiService {
         'condition_note': vehicle.conditionNote,
         'status': statusStr,
         'image_url': vehicle.imageUrl,
+        'gallery_images': vehicle.galleryImages,
       };
 
       final res = await _client.put(
@@ -273,6 +292,7 @@ class ApiService {
         invalidateVehiclesCache();
         return true;
       }
+      debugPrint('ApiService.updateVehicle failed: ${res.statusCode} ${res.body}');
       return false;
     } catch (e) {
       debugPrint('ApiService.updateVehicle error: $e');
@@ -950,5 +970,106 @@ class ApiService {
       debugPrint('ApiService.fetchNews error: $e');
     }
     return null;
+  }
+
+  // ─── DRIVERS (PENGEMUDI / SUPIR DINAS) ─────────────────────────
+
+  static List<Driver> get cachedDrivers => _cachedDrivers ?? [];
+
+  static Future<List<Driver>> fetchDrivers({bool forceRefresh = false, String? status}) async {
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        status == null &&
+        _cachedDrivers != null &&
+        _cachedDriversTime != null &&
+        now.difference(_cachedDriversTime!) < _driversTtl) {
+      return _cachedDrivers!;
+    }
+
+    try {
+      final uri = Uri.parse('${ApiConfig.baseUrl}/drivers').replace(
+        queryParameters: status != null ? {'status': status} : null,
+      );
+      final res = await _client.get(uri, headers: _headers);
+
+      if (res.statusCode == 200) {
+        String cleanBody = res.body;
+        if (cleanBody.startsWith('\uFEFF')) {
+          cleanBody = cleanBody.substring(1);
+        }
+        final body = jsonDecode(cleanBody);
+        if (body['status'] == 'success') {
+          final List list = body['data'] ?? [];
+          final drivers = list.map((item) => Driver.fromJson(item)).toList();
+          if (status == null) {
+            _cachedDrivers = drivers;
+            _cachedDriversTime = now;
+          }
+          return drivers;
+        }
+      }
+    } catch (e) {
+      debugPrint('ApiService.fetchDrivers error: $e');
+    }
+    return _cachedDrivers ?? [];
+  }
+
+  static Future<bool> createDriver(Driver driver) async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/drivers');
+      final res = await _client.post(
+        url,
+        headers: _headers,
+        body: jsonEncode(driver.toJson()),
+      );
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        invalidateDriversCache();
+        return true;
+      }
+      debugPrint('ApiService.createDriver failed [${res.statusCode}]: ${res.body}');
+      return false;
+    } catch (e) {
+      debugPrint('ApiService.createDriver error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> updateDriver(Driver driver) async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/drivers/${driver.id}');
+      final res = await _client.put(
+        url,
+        headers: _headers,
+        body: jsonEncode(driver.toJson()),
+      );
+
+      if (res.statusCode == 200) {
+        invalidateDriversCache();
+        return true;
+      }
+      debugPrint('ApiService.updateDriver failed [${res.statusCode}]: ${res.body}');
+      return false;
+    } catch (e) {
+      debugPrint('ApiService.updateDriver error: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteDriver(String id) async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/drivers/$id');
+      final res = await _client.delete(url, headers: _headers);
+
+      if (res.statusCode == 200) {
+        invalidateDriversCache();
+        return true;
+      }
+      debugPrint('ApiService.deleteDriver failed [${res.statusCode}]: ${res.body}');
+      return false;
+    } catch (e) {
+      debugPrint('ApiService.deleteDriver error: $e');
+      return false;
+    }
   }
 }

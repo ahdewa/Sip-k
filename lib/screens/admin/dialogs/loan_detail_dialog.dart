@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:simodis_jatim/models/loan_model.dart';
+import 'package:simodis_jatim/services/api_service.dart';
 import 'package:simodis_jatim/services/file_saver_helper.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
 import 'package:simodis_jatim/widgets/app_image.dart';
@@ -433,9 +434,17 @@ class LoanDetailDialog {
       context: context,
       builder: (ctx) {
         bool currentWithDriver = loan.withDriver;
+        final availableDriverList = ApiService.cachedDrivers.isNotEmpty
+            ? ApiService.cachedDrivers.map((d) => {
+                  'name': d.name,
+                  'detail':
+                      '${d.notes.isNotEmpty ? d.notes : "Driver Pool"} • ${d.simType} • ${d.statusLabel}',
+                }).toList()
+            : kAvailableDrivers;
+
         String currentDriver = loan.driverName ??
-            (kAvailableDrivers.isNotEmpty
-                ? kAvailableDrivers.first['name']!
+            (availableDriverList.isNotEmpty
+                ? availableDriverList.first['name']!
                 : 'Pak Sugeng Riyadi');
 
         return StatefulBuilder(
@@ -755,9 +764,9 @@ class LoanDetailDialog {
                       if (currentWithDriver) ...[
                         const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
-                          initialValue: kAvailableDrivers.any((d) => d['name'] == currentDriver)
+                          initialValue: availableDriverList.any((d) => d['name'] == currentDriver)
                               ? currentDriver
-                              : kAvailableDrivers.first['name'],
+                              : availableDriverList.first['name'],
                           isExpanded: true,
                           isDense: true,
                           dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -799,7 +808,7 @@ class LoanDetailDialog {
                             ),
                           ),
                           selectedItemBuilder: (context) {
-                            return kAvailableDrivers.map((driver) {
+                            return availableDriverList.map((driver) {
                               return Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
@@ -815,7 +824,7 @@ class LoanDetailDialog {
                               );
                             }).toList();
                           },
-                          items: kAvailableDrivers.map((driver) {
+                          items: availableDriverList.map((driver) {
                             return DropdownMenuItem<String>(
                               value: driver['name'],
                               child: Padding(

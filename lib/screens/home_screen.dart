@@ -111,7 +111,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _onTabChanged(int index) {
     setState(() => _currentIndex = index);
-    if (index == 3) {
+    if (index == 1) {
+      // Refresh katalog armada saat membuka tab Catalog
+      _loadDataFromApi();
+    } else if (index == 3) {
       // Refresh notifikasi seketika saat user membuka tab Notifikasi
       _pollActiveData();
     }
@@ -124,7 +127,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           a[i].status != b[i].status ||
           a[i].currentOdometer != b[i].currentOdometer ||
           a[i].fuelPercent != b[i].fuelPercent ||
-          a[i].imageUrl != b[i].imageUrl) {
+          a[i].imageUrl != b[i].imageUrl ||
+          a[i].galleryImages.length != b[i].galleryImages.length) {
         return false;
       }
     }
@@ -234,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   /// Fitur Otomatis Selesai 23:59:
   /// Jika waktu saat ini sudah melewati pukul 23:59 WIB pada tanggal akhir penugasan,
   /// sistem secara otomatis mengubah status peminjaman menjadi Selesai dan mengembalikan
-  /// armada ke status Tersedia / Available untuk hari berikutnya tanpa harus menunggu admin klik BAST.
+  /// armada ke status Tersedia / Available untuk hari berikutnya tanpa harus menunggu konfirmasi pengembalian.
   void _autoCompleteExpiredLoans() {
     final now = DateTime.now();
     bool changed = false;
@@ -575,7 +579,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       submittedAt: DateTime(2026, 9, 2, 9, 15),
     ),
 
-    // 2. DATA SUDAH DISETUJUI & SEDANG BERDINAS (Masuk Tab 2: Aktif / BAST)
+    // 2. DATA SUDAH DISETUJUI & SEDANG BERDINAS (Masuk Tab 2: Aktif / Digunakan)
     LoanRequest(
       id: 'REQ-2026-0831-010',
       borrowerName: 'Bambang Triyono, S.ST',
@@ -607,7 +611,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       spkNumber: 'ND-5519/DINSOS/2026',
     ),
 
-    // 3. DATA SELESAI / PENGEMBALIAN BAST (Masuk Tab 3: Riwayat Selesai)
+    // 3. DATA SELESAI / PENGEMBALIAN (Masuk Tab 3: Riwayat Selesai)
     LoanRequest(
       id: 'REQ-2026-0828-004',
       borrowerName: 'Agus Setiawan, A.Md',
@@ -743,7 +747,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       fullDate: '31 Agustus 2026, 13:00 WIB',
       createdAt: DateTime(2026, 8, 31, 13),
       detailContent:
-          'Mohon pastikan tangki bahan bakar telah terisi sesuai kondisi saat pengambilan awal dan catat odometer terakhir pada formulir BAST pengembalian.',
+          'Mohon pastikan tangki bahan bakar telah terisi sesuai kondisi saat pengambilan awal dan unit telah diparkir di pool dinas.',
       referenceNumber: 'REM-2026/08/3341',
       type: NotificationType.reminder,
       isRead: false,
@@ -764,7 +768,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ),
     AppNotification(
       id: '7',
-      title: 'Berita Acara Serah Terima (BAST) Selesai',
+      title: 'Pengembalian Armada Selesai',
       message:
           'Pengembalian Toyota Innova Reborn (L 1023 SP) telah diverifikasi oleh petugas pool kendaraan.',
       time: '29 Ags 2026',
@@ -772,7 +776,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       createdAt: DateTime(2026, 8, 29, 17, 30),
       detailContent:
           'Kondisi fisik unit dinilai lengkap, tangki BBM penuh, dan odometer akhir tercatat 45.200 KM. Riwayat transaksi peminjaman telah berstatus Selesai.',
-      referenceNumber: 'BAST-2026-0829-04',
+      referenceNumber: 'RET-2026-0829-04',
       type: NotificationType.approved,
       isRead: false,
     ),
@@ -851,14 +855,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ),
     AppNotification(
       id: 'ADM-003',
-      title: 'Pengembalian Unit & BAST Masuk',
+      title: 'Pengembalian Unit Masuk',
       message:
-          'Bambang Triyono telah menyelesaikan perjalanan dinas dengan Isuzu Elf Minibus. Menunggu cek fisik & BAST.',
+          'Bambang Triyono telah menyelesaikan perjalanan dinas dengan Isuzu Elf Minibus. Menunggu cek fisik unit di pool.',
       time: '2 jam lalu',
       fullDate: '10 September 2026, 09:15 WIB',
       detailContent:
-          'Unit telah diparkir di Pool Dinsos Jatim. Pengemudi melaporkan BBM 3/4 tangki, odometer akhir 45.200 KM, dan melampirkan formulir BAST serah terima kunci.',
-      referenceNumber: 'BAST-2026-0902',
+          'Unit telah diparkir di Pool Dinsos Jatim. Pengemudi melaporkan BBM 3/4 tangki, odometer akhir 45.200 KM, dan telah menyerahkan kunci kontak.',
+      referenceNumber: 'RET-2026-0902',
       createdAt: DateTime.now().subtract(const Duration(hours: 2)),
       type: NotificationType.approved,
       isRead: false,
@@ -1272,7 +1276,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         onAddVehicle: (newV) async {
           setState(() => _vehicles.add(newV));
           await ApiService.createVehicle(newV);
-          final fresh = await ApiService.fetchVehicles();
+          final fresh = await ApiService.fetchVehicles(forceRefresh: true);
           if (fresh != null && mounted) setState(() => _vehicles = fresh);
         },
         onUpdateVehicle: (updV) async {
@@ -1283,10 +1287,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             }
           });
           await ApiService.updateVehicle(updV);
+          final fresh = await ApiService.fetchVehicles(forceRefresh: true);
+          if (fresh != null && mounted) setState(() => _vehicles = fresh);
         },
         onDeleteVehicle: (id) async {
           setState(() => _vehicles.removeWhere((v) => v.id == id));
           await ApiService.deleteVehicle(id);
+          final fresh = await ApiService.fetchVehicles(forceRefresh: true);
+          if (fresh != null && mounted) setState(() => _vehicles = fresh);
         },
         notifications: _adminNotifications,
         onRefresh: _handleRefresh,

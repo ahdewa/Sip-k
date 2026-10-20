@@ -131,7 +131,7 @@ class NotificationDetailScreen extends StatelessWidget {
         icon = Icons.lightbulb_rounded;
         title = 'Ketentuan Operasional Dinsos Jatim';
         content =
-            'Gunakan selalu armada dinas untuk kepentingan kedinasan resmi Pemprov Jawa Timur. Laporkan sisa BBM dan angka kilometer akhir pada lembar pengembalian BAST.';
+            'Gunakan selalu armada dinas untuk kepentingan kedinasan resmi Pemprov Jawa Timur. Laporkan sisa BBM dan angka kilometer akhir saat mengembalikan armada ke pool.';
         break;
     }
 

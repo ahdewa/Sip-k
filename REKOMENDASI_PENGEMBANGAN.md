@@ -16,7 +16,7 @@ Berikut adalah daftar rekomendasi fitur antarmuka (Front-End) yang perlu ditamba
   2. `Disetujui Kasubag` (Penerbitan Nomor SPK)
   3. `Pengambilan Kunci & Unit` (Penyerahan Kendaraan di Pool)
   4. `Sedang Bertugas / Berdinas`
-  5. `Pemeriksaan Fisik & BAST Selesai` (Pengembalian Sukses)
+  5. `Pemeriksaan Unit & Selesai` (Pengembalian Sukses)
 - **Manfaat**: Pegawai/pemohon dapat mengetahui secara instan posisi permohonannya tanpa harus bolak-balik bertanya ke bagian perlengkapan/Kasubag.
 
 ---
@@ -31,8 +31,8 @@ Berikut adalah daftar rekomendasi fitur antarmuka (Front-End) yang perlu ditamba
 
 ---
 
-### 3. Digital BAST & Checklist Inspeksi Fisik Kendaraan (Foto 4 Sisi)
-- **Deskripsi**: Formulir digital saat serah terima kunci dan pengembalian kendaraan.
+### 3. Checklist Inspeksi Fisik Kendaraan & Pengembalian Unit (Foto 4 Sisi)
+- **Deskripsi**: Formulir digital saat pengembalian kendaraan dan serah terima kunci ke pool.
 - **Komponen UI**:
   - Slot upload **Foto 4 Sisi Kendaraan** (Depan, Belakang, Sisi Kanan, Sisi Kiri) menggunakan kamera ponsel atau galeri.
   - Indikator slider visual untuk **Sisa Bahan Bakar (BBM)** (E, 1/4, 1/2, 3/4, Full).

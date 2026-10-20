@@ -104,7 +104,7 @@ class AdminDashboardTab extends StatelessWidget {
             builder: (context, constraints) {
               final cards = [
                 AdminStatCard(
-                  title: 'BAST Selesai',
+                  title: 'Unit Kembali',
                   value: completedCount.toString(),
                   sub: 'Total Riwayat',
                   icon: Icons.assignment_turned_in_rounded,
@@ -166,7 +166,7 @@ class AdminDashboardTab extends StatelessWidget {
                 ),
                 Divider(height: 24, color: dividerColor),
                 const AdminLogItem(
-                  title: 'BAST Masuk',
+                  title: 'Pengembalian Masuk',
                   desc: 'Pengembalian Unit Mitsubishi Pajero (L 4444 AS)',
                   time: '1 Jam lalu',
                   icon: Icons.assignment_returned_outlined,

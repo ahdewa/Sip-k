@@ -278,7 +278,7 @@ class AdminSidebar extends StatelessWidget {
                 child: Column(
                   children: [
                     _buildSidebarItem(0, Icons.grid_view_rounded, 'Dashboard', isDark),
-                    _buildSidebarItem(1, Icons.description_rounded, 'Berkas Loan', isDark),
+                    _buildSidebarItem(1, Icons.description_rounded, 'Berkas', isDark),
                     _buildSidebarItem(
                       2,
                       Icons.calendar_month_rounded,
@@ -305,15 +305,21 @@ class AdminSidebar extends StatelessWidget {
                       'Kelola Pegawai',
                       isDark,
                     ),
+                    _buildSidebarItem(
+                      isSuperAdmin ? 6 : 4,
+                      Icons.badge_rounded,
+                      'Kelola Driver',
+                      isDark,
+                    ),
                     if (isSuperAdmin)
                       _buildSidebarItem(
-                        6,
+                        7,
                         Icons.bar_chart_rounded,
                         'Laporan',
                         isDark,
                       ),
                     _buildSidebarItem(
-                      isSuperAdmin ? 7 : 4,
+                      isSuperAdmin ? 8 : 5,
                       Icons.insights_rounded,
                       'Performa',
                       isDark,

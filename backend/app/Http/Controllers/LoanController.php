@@ -402,10 +402,10 @@ class LoanController extends Controller
             }
         }
 
-        // Notifikasi BAST Selesai di DB
+        // Notifikasi Pengembalian Selesai di DB
         AppNotification::create([
             'user_id' => $targetUserId,
-            'title' => 'Peminjaman Selesai (BAST Terbit)',
+            'title' => 'Peminjaman Selesai (Unit Kembali)',
             'message' => "Unit {$loan->vehicle_name} telah selesai digunakan dan dikembalikan ke pool kendaraan. Terima kasih.",
             'reference_number' => $loan->id,
             'type' => 'returned',
@@ -417,7 +417,7 @@ class LoanController extends Controller
             if (!empty($targetUserId)) {
                 FirebaseService::sendToUser(
                     $targetUserId,
-                    'Peminjaman Selesai (BAST Terbit)',
+                    'Peminjaman Selesai (Unit Kembali)',
                     "Unit {$loan->vehicle_name} telah berhasil dikembalikan.",
                     ['type' => 'returned', 'loan_id' => (string)$loan->id]
                 );

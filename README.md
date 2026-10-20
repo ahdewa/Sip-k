@@ -40,7 +40,7 @@ Sistem ini mentransformasi birokrasi manual berbasis formulir fisik menjadi alur
 1. **Pengajuan Kedinasan Mandiri**: Pegawai mengajukan unit kendaraan secara langsung, memilih jadwal, melampirkan berkas foto SIM, serta mengunggah surat usulan dinas (PDF/Gambar).
 2. **Verifikasi & Persetujuan Kasubag Umum / TU**: Pemeriksaan keabsahan dokumen, pengecekan jadwal bebas-benturan secara otomatis, penerbitan nomor Surat Perintah Kerja (SPK) otomatis, atau penolakan dengan catatan resmi.
 3. **Dual Pratinjau & Pengunduhan Dokumen**: Dukungan pratinjau langsung berkas PDF asli yang diunggah pemohon serta opsi format lembar Nota Dinas standar Pemprov Jatim, dilengkapi penyimpanan otomatis ke folder *Download/OVBS*.
-4. **Pelaporan Berita Acara Serah Terima (BAST)**: Pencatatan kilometer akhir (odometer), level sisa BBM, dan catatan fisik saat kendaraan kembali ke pool.
+4. **Pengembalian Armada Praktis & Tepat Waktu**: Pengembalian unit kendaraan dan kunci kontak ke pool tepat waktu tanpa perlu mengisi formulir BAST bagi pegawai peminjam.
 
 ---
 
@@ -55,7 +55,7 @@ Sistem ini mentransformasi birokrasi manual berbasis formulir fisik menjadi alur
   * Fitur perbesar (*zoom*), navigasi halaman, pencarian, dan unduh otomatis ke penyimpanan perangkat (`Download/OVBS/`).
 * 🔔 **Notifikasi Real-time Terpersonalisasi**: Pegawai hanya menerima notifikasi khusus yang berkaitan dengan pengajuannya (*Diajukan*, *Disetujui*, *Ditolak*, atau *Pemberitahuan Umum*).
 * 📰 **Berita & Pengumuman Kedinasan**: Menampilkan informasi, kegiatan, dan surat edaran resmi dari pimpinan Dinas Sosial Jatim.
-* 📜 **Riwayat Pengajuan & BAST Mandiri**: Pemantauan status permohonan dinas serta input mandiri laporan pengembalian unit saat armada kembali.
+* 📜 **Riwayat Pengajuan & Pelacakan Status**: Pemantauan status permohonan dinas secara transparan hingga status perjalanan selesai saat armada dikembalikan ke pool (tanpa kewajiban pengisian form BAST oleh pegawai).
 
 ### 🛡️ 2. Portal Kasubag Tata Usaha & Super Administrator
 * 📋 **Verifikasi Berkas & Pengecekan Tabrakan Jadwal**: Pemeriksaan foto SIM dan pratinjau dokumen usulan pemohon dengan sistem deteksi benturan jadwal antar peminjam.
@@ -142,7 +142,7 @@ flowchart LR
         UC_UploadDoc(["📎 Unggah Foto SIM & Surat Usulan PDF"])
         UC_Notif(["🔔 Terima Notifikasi Real-time (Sesuai Role)"])
         UC_PrintND(["📄 Pratinjau & Cetak Dokumen / Nota Dinas"])
-        UC_Return(["📋 Lapor Pengembalian Armada (BAST)"])
+        UC_Return(["🔄 Pengembalian Armada & Kunci ke Pool"])
         UC_Profile(["👤 Kelola Profil & Hubungi Helpdesk WA"])
 
         UC_Verify(["📋 Verifikasi Dokumen & Pengecekan Jadwal"])
@@ -212,7 +212,7 @@ flowchart LR
 | 4 | **Pengajuan Peminjaman & Unggah SIM/PDF** | ✅ | ❌ | ❌ |
 | 5 | **Notifikasi Real-time Terpersonalisasi** | ✅ *(Permohonan Sendiri)* | ✅ *(Semua Usulan Masuk)* | ✅ *(Semua Aktivitas)* |
 | 6 | **Pratinjau PDF Asli & Cetak Nota Dinas** | ✅ | ✅ | ✅ |
-| 7 | **Pelaporan Pengembalian Armada & BAST** | ✅ | ✅ | ✅ |
+| 7 | **Pengembalian Armada & Selesai** | ✅ | ✅ | ✅ |
 | 8 | **Verifikasi Usulan & Persetujuan/Penolakan SPK** | ❌ | ✅ | ✅ |
 | 9 | **Kalender Jadwal Operasional Seluruh Armada** | ❌ | ✅ | ✅ |
 | 10 | **Pembaruan Status Kendaraan (Tersedia/Servis)** | ❌ | ✅ | ✅ |
@@ -317,44 +317,40 @@ flowchart TD
 
 ---
 
-### 2. Siklus Pengembalian Kendaraan & Pelaporan BAST
+### 2. Siklus Pengembalian Kendaraan & Penyelesaian Tugas
 
 ```mermaid
 flowchart TD
     subgraph LANE_P2["👤 Swimlane: Pegawai (Peminjam)"]
         node_start2((●))
         act_ret_p1["Tiba Kembali di Pool Kendaraan Dinas"]
-        act_ret_p2["Buka Riwayat Peminjaman & Menu Lapor Pengembalian"]
-        act_ret_p3["Input Kilometer Akhir, Sisa BBM (%), & Catatan Fisik"]
-        act_ret_p4["Kirim Laporan Pengembalian (BAST)"]
+        act_ret_p2["Serahkan Unit Kendaraan, Kunci Kontak & STNK ke Petugas"]
+        act_ret_p3["Selesai"]
         node_end_ret(((◉)))
     end
 
     subgraph LANE_S2["💻 Swimlane: Sistem SIP-K / Backend"]
-        act_ret_s1["Validasi Catatan Odometer & Bahan Bakar"]
-        act_ret_s2["Perbarui Status Pinjaman: Selesai & Terbitkan BAST"]
+        act_ret_s1["Pencatatan Odometer & Kondisi Fisik oleh Petugas"]
+        act_ret_s2["Perbarui Status Pinjaman: Selesai"]
         act_ret_s3["Perbarui Status Armada: Tersedia Kembali di Katalog"]
-        act_ret_s4["Kirim Push Notification Serah Terima ke Kasubag"]
+        act_ret_s4["Kirim Notifikasi Penyelesaian ke Pegawai & Admin"]
     end
 
     subgraph LANE_A2["🛡️ Swimlane: Kasubag TU / Petugas Pool"]
-        act_ret_a1["Pemeriksaan Fisik Akhir Kendaraan di Pool"]
-        act_ret_a2["Penerimaan Kunci Kontak, STNK, & Konfirmasi BAST"]
+        act_ret_a1["Pemeriksaan Fisik Akhir & Odometer Kendaraan di Pool"]
+        act_ret_a2["Penerimaan Kunci Kontak & Konfirmasi Selesai di Sistem"]
     end
 
     node_start2 --> act_ret_p1
     act_ret_p1 --> act_ret_p2
-    act_ret_p2 --> act_ret_p3
-    act_ret_p3 --> act_ret_p4
-    act_ret_p4 --> act_ret_s1
-
+    act_ret_p2 --> act_ret_a1
+    act_ret_a1 --> act_ret_a2
+    act_ret_a2 --> act_ret_s1
     act_ret_s1 --> act_ret_s2
     act_ret_s2 --> act_ret_s3
     act_ret_s3 --> act_ret_s4
-
-    act_ret_s4 --> act_ret_a1
-    act_ret_a1 --> act_ret_a2
-    act_ret_a2 --> node_end_ret
+    act_ret_s4 --> act_ret_p3
+    act_ret_p3 --> node_end_ret
 
     classDef startNode fill:#0284C7,stroke:#0369A1,stroke-width:2px,color:#fff;
     classDef endNode fill:#475569,stroke:#0F172A,stroke-width:2px,color:#fff;
@@ -363,7 +359,7 @@ flowchart TD
 
     class node_start2 startNode;
     class node_end_ret endNode;
-    class act_ret_p1,act_ret_p2,act_ret_p3,act_ret_p4,act_ret_a1,act_ret_a2 activity;
+    class act_ret_p1,act_ret_p2,act_ret_p3,act_ret_a1,act_ret_a2 activity;
     class act_ret_s1,act_ret_s2,act_ret_s3,act_ret_s4 system;
 ```
 
@@ -450,7 +446,7 @@ flowchart TD
     P2(("2.0<br/>Pengelolaan Master<br/>Armada Kendaraan"))
     P3(("3.0<br/>Pengajuan Usulan<br/>Peminjaman Dinas"))
     P4(("4.0<br/>Verifikasi Usulan &<br/>Penerbitan SPK"))
-    P5(("5.0<br/>Pelaporan Pengembalian<br/>& Terbit BAST"))
+    P5(("5.0<br/>Penyelesaian &<br/>Pengembalian Armada"))
     P6(("6.0<br/>Publikasi Berita &<br/>Pengumuman Dinas"))
     P7(("7.0<br/>Layanan Notifikasi<br/>& Sinkronisasi Push"))
 
@@ -488,12 +484,12 @@ flowchart TD
     P4 -->|"Pemicu Notifikasi Hasil Verifikasi"| P7
     P4 -->|"Lembar Nota Dinas & SPK Cetak"| E1
 
-    %% Aliran Proses 5.0 (Pengembalian & BAST)
-    E1 -->|"Laporan KM Akhir, BBM & Catatan Fisik"| P5
+    %% Aliran Proses 5.0 (Pengembalian Armada)
+    E1 -->|"Serah Terima Unit Fisik & Kunci Kontak"| P5
     P5 -->|"Update Status Selesai & Data Pengembalian"| D3
     P5 -->|"Kembalikan Status Armada: Tersedia"| D2
-    P5 -->|"Pemicu Notifikasi Pengembalian Unit"| P7
-    P5 -->|"Konfirmasi Serah Terima BAST Fisik"| E2
+    P5 -->|"Pemicu Notifikasi Pengembalian Selesai"| P7
+    P5 -->|"Konfirmasi Serah Terima Fisik oleh Petugas"| E2
 
     %% Aliran Proses 6.0 (Berita Kedinasan)
     E3 -->|"Konten Berita, Foto & Pengumuman"| P6

@@ -195,7 +195,7 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
         break;
       case LoanStatus.selesai:
         badgeColor = const Color(0xFF2563EB);
-        statusLabel = 'Selesai (BAST)';
+        statusLabel = 'Selesai';
         statusIcon = Icons.task_alt_rounded;
         break;
       case LoanStatus.ditolak:
@@ -358,7 +358,7 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
                           ),
                           SizedBox(width: 6),
                           Text(
-                            'Data Pengembalian Unit (BAST)',
+                            'Data Pengembalian Unit',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -389,7 +389,7 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
                       if (item.returnNotes != null &&
                           item.returnNotes!.isNotEmpty)
                         Text(
-                          '• Catatan BAST: ${item.returnNotes}',
+                          '• Catatan Pengembalian: ${item.returnNotes}',
                           style: TextStyle(
                             fontSize: 11,
                             color: isDark
@@ -645,7 +645,7 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Monitoring utilisasi armada dinas, kepatuhan BAST, dan histori penugasan.',
+                  'Monitoring utilisasi armada dinas, ketepatan pengembalian, dan histori penugasan.',
                   style: TextStyle(
                     fontSize: 11,
                     color: Color(0xFFE2E8F0),
@@ -1486,7 +1486,7 @@ class _AdminReportsTabState extends State<AdminReportsTab> {
         break;
       case LoanStatus.selesai:
         badgeColor = const Color(0xFF2563EB);
-        statusLabel = 'Selesai BAST';
+        statusLabel = 'Selesai';
         statusIcon = Icons.task_alt_rounded;
         break;
       case LoanStatus.ditolak:

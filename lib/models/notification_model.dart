@@ -49,7 +49,7 @@ class AppNotification {
         t.contains('akun baru') ||
         t.contains('pendaftaran akun') ||
         t.contains('rekapitulasi') ||
-        t.contains('bast') ||
+        t.contains('pengembalian') ||
         type == NotificationType.maintenance ||
         m.contains('verifikasi kasubag');
   }

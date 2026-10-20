@@ -33,7 +33,7 @@ class LoanRequest {
   final DateTime submittedAt;
   String? spkNumber;
 
-  // Properti untuk proses pengembalian unit (BAST)
+  // Properti untuk proses pengembalian unit
   dynamic returnOdometer; // Mendukung int maupun String
   dynamic returnFuel; // Mendukung String ("Full", "75%") maupun int
   String? returnNotes;
@@ -173,9 +173,5 @@ const List<Map<String, String>> kAvailableDrivers = [
   {
     'name': 'Pak Eko Wahyudi',
     'detail': 'Driver Patwal & Logistik Bantuan • SIM B1 Umum • Siaga',
-  },
-  {
-    'name': 'Ditugaskan oleh Kasubag Umum / Pool',
-    'detail': 'Alokasi otomatis oleh petugas pengelola pool kendaraan',
   },
 ];

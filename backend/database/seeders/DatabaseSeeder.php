@@ -296,9 +296,9 @@ class DatabaseSeeder extends Seeder
 
         AppNotification::create([
             'user_id' => $pegawai->id,
-            'title' => 'Pengembalian Selesai (BAST Terbit)',
+            'title' => 'Pengembalian Selesai (Unit Kembali)',
             'message' => 'Unit Toyota Innova Reborn 2.4 G telah selesai diperiksa oleh tim aset dan dikembalikan ke pool kendaraan dinas. Terima kasih.',
-            'reference_number' => 'BAST-2026-0829-01',
+            'reference_number' => 'RET-2026-0829-01',
             'type' => 'returned',
             'is_read' => true,
         ]);

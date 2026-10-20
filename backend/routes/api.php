@@ -7,6 +7,7 @@ use App\Http\Controllers\LoanController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\NewsController;
+use App\Http\Controllers\DriverController;
 
 /*
 |--------------------------------------------------------------------------
@@ -42,6 +43,13 @@ Route::get('/users/{id}', [UserController::class, 'show']);
 Route::post('/users', [UserController::class, 'store']);
 Route::put('/users/{id}', [UserController::class, 'update']);
 Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+// Drivers (Pengemudi / Supir Dinas)
+Route::get('/drivers', [DriverController::class, 'index']);
+Route::get('/drivers/{id}', [DriverController::class, 'show']);
+Route::post('/drivers', [DriverController::class, 'store']);
+Route::put('/drivers/{id}', [DriverController::class, 'update']);
+Route::delete('/drivers/{id}', [DriverController::class, 'destroy']);
 
 
 // News (Berita & Pengumuman Dinsos)

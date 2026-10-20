@@ -476,7 +476,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Catatan BAST Pengembalian Unit',
+                          'Catatan Pengembalian Unit',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,

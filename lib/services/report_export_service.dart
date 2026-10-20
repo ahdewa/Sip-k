@@ -90,7 +90,7 @@ class ReportExportService {
         case LoanStatus.digunakan:
           return 'DIGUNAKAN';
         case LoanStatus.selesai:
-          return 'SELESAI (BAST)';
+          return 'SELESAI';
         case LoanStatus.ditolak:
         case LoanStatus.rejected:
           return 'DITOLAK';
@@ -691,7 +691,7 @@ class ReportExportService {
         case LoanStatus.digunakan:
           return 'Digunakan';
         case LoanStatus.selesai:
-          return 'Selesai (BAST)';
+          return 'Selesai';
         case LoanStatus.ditolak:
         case LoanStatus.rejected:
           return 'Ditolak';

@@ -98,7 +98,7 @@ class AdminLoanCard extends StatelessWidget {
       case LoanStatus.selesai:
         badgeBg = isDark ? const Color(0xFF1E3A8A) : const Color(0xFFEFF6FF);
         badgeText = isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8);
-        statusTitle = 'SELESAI (BAST TUNTAS)';
+        statusTitle = 'SELESAI (PENGEMBALIAN TUNTAS)';
         break;
       default:
         badgeBg = isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7);
@@ -305,7 +305,7 @@ class AdminLoanCard extends StatelessWidget {
             ),
           ],
 
-          // FOOTER KARTU AKTIF: PROSES BAST (OPSI SELESAI LEBIH AWAL) & INFO BATAS 23:59
+          // FOOTER KARTU AKTIF: KONFIRMASI PENGEMBALIAN (OPSI SELESAI LEBIH AWAL) & INFO BATAS 23:59
           if (isActive) ...[
             Divider(
               height: 1,
@@ -323,7 +323,7 @@ class AdminLoanCard extends StatelessWidget {
                     color: Colors.white,
                   ),
                   label: const Text(
-                    'Terima Unit & BAST (Selesai Cepat)',
+                    'Terima Unit (Selesai Cepat)',
                     style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
