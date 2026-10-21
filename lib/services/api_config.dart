@@ -6,8 +6,8 @@ class ApiConfig {
   /// - Android Emulator: http://10.0.2.2/sip-k-backend/public/api
   /// - HP Fisik: Ganti dengan IP Wi-Fi Laptop (contoh: http://192.168.1.15/sip-k-backend/public/api)
   static String get baseUrl {
-    // Endpoint Laravel Backend di Laragon Lokal
-    return 'http://sip-k-backend.test/api';
+    // Endpoint Laravel Backend di Azure VM (Domain HTTPS Resmi)
+    return 'https://ovbs.duckdns.org/api';
   }
 
   // Token sesi login yang sedang aktif
