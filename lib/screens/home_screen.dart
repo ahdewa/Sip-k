@@ -19,6 +19,7 @@ import 'package:simodis_jatim/services/notification_permission_service.dart';
 import 'package:simodis_jatim/widgets/app_loading_widgets.dart';
 import 'package:simodis_jatim/services/api_service.dart';
 import 'package:simodis_jatim/services/api_config.dart';
+import 'package:simodis_jatim/services/session_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final String role;
@@ -56,6 +57,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    if (ApiConfig.currentUserProfile != null) {
+      _currentUserProfile = ApiConfig.currentUserProfile!;
+    }
     WidgetsBinding.instance.addObserver(this);
     _loans.sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
     _loadDataFromApi();
@@ -229,6 +233,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final prof = results[4] as UserProfile?;
       if (prof != null) {
         setState(() => _currentUserProfile = prof);
+        SessionService.updateSavedProfile(prof);
       }
     } catch (_) {}
   }
@@ -1298,12 +1303,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         },
         notifications: _adminNotifications,
         onRefresh: _handleRefresh,
-        onLogout: () {
+        onLogout: () async {
           HomeScreen.resetPermissionSession();
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-          );
+          final navigator = Navigator.of(context);
+          await SessionService.clearSession();
+          if (mounted) {
+            navigator.pushReplacement(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            );
+          }
         },
       );
     }

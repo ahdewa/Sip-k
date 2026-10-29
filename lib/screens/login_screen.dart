@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:simodis_jatim/screens/home_screen.dart';
 import 'package:simodis_jatim/widgets/app_loading_widgets.dart';
+import 'package:simodis_jatim/models/user_model.dart';
 import 'package:simodis_jatim/services/api_service.dart';
 import 'package:simodis_jatim/services/api_config.dart';
 import 'package:simodis_jatim/services/fcm_service.dart';
+import 'package:simodis_jatim/services/session_service.dart';
 import 'package:simodis_jatim/services/url_launcher_helper.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -81,6 +83,33 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (targetRole != null && mounted) {
+        if (ApiConfig.currentUserProfile == null) {
+          if (targetRole == 'superadmin') {
+            ApiConfig.currentUserProfile = UserProfile(
+              name: 'Super Administrator',
+              nip: '197001011990031001',
+              position: 'Super Administrator',
+              department: 'Dinas Sosial Provinsi Jawa Timur',
+              email: 'superadmin@dinsos.jatimprov.go.id',
+            );
+          } else if (targetRole == 'admin') {
+            ApiConfig.currentUserProfile = UserProfile(
+              name: 'Ahmad Dewantara, S.STP',
+              nip: '197805122005011004',
+              position: 'Kasubag Tata Usaha & Aset',
+              department: 'Sub Bagian Umum & Perlengkapan',
+              email: 'admin@dinsos.jatimprov.go.id',
+            );
+          } else {
+            ApiConfig.currentUserProfile = UserProfile(
+              name: 'Alamsyah',
+              nip: '199503152020121002',
+              position: 'Staf Pelaksana',
+              department: 'Dinas Sosial Jawa Timur',
+              email: 'alamsyah@dinsos.jatimprov.go.id',
+            );
+          }
+        }
         _showLoginSuccessLoading(targetRole, roleLabel);
       } else if (mounted) {
         setState(() => _isLoading = false);
@@ -120,6 +149,13 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _navigateToHome(String targetRole) {
+    SessionService.saveSession(
+      role: targetRole,
+      token: ApiConfig.authToken,
+      userId: ApiConfig.currentUserId,
+      profile: ApiConfig.currentUserProfile,
+    );
+
     Navigator.pushAndRemoveUntil(
       context,
       PageRouteBuilder(

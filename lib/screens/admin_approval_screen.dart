@@ -17,6 +17,7 @@ import 'package:simodis_jatim/screens/login_screen.dart';
 import 'package:simodis_jatim/screens/notification_screen.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
 import 'package:simodis_jatim/services/api_service.dart';
+import 'package:simodis_jatim/services/session_service.dart';
 
 class AdminApprovalScreen extends StatefulWidget {
   final List<LoanRequest> requests;
@@ -873,13 +874,14 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen>
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        final navigator = Navigator.of(context);
                         Navigator.pop(ctx);
+                        await SessionService.clearSession();
                         if (widget.onLogout != null) {
                           widget.onLogout!();
-                        } else {
-                          Navigator.pushAndRemoveUntil(
-                            context,
+                        } else if (mounted) {
+                          navigator.pushAndRemoveUntil(
                             MaterialPageRoute(
                               builder: (_) => const LoginScreen(),
                             ),

@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:simodis_jatim/screens/home_screen.dart';
 import 'package:simodis_jatim/screens/login_screen.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
 import 'package:simodis_jatim/services/fcm_service.dart';
+import 'package:simodis_jatim/services/session_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await FcmService.initialize();
-  runApp(const SimodisJatimApp());
+  // Muat sesi login yang tersimpan (misal saat browser di-refresh Ctrl + R)
+  final savedRole = await SessionService.loadSavedSession();
+  runApp(SimodisJatimApp(initialRole: savedRole));
 }
 
 class SimodisJatimApp extends StatelessWidget {
-  const SimodisJatimApp({super.key});
+  final String? initialRole;
+
+  const SimodisJatimApp({super.key, this.initialRole});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +36,9 @@ class SimodisJatimApp extends StatelessWidget {
               theme: ThemeService.lightTheme,
               darkTheme: ThemeService.darkTheme,
               themeMode: currentMode,
-              home: const LoginScreen(),
+              home: initialRole != null
+                  ? HomeScreen(role: initialRole!)
+                  : const LoginScreen(),
               // builder menerapkan textScaleFactor ke seluruh widget tree
               // Ini adalah cara paling efektif untuk mengubah ukuran teks global
               builder: (context, child) {

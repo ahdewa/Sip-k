@@ -69,5 +69,29 @@ class UserProfile {
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'nip': nip,
+      'position': position,
+      'department': department,
+      'email': email,
+      'phone': phone,
+      'profileImageUrl': profileImageUrl,
+    };
+  }
+
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      name: json['name'] ?? '',
+      nip: json['nip'] ?? '',
+      position: json['position'] ?? 'Staf Pegawai',
+      department: json['department'] ?? '',
+      email: json['email'] ?? '',
+      phone: json['phone'] ?? '',
+      profileImageUrl: json['profileImageUrl'] ?? json['profile_image_url'],
+    );
+  }
 }
 

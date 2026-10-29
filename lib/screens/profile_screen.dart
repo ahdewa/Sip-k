@@ -10,6 +10,7 @@ import 'package:simodis_jatim/widgets/nota_dinas_dialog.dart';
 import 'package:simodis_jatim/widgets/app_image.dart';
 import 'package:simodis_jatim/services/theme_service.dart';
 import 'package:simodis_jatim/services/api_service.dart';
+import 'package:simodis_jatim/services/session_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   final List<LoanRequest> loans;
@@ -826,12 +827,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('Batal', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
+              final navigator = Navigator.of(context);
               Navigator.pop(ctx);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-              );
+              await SessionService.clearSession();
+              if (mounted) {
+                navigator.pushReplacement(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFDC2626),
